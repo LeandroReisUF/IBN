@@ -1,0 +1,1162 @@
+[
+ {
+  "dente": 28,
+  "vista": "vestibular",
+  "parte": "raiz",
+  "arquivo": "28/28_vestibular_raiz.svg",
+  "x": 440.0,
+  "y": 71.5,
+  "largura": 63.17,
+  "altura": 118.0
+ },
+ {
+  "dente": 28,
+  "vista": "vestibular",
+  "parte": "coroa",
+  "arquivo": "28/28_vestibular_coroa.svg",
+  "x": 440.0,
+  "y": 71.5,
+  "largura": 63.17,
+  "altura": 118.0
+ },
+ {
+  "dente": 28,
+  "vista": "vestibular",
+  "parte": "completo",
+  "arquivo": "28/28_vestibular.svg",
+  "x": 440.0,
+  "y": 71.5,
+  "largura": 63.17,
+  "altura": 118.0
+ },
+ {
+  "dente": 28,
+  "vista": "oclusal",
+  "parte": "coroa",
+  "arquivo": "28/28_oclusal_coroa.svg",
+  "x": 441.67,
+  "y": 184.5,
+  "largura": 59.33,
+  "altura": 67.33
+ },
+ {
+  "dente": 28,
+  "vista": "oclusal",
+  "parte": "completo",
+  "arquivo": "28/28_oclusal.svg",
+  "x": 441.67,
+  "y": 184.5,
+  "largura": 59.33,
+  "altura": 67.33
+ },
+ {
+  "dente": 28,
+  "vista": "palatina",
+  "parte": "raiz",
+  "arquivo": "28/28_palatina_raiz.svg",
+  "x": 440.84,
+  "y": 248.33,
+  "largura": 62.33,
+  "altura": 118.83
+ },
+ {
+  "dente": 28,
+  "vista": "palatina",
+  "parte": "coroa",
+  "arquivo": "28/28_palatina_coroa.svg",
+  "x": 440.84,
+  "y": 248.33,
+  "largura": 62.33,
+  "altura": 118.83
+ },
+ {
+  "dente": 28,
+  "vista": "palatina",
+  "parte": "completo",
+  "arquivo": "28/28_palatina.svg",
+  "x": 440.84,
+  "y": 248.33,
+  "largura": 62.33,
+  "altura": 118.83
+ },
+ {
+  "dente": 27,
+  "vista": "vestibular",
+  "parte": "raiz",
+  "arquivo": "27/27_vestibular_raiz.svg",
+  "x": 365.0,
+  "y": 51.0,
+  "largura": 67.0,
+  "altura": 133.67
+ },
+ {
+  "dente": 27,
+  "vista": "vestibular",
+  "parte": "coroa",
+  "arquivo": "27/27_vestibular_coroa.svg",
+  "x": 365.0,
+  "y": 51.0,
+  "largura": 67.0,
+  "altura": 133.67
+ },
+ {
+  "dente": 27,
+  "vista": "vestibular",
+  "parte": "completo",
+  "arquivo": "27/27_vestibular.svg",
+  "x": 365.0,
+  "y": 51.0,
+  "largura": 67.0,
+  "altura": 133.67
+ },
+ {
+  "dente": 27,
+  "vista": "oclusal",
+  "parte": "coroa",
+  "arquivo": "27/27_oclusal_coroa.svg",
+  "x": 366.0,
+  "y": 180.33,
+  "largura": 62.0,
+  "altura": 68.33
+ },
+ {
+  "dente": 27,
+  "vista": "oclusal",
+  "parte": "completo",
+  "arquivo": "27/27_oclusal.svg",
+  "x": 366.0,
+  "y": 180.33,
+  "largura": 62.0,
+  "altura": 68.33
+ },
+ {
+  "dente": 27,
+  "vista": "palatina",
+  "parte": "raiz",
+  "arquivo": "27/27_palatina_raiz.svg",
+  "x": 364.83,
+  "y": 244.5,
+  "largura": 67.17,
+  "altura": 133.5
+ },
+ {
+  "dente": 27,
+  "vista": "palatina",
+  "parte": "coroa",
+  "arquivo": "27/27_palatina_coroa.svg",
+  "x": 364.83,
+  "y": 244.5,
+  "largura": 67.17,
+  "altura": 133.5
+ },
+ {
+  "dente": 27,
+  "vista": "palatina",
+  "parte": "completo",
+  "arquivo": "27/27_palatina.svg",
+  "x": 364.83,
+  "y": 244.5,
+  "largura": 67.17,
+  "altura": 133.5
+ },
+ {
+  "dente": 26,
+  "vista": "vestibular",
+  "parte": "raiz",
+  "arquivo": "26/26_vestibular_raiz.svg",
+  "x": 285.0,
+  "y": 41.83,
+  "largura": 78.0,
+  "altura": 138.83
+ },
+ {
+  "dente": 26,
+  "vista": "vestibular",
+  "parte": "coroa",
+  "arquivo": "26/26_vestibular_coroa.svg",
+  "x": 285.0,
+  "y": 41.83,
+  "largura": 78.0,
+  "altura": 138.83
+ },
+ {
+  "dente": 26,
+  "vista": "vestibular",
+  "parte": "completo",
+  "arquivo": "26/26_vestibular.svg",
+  "x": 285.0,
+  "y": 41.83,
+  "largura": 78.0,
+  "altura": 138.83
+ },
+ {
+  "dente": 26,
+  "vista": "oclusal",
+  "parte": "coroa",
+  "arquivo": "26/26_oclusal_coroa.svg",
+  "x": 285.0,
+  "y": 176.33,
+  "largura": 69.0,
+  "altura": 77.5
+ },
+ {
+  "dente": 26,
+  "vista": "oclusal",
+  "parte": "completo",
+  "arquivo": "26/26_oclusal.svg",
+  "x": 285.0,
+  "y": 176.33,
+  "largura": 69.0,
+  "altura": 77.5
+ },
+ {
+  "dente": 26,
+  "vista": "palatina",
+  "parte": "raiz",
+  "arquivo": "26/26_palatina_raiz.svg",
+  "x": 285.0,
+  "y": 249.33,
+  "largura": 76.0,
+  "altura": 137.83
+ },
+ {
+  "dente": 26,
+  "vista": "palatina",
+  "parte": "coroa",
+  "arquivo": "26/26_palatina_coroa.svg",
+  "x": 285.0,
+  "y": 249.33,
+  "largura": 76.0,
+  "altura": 137.83
+ },
+ {
+  "dente": 26,
+  "vista": "palatina",
+  "parte": "completo",
+  "arquivo": "26/26_palatina.svg",
+  "x": 285.0,
+  "y": 249.33,
+  "largura": 76.0,
+  "altura": 137.83
+ },
+ {
+  "dente": 25,
+  "vista": "vestibular",
+  "parte": "raiz",
+  "arquivo": "25/25_vestibular_raiz.svg",
+  "x": 232.83,
+  "y": 61.83,
+  "largura": 44.17,
+  "altura": 133.83
+ },
+ {
+  "dente": 25,
+  "vista": "vestibular",
+  "parte": "coroa",
+  "arquivo": "25/25_vestibular_coroa.svg",
+  "x": 232.83,
+  "y": 61.83,
+  "largura": 44.17,
+  "altura": 133.83
+ },
+ {
+  "dente": 25,
+  "vista": "vestibular",
+  "parte": "completo",
+  "arquivo": "25/25_vestibular.svg",
+  "x": 232.83,
+  "y": 61.83,
+  "largura": 44.17,
+  "altura": 133.83
+ },
+ {
+  "dente": 25,
+  "vista": "oclusal",
+  "parte": "coroa",
+  "arquivo": "25/25_oclusal_coroa.svg",
+  "x": 233.0,
+  "y": 191.33,
+  "largura": 45.0,
+  "altura": 53.33
+ },
+ {
+  "dente": 25,
+  "vista": "oclusal",
+  "parte": "completo",
+  "arquivo": "25/25_oclusal.svg",
+  "x": 233.0,
+  "y": 191.33,
+  "largura": 45.0,
+  "altura": 53.33
+ },
+ {
+  "dente": 25,
+  "vista": "palatina",
+  "parte": "raiz",
+  "arquivo": "25/25_palatina_raiz.svg",
+  "x": 232.83,
+  "y": 241.33,
+  "largura": 42.17,
+  "altura": 128.83
+ },
+ {
+  "dente": 25,
+  "vista": "palatina",
+  "parte": "coroa",
+  "arquivo": "25/25_palatina_coroa.svg",
+  "x": 232.83,
+  "y": 241.33,
+  "largura": 42.17,
+  "altura": 128.83
+ },
+ {
+  "dente": 25,
+  "vista": "palatina",
+  "parte": "completo",
+  "arquivo": "25/25_palatina.svg",
+  "x": 232.83,
+  "y": 241.33,
+  "largura": 42.17,
+  "altura": 128.83
+ },
+ {
+  "dente": 24,
+  "vista": "vestibular",
+  "parte": "raiz",
+  "arquivo": "24/24_vestibular_raiz.svg",
+  "x": 179.0,
+  "y": 63.83,
+  "largura": 45.5,
+  "altura": 131.83
+ },
+ {
+  "dente": 24,
+  "vista": "vestibular",
+  "parte": "coroa",
+  "arquivo": "24/24_vestibular_coroa.svg",
+  "x": 179.0,
+  "y": 63.83,
+  "largura": 45.5,
+  "altura": 131.83
+ },
+ {
+  "dente": 24,
+  "vista": "vestibular",
+  "parte": "completo",
+  "arquivo": "24/24_vestibular.svg",
+  "x": 179.0,
+  "y": 63.83,
+  "largura": 45.5,
+  "altura": 131.83
+ },
+ {
+  "dente": 24,
+  "vista": "oclusal",
+  "parte": "coroa",
+  "arquivo": "24/24_oclusal_coroa.svg",
+  "x": 178.0,
+  "y": 192.33,
+  "largura": 46.67,
+  "altura": 56.33
+ },
+ {
+  "dente": 24,
+  "vista": "oclusal",
+  "parte": "completo",
+  "arquivo": "24/24_oclusal.svg",
+  "x": 178.0,
+  "y": 192.33,
+  "largura": 46.67,
+  "altura": 56.33
+ },
+ {
+  "dente": 24,
+  "vista": "palatina",
+  "parte": "raiz",
+  "arquivo": "24/24_palatina_raiz.svg",
+  "x": 179.0,
+  "y": 245.33,
+  "largura": 43.0,
+  "altura": 126.83
+ },
+ {
+  "dente": 24,
+  "vista": "palatina",
+  "parte": "coroa",
+  "arquivo": "24/24_palatina_coroa.svg",
+  "x": 179.0,
+  "y": 245.33,
+  "largura": 43.0,
+  "altura": 126.83
+ },
+ {
+  "dente": 24,
+  "vista": "palatina",
+  "parte": "completo",
+  "arquivo": "24/24_palatina.svg",
+  "x": 179.0,
+  "y": 245.33,
+  "largura": 43.0,
+  "altura": 126.83
+ },
+ {
+  "dente": 23,
+  "vista": "vestibular",
+  "parte": "raiz",
+  "arquivo": "23/23_vestibular_raiz.svg",
+  "x": 114.17,
+  "y": 50.83,
+  "largura": 58.83,
+  "altura": 166.67
+ },
+ {
+  "dente": 23,
+  "vista": "vestibular",
+  "parte": "coroa",
+  "arquivo": "23/23_vestibular_coroa.svg",
+  "x": 114.17,
+  "y": 50.83,
+  "largura": 58.83,
+  "altura": 166.67
+ },
+ {
+  "dente": 23,
+  "vista": "vestibular",
+  "parte": "completo",
+  "arquivo": "23/23_vestibular.svg",
+  "x": 114.17,
+  "y": 50.83,
+  "largura": 58.83,
+  "altura": 166.67
+ },
+ {
+  "dente": 23,
+  "vista": "palatina",
+  "parte": "raiz",
+  "arquivo": "23/23_palatina_raiz.svg",
+  "x": 112.33,
+  "y": 213.33,
+  "largura": 59.67,
+  "altura": 168.17
+ },
+ {
+  "dente": 23,
+  "vista": "palatina",
+  "parte": "coroa",
+  "arquivo": "23/23_palatina_coroa.svg",
+  "x": 112.33,
+  "y": 213.33,
+  "largura": 59.67,
+  "altura": 168.17
+ },
+ {
+  "dente": 23,
+  "vista": "palatina",
+  "parte": "completo",
+  "arquivo": "23/23_palatina.svg",
+  "x": 112.33,
+  "y": 213.33,
+  "largura": 59.67,
+  "altura": 168.17
+ },
+ {
+  "dente": 22,
+  "vista": "vestibular",
+  "parte": "raiz",
+  "arquivo": "22/22_vestibular_raiz.svg",
+  "x": 64.83,
+  "y": 82.83,
+  "largura": 43.17,
+  "altura": 137.33
+ },
+ {
+  "dente": 22,
+  "vista": "vestibular",
+  "parte": "coroa",
+  "arquivo": "22/22_vestibular_coroa.svg",
+  "x": 64.83,
+  "y": 82.83,
+  "largura": 43.17,
+  "altura": 137.33
+ },
+ {
+  "dente": 22,
+  "vista": "vestibular",
+  "parte": "completo",
+  "arquivo": "22/22_vestibular.svg",
+  "x": 64.83,
+  "y": 82.83,
+  "largura": 43.17,
+  "altura": 137.33
+ },
+ {
+  "dente": 22,
+  "vista": "palatina",
+  "parte": "raiz",
+  "arquivo": "22/22_palatina_raiz.svg",
+  "x": 64.0,
+  "y": 216.17,
+  "largura": 44.0,
+  "altura": 136.5
+ },
+ {
+  "dente": 22,
+  "vista": "palatina",
+  "parte": "coroa",
+  "arquivo": "22/22_palatina_coroa.svg",
+  "x": 64.0,
+  "y": 216.17,
+  "largura": 44.0,
+  "altura": 136.5
+ },
+ {
+  "dente": 22,
+  "vista": "palatina",
+  "parte": "completo",
+  "arquivo": "22/22_palatina.svg",
+  "x": 64.0,
+  "y": 216.17,
+  "largura": 44.0,
+  "altura": 136.5
+ },
+ {
+  "dente": 21,
+  "vista": "vestibular",
+  "parte": "raiz",
+  "arquivo": "21/21_vestibular_raiz.svg",
+  "x": 4.5,
+  "y": 72.83,
+  "largura": 53.5,
+  "altura": 145.83
+ },
+ {
+  "dente": 21,
+  "vista": "vestibular",
+  "parte": "coroa",
+  "arquivo": "21/21_vestibular_coroa.svg",
+  "x": 4.5,
+  "y": 72.83,
+  "largura": 53.5,
+  "altura": 145.83
+ },
+ {
+  "dente": 21,
+  "vista": "vestibular",
+  "parte": "completo",
+  "arquivo": "21/21_vestibular.svg",
+  "x": 4.5,
+  "y": 72.83,
+  "largura": 53.5,
+  "altura": 145.83
+ },
+ {
+  "dente": 21,
+  "vista": "palatina",
+  "parte": "raiz",
+  "arquivo": "21/21_palatina_raiz.svg",
+  "x": 3.83,
+  "y": 214.33,
+  "largura": 54.0,
+  "altura": 146.33
+ },
+ {
+  "dente": 21,
+  "vista": "palatina",
+  "parte": "coroa",
+  "arquivo": "21/21_palatina_coroa.svg",
+  "x": 3.83,
+  "y": 214.33,
+  "largura": 54.0,
+  "altura": 146.33
+ },
+ {
+  "dente": 21,
+  "vista": "palatina",
+  "parte": "completo",
+  "arquivo": "21/21_palatina.svg",
+  "x": 3.83,
+  "y": 214.33,
+  "largura": 54.0,
+  "altura": 146.33
+ },
+ {
+  "dente": 38,
+  "vista": "lingual",
+  "parte": "raiz",
+  "arquivo": "38/38_lingual_raiz.svg",
+  "x": 433.0,
+  "y": 438.0,
+  "largura": 61.17,
+  "altura": 114.67
+ },
+ {
+  "dente": 38,
+  "vista": "lingual",
+  "parte": "coroa",
+  "arquivo": "38/38_lingual_coroa.svg",
+  "x": 433.0,
+  "y": 438.0,
+  "largura": 61.17,
+  "altura": 114.67
+ },
+ {
+  "dente": 38,
+  "vista": "lingual",
+  "parte": "completo",
+  "arquivo": "38/38_lingual.svg",
+  "x": 433.0,
+  "y": 438.0,
+  "largura": 61.17,
+  "altura": 114.67
+ },
+ {
+  "dente": 38,
+  "vista": "oclusal",
+  "parte": "coroa",
+  "arquivo": "38/38_oclusal_coroa.svg",
+  "x": 433.0,
+  "y": 548.33,
+  "largura": 65.0,
+  "altura": 62.33
+ },
+ {
+  "dente": 38,
+  "vista": "oclusal",
+  "parte": "completo",
+  "arquivo": "38/38_oclusal.svg",
+  "x": 433.0,
+  "y": 548.33,
+  "largura": 65.0,
+  "altura": 62.33
+ },
+ {
+  "dente": 38,
+  "vista": "vestibular",
+  "parte": "raiz",
+  "arquivo": "38/38_vestibular_raiz.svg",
+  "x": 433.84,
+  "y": 607.33,
+  "largura": 63.33,
+  "altura": 116.83
+ },
+ {
+  "dente": 38,
+  "vista": "vestibular",
+  "parte": "coroa",
+  "arquivo": "38/38_vestibular_coroa.svg",
+  "x": 433.84,
+  "y": 607.33,
+  "largura": 63.33,
+  "altura": 116.83
+ },
+ {
+  "dente": 38,
+  "vista": "vestibular",
+  "parte": "completo",
+  "arquivo": "38/38_vestibular.svg",
+  "x": 433.84,
+  "y": 607.33,
+  "largura": 63.33,
+  "altura": 116.83
+ },
+ {
+  "dente": 37,
+  "vista": "lingual",
+  "parte": "raiz",
+  "arquivo": "37/37_lingual_raiz.svg",
+  "x": 361.0,
+  "y": 430.83,
+  "largura": 66.0,
+  "altura": 121.83
+ },
+ {
+  "dente": 37,
+  "vista": "lingual",
+  "parte": "coroa",
+  "arquivo": "37/37_lingual_coroa.svg",
+  "x": 361.0,
+  "y": 430.83,
+  "largura": 66.0,
+  "altura": 121.83
+ },
+ {
+  "dente": 37,
+  "vista": "lingual",
+  "parte": "completo",
+  "arquivo": "37/37_lingual.svg",
+  "x": 361.0,
+  "y": 430.83,
+  "largura": 66.0,
+  "altura": 121.83
+ },
+ {
+  "dente": 37,
+  "vista": "oclusal",
+  "parte": "coroa",
+  "arquivo": "37/37_oclusal_coroa.svg",
+  "x": 358.0,
+  "y": 549.33,
+  "largura": 68.83,
+  "altura": 65.33
+ },
+ {
+  "dente": 37,
+  "vista": "oclusal",
+  "parte": "completo",
+  "arquivo": "37/37_oclusal.svg",
+  "x": 358.0,
+  "y": 549.33,
+  "largura": 68.83,
+  "altura": 65.33
+ },
+ {
+  "dente": 37,
+  "vista": "vestibular",
+  "parte": "raiz",
+  "arquivo": "37/37_vestibular_raiz.svg",
+  "x": 358.5,
+  "y": 610.67,
+  "largura": 66.67,
+  "altura": 122.5
+ },
+ {
+  "dente": 37,
+  "vista": "vestibular",
+  "parte": "coroa",
+  "arquivo": "37/37_vestibular_coroa.svg",
+  "x": 358.5,
+  "y": 610.67,
+  "largura": 66.67,
+  "altura": 122.5
+ },
+ {
+  "dente": 37,
+  "vista": "vestibular",
+  "parte": "completo",
+  "arquivo": "37/37_vestibular.svg",
+  "x": 358.5,
+  "y": 610.67,
+  "largura": 66.67,
+  "altura": 122.5
+ },
+ {
+  "dente": 36,
+  "vista": "lingual",
+  "parte": "raiz",
+  "arquivo": "36/36_lingual_raiz.svg",
+  "x": 276.0,
+  "y": 423.0,
+  "largura": 71.0,
+  "altura": 129.67
+ },
+ {
+  "dente": 36,
+  "vista": "lingual",
+  "parte": "coroa",
+  "arquivo": "36/36_lingual_coroa.svg",
+  "x": 276.0,
+  "y": 423.0,
+  "largura": 71.0,
+  "altura": 129.67
+ },
+ {
+  "dente": 36,
+  "vista": "lingual",
+  "parte": "completo",
+  "arquivo": "36/36_lingual.svg",
+  "x": 276.0,
+  "y": 423.0,
+  "largura": 71.0,
+  "altura": 129.67
+ },
+ {
+  "dente": 36,
+  "vista": "oclusal",
+  "parte": "coroa",
+  "arquivo": "36/36_oclusal_coroa.svg",
+  "x": 275.17,
+  "y": 541.33,
+  "largura": 72.83,
+  "altura": 73.33
+ },
+ {
+  "dente": 36,
+  "vista": "oclusal",
+  "parte": "completo",
+  "arquivo": "36/36_oclusal.svg",
+  "x": 275.17,
+  "y": 541.33,
+  "largura": 72.83,
+  "altura": 73.33
+ },
+ {
+  "dente": 36,
+  "vista": "vestibular",
+  "parte": "raiz",
+  "arquivo": "36/36_vestibular_raiz.svg",
+  "x": 274.83,
+  "y": 610.83,
+  "largura": 72.17,
+  "altura": 129.0
+ },
+ {
+  "dente": 36,
+  "vista": "vestibular",
+  "parte": "coroa",
+  "arquivo": "36/36_vestibular_coroa.svg",
+  "x": 274.83,
+  "y": 610.83,
+  "largura": 72.17,
+  "altura": 129.0
+ },
+ {
+  "dente": 36,
+  "vista": "vestibular",
+  "parte": "completo",
+  "arquivo": "36/36_vestibular.svg",
+  "x": 274.83,
+  "y": 610.83,
+  "largura": 72.17,
+  "altura": 129.0
+ },
+ {
+  "dente": 35,
+  "vista": "lingual",
+  "parte": "raiz",
+  "arquivo": "35/35_lingual_raiz.svg",
+  "x": 222.83,
+  "y": 420.83,
+  "largura": 41.5,
+  "altura": 138.83
+ },
+ {
+  "dente": 35,
+  "vista": "lingual",
+  "parte": "coroa",
+  "arquivo": "35/35_lingual_coroa.svg",
+  "x": 222.83,
+  "y": 420.83,
+  "largura": 41.5,
+  "altura": 138.83
+ },
+ {
+  "dente": 35,
+  "vista": "lingual",
+  "parte": "completo",
+  "arquivo": "35/35_lingual.svg",
+  "x": 222.83,
+  "y": 420.83,
+  "largura": 41.5,
+  "altura": 138.83
+ },
+ {
+  "dente": 35,
+  "vista": "oclusal",
+  "parte": "coroa",
+  "arquivo": "35/35_oclusal_coroa.svg",
+  "x": 222.16,
+  "y": 556.33,
+  "largura": 44.17,
+  "altura": 49.33
+ },
+ {
+  "dente": 35,
+  "vista": "oclusal",
+  "parte": "completo",
+  "arquivo": "35/35_oclusal.svg",
+  "x": 222.16,
+  "y": 556.33,
+  "largura": 44.17,
+  "altura": 49.33
+ },
+ {
+  "dente": 35,
+  "vista": "vestibular",
+  "parte": "raiz",
+  "arquivo": "35/35_vestibular_raiz.svg",
+  "x": 222.83,
+  "y": 601.67,
+  "largura": 43.17,
+  "altura": 143.5
+ },
+ {
+  "dente": 35,
+  "vista": "vestibular",
+  "parte": "coroa",
+  "arquivo": "35/35_vestibular_coroa.svg",
+  "x": 222.83,
+  "y": 601.67,
+  "largura": 43.17,
+  "altura": 143.5
+ },
+ {
+  "dente": 35,
+  "vista": "vestibular",
+  "parte": "completo",
+  "arquivo": "35/35_vestibular.svg",
+  "x": 222.83,
+  "y": 601.67,
+  "largura": 43.17,
+  "altura": 143.5
+ },
+ {
+  "dente": 34,
+  "vista": "lingual",
+  "parte": "raiz",
+  "arquivo": "34/34_lingual_raiz.svg",
+  "x": 174.0,
+  "y": 428.0,
+  "largura": 41.0,
+  "altura": 135.67
+ },
+ {
+  "dente": 34,
+  "vista": "lingual",
+  "parte": "coroa",
+  "arquivo": "34/34_lingual_coroa.svg",
+  "x": 174.0,
+  "y": 428.0,
+  "largura": 41.0,
+  "altura": 135.67
+ },
+ {
+  "dente": 34,
+  "vista": "lingual",
+  "parte": "completo",
+  "arquivo": "34/34_lingual.svg",
+  "x": 174.0,
+  "y": 428.0,
+  "largura": 41.0,
+  "altura": 135.67
+ },
+ {
+  "dente": 34,
+  "vista": "oclusal",
+  "parte": "coroa",
+  "arquivo": "34/34_oclusal_coroa.svg",
+  "x": 174.0,
+  "y": 560.33,
+  "largura": 40.17,
+  "altura": 47.33
+ },
+ {
+  "dente": 34,
+  "vista": "oclusal",
+  "parte": "completo",
+  "arquivo": "34/34_oclusal.svg",
+  "x": 174.0,
+  "y": 560.33,
+  "largura": 40.17,
+  "altura": 47.33
+ },
+ {
+  "dente": 34,
+  "vista": "vestibular",
+  "parte": "raiz",
+  "arquivo": "34/34_vestibular_raiz.svg",
+  "x": 173.0,
+  "y": 603.5,
+  "largura": 42.0,
+  "altura": 135.5
+ },
+ {
+  "dente": 34,
+  "vista": "vestibular",
+  "parte": "coroa",
+  "arquivo": "34/34_vestibular_coroa.svg",
+  "x": 173.0,
+  "y": 603.5,
+  "largura": 42.0,
+  "altura": 135.5
+ },
+ {
+  "dente": 34,
+  "vista": "vestibular",
+  "parte": "completo",
+  "arquivo": "34/34_vestibular.svg",
+  "x": 173.0,
+  "y": 603.5,
+  "largura": 42.0,
+  "altura": 135.5
+ },
+ {
+  "dente": 33,
+  "vista": "lingual",
+  "parte": "raiz",
+  "arquivo": "33/33_lingual_raiz.svg",
+  "x": 116.17,
+  "y": 425.33,
+  "largura": 48.83,
+  "altura": 154.33
+ },
+ {
+  "dente": 33,
+  "vista": "lingual",
+  "parte": "coroa",
+  "arquivo": "33/33_lingual_coroa.svg",
+  "x": 116.17,
+  "y": 425.33,
+  "largura": 48.83,
+  "altura": 154.33
+ },
+ {
+  "dente": 33,
+  "vista": "lingual",
+  "parte": "completo",
+  "arquivo": "33/33_lingual.svg",
+  "x": 116.17,
+  "y": 425.33,
+  "largura": 48.83,
+  "altura": 154.33
+ },
+ {
+  "dente": 33,
+  "vista": "vestibular",
+  "parte": "raiz",
+  "arquivo": "33/33_vestibular_raiz.svg",
+  "x": 115.83,
+  "y": 576.33,
+  "largura": 48.17,
+  "altura": 157.83
+ },
+ {
+  "dente": 33,
+  "vista": "vestibular",
+  "parte": "coroa",
+  "arquivo": "33/33_vestibular_coroa.svg",
+  "x": 115.83,
+  "y": 576.33,
+  "largura": 48.17,
+  "altura": 157.83
+ },
+ {
+  "dente": 33,
+  "vista": "vestibular",
+  "parte": "completo",
+  "arquivo": "33/33_vestibular.svg",
+  "x": 115.83,
+  "y": 576.33,
+  "largura": 48.17,
+  "altura": 157.83
+ },
+ {
+  "dente": 32,
+  "vista": "lingual",
+  "parte": "raiz",
+  "arquivo": "32/32_lingual_raiz.svg",
+  "x": 65.83,
+  "y": 441.5,
+  "largura": 39.5,
+  "altura": 137.17
+ },
+ {
+  "dente": 32,
+  "vista": "lingual",
+  "parte": "coroa",
+  "arquivo": "32/32_lingual_coroa.svg",
+  "x": 65.83,
+  "y": 441.5,
+  "largura": 39.5,
+  "altura": 137.17
+ },
+ {
+  "dente": 32,
+  "vista": "lingual",
+  "parte": "completo",
+  "arquivo": "32/32_lingual.svg",
+  "x": 65.83,
+  "y": 441.5,
+  "largura": 39.5,
+  "altura": 137.17
+ },
+ {
+  "dente": 32,
+  "vista": "vestibular",
+  "parte": "raiz",
+  "arquivo": "32/32_vestibular_raiz.svg",
+  "x": 65.16,
+  "y": 575.33,
+  "largura": 40.17,
+  "altura": 134.83
+ },
+ {
+  "dente": 32,
+  "vista": "vestibular",
+  "parte": "coroa",
+  "arquivo": "32/32_vestibular_coroa.svg",
+  "x": 65.16,
+  "y": 575.33,
+  "largura": 40.17,
+  "altura": 134.83
+ },
+ {
+  "dente": 32,
+  "vista": "vestibular",
+  "parte": "completo",
+  "arquivo": "32/32_vestibular.svg",
+  "x": 65.16,
+  "y": 575.33,
+  "largura": 40.17,
+  "altura": 134.83
+ },
+ {
+  "dente": 31,
+  "vista": "lingual",
+  "parte": "raiz",
+  "arquivo": "31/31_lingual_raiz.svg",
+  "x": 15.0,
+  "y": 449.83,
+  "largura": 34.0,
+  "altura": 129.83
+ },
+ {
+  "dente": 31,
+  "vista": "lingual",
+  "parte": "coroa",
+  "arquivo": "31/31_lingual_coroa.svg",
+  "x": 15.0,
+  "y": 449.83,
+  "largura": 34.0,
+  "altura": 129.83
+ },
+ {
+  "dente": 31,
+  "vista": "lingual",
+  "parte": "completo",
+  "arquivo": "31/31_lingual.svg",
+  "x": 15.0,
+  "y": 449.83,
+  "largura": 34.0,
+  "altura": 129.83
+ },
+ {
+  "dente": 31,
+  "vista": "vestibular",
+  "parte": "raiz",
+  "arquivo": "31/31_vestibular_raiz.svg",
+  "x": 14.83,
+  "y": 575.33,
+  "largura": 34.17,
+  "altura": 129.83
+ },
+ {
+  "dente": 31,
+  "vista": "vestibular",
+  "parte": "coroa",
+  "arquivo": "31/31_vestibular_coroa.svg",
+  "x": 14.83,
+  "y": 575.33,
+  "largura": 34.17,
+  "altura": 129.83
+ },
+ {
+  "dente": 31,
+  "vista": "vestibular",
+  "parte": "completo",
+  "arquivo": "31/31_vestibular.svg",
+  "x": 14.83,
+  "y": 575.33,
+  "largura": 34.17,
+  "altura": 129.83
+ }
+]
