@@ -1,16 +1,14 @@
-import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
-import 'package:path_provider/path_provider.dart';
-import '../../core/auth_service.dart';
+import 'package:flutter/material.dart';
 import '../../core/formadores.dart';
-import '../../core/odontograma.dart';
+import '../../core/log_acesso.dart';
+import '../../core/ortodontia.dart';
 import '../../core/paciente.dart';
-import '../../core/politica_acesso_service.dart';
 import '../../core/usuario.dart';
 
-/// Widgets da seção **Fotos Comparativas** (Fase F).
+/// Seção **Fotos Comparativas**. Só inclusão (RN05): não há botão de excluir.
+/// Usa só `file_picker` e bytes em memória, então funciona em Windows, Android e Web.
 class SecaoFotos extends StatefulWidget {
   final Paciente paciente;
   final Usuario usuario;
@@ -18,6 +16,7 @@ class SecaoFotos extends StatefulWidget {
   final bool podeEditar;
 
   const SecaoFotos({
+    super.key,
     required this.paciente,
     required this.usuario,
     required this.fotos,
@@ -28,110 +27,265 @@ class SecaoFotos extends StatefulWidget {
   State<SecaoFotos> createState() => _SecaoFotosState();
 }
 
-class _SecaoFotosState extends State<SecaoFotos> {
-  final ImagePicker _picker = ImagePicker();
+class _NovaFoto {
+  final String descricao;
+  final bool isAntes;
+  final String nome;
+  final Uint8List bytes;
+  const _NovaFoto(this.descricao, this.isAntes, this.nome, this.bytes);
+}
 
-  @override
-  Widget build(BuildContext context) {
-    final tema = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+class _SecaoFotosState extends State<SecaoFotos> {
+  Future<void> _adicionar() async {
+    final r = await showDialog<_NovaFoto>(
+      context: context,
+      builder: (_) => const _DialogoFoto(),
+    );
+    if (r == null || !mounted) return;
+
+    final mensagem = ScaffoldMessenger.of(context);
+    final erro = ortodontiaRepository.adicionarFoto(FotoComparativaOrto(
+      id: ortodontiaRepository.novoId(),
+      pacienteId: widget.paciente.id,
+      data: DateTime.now(),
+      descricao: r.descricao,
+      nomeArquivo: r.nome,
+      bytes: r.bytes,
+      isAntes: r.isAntes,
+      profissionalId: widget.usuario.id,
+    ));
+    if (erro != null) {
+      mensagem.showSnackBar(SnackBar(content: Text(erro)));
+      return;
+    }
+    logsAcesso.registrar(
+      usuarioId: widget.usuario.id,
+      acao: 'adicionou_foto_orto',
+      entidade: 'paciente',
+      entidadeId: widget.paciente.id,
+    );
+    mensagem.showSnackBar(const SnackBar(content: Text('Foto adicionada.')));
+  }
+
+  void _ampliar(FotoComparativaOrto f) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Fotos Comparativas (Antes/Depois)', style: tema.textTheme.titleLarge),
-                if (widget.podeEditar)
-                  FilledButton.icon(
-                    onPressed: _adicionarFoto,
-                    icon: const Icon(Icons.add_a_photo),
-                    label: const Text('Adicionar foto'),
-                  ),
-              ],
+            Flexible(
+              child: InteractiveViewer(
+                child: Image.memory(f.bytes, fit: BoxFit.contain),
+              ),
             ),
-            const SizedBox(height: 12),
-            if (widget.fotos.isEmpty)
-              const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('Nenhuma foto adicionada')))
-            else
-              Wrap(spacing: 12, runSpacing: 12, children: [for (final f in widget.fotos) _cardFoto(f)]),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Expanded(child: Text('${f.descricao} • ${formatarData(f.data)}')),
+                  TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Fechar')),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _cardFoto(FotoComparativaOrto f) {
+  Widget _cartao(FotoComparativaOrto f) {
+    final tema = Theme.of(context);
     return SizedBox(
       width: 180,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AspectRatio(
-            aspectRatio: 4 / 3,
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Theme.of(context).colorScheme.outline),
+      child: InkWell(
+        onTap: () => _ampliar(f),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AspectRatio(
+              aspectRatio: 4 / 3,
+              child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                image: f.caminhoArquivo.startsWith('http')
-                    ? DecorationImage(image: NetworkImage(f.caminhoArquivo), fit: BoxFit.cover)
-                    : null,
+                child: Image.memory(
+                  f.bytes,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      const Center(child: Icon(Icons.broken_image_outlined, size: 40)),
+                ),
               ),
-              child: f.caminhoArquivo.startsWith('http') ? null : const Center(child: Icon(Icons.image, size: 48)),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(f.descricao, style: Theme.of(context).textTheme.labelLarge),
-          Text('${formatarData(f.data)}${f.isAntes ? ' • ANTES' : ''}', style: Theme.of(context).textTheme.bodySmall),
-        ],
+            const SizedBox(height: 4),
+            Text(f.descricao, style: tema.textTheme.labelLarge, maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text(formatarData(f.data), style: tema.textTheme.bodySmall),
+          ],
+        ),
       ),
     );
   }
 
-  Future<void> _adicionarFoto() async {
-    final descCtrl = TextEditingController();
-    bool isAntes = false;
+  Widget _grupo(String titulo, List<FotoComparativaOrto> lista) {
+    final tema = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        Text(titulo, style: tema.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        if (lista.isEmpty)
+          Text('Nenhuma foto.', style: tema.textTheme.bodySmall)
+        else
+          Wrap(spacing: 12, runSpacing: 12, children: [for (final f in lista) _cartao(f)]),
+      ],
+    );
+  }
 
-    await showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Adicionar foto comparativa'),
-          content: Column(
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final antes = widget.fotos.where((f) => f.isAntes).toList();
+    final depois = widget.fotos.where((f) => !f.isAntes).toList();
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: Text('Fotos comparativas', style: tema.textTheme.titleLarge)),
+                    if (widget.podeEditar)
+                      FilledButton.icon(
+                        onPressed: _adicionar,
+                        icon: const Icon(Icons.add_a_photo_outlined),
+                        label: const Text('Adicionar foto'),
+                      ),
+                  ],
+                ),
+                _grupo('Antes (inicial)', antes),
+                _grupo('Acompanhamento / depois', depois),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DialogoFoto extends StatefulWidget {
+  const _DialogoFoto();
+
+  @override
+  State<_DialogoFoto> createState() => _DialogoFotoState();
+}
+
+class _DialogoFotoState extends State<_DialogoFoto> {
+  final _descCtrl = TextEditingController();
+  bool _antes = false;
+  Uint8List? _bytes;
+  String? _nome;
+  String? _erro;
+
+  static const _limiteBytes = 10 * 1024 * 1024;
+
+  @override
+  void initState() {
+    super.initState();
+    _descCtrl.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _descCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _escolherArquivo() async {
+    final r = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
+    if (r == null || r.files.isEmpty) return;
+    final arquivo = r.files.first;
+    final bytes = arquivo.bytes;
+    if (bytes == null) {
+      setState(() => _erro = 'Não foi possível ler o arquivo.');
+      return;
+    }
+    if (bytes.length > _limiteBytes) {
+      setState(() => _erro = 'A imagem tem mais de 10 MB.');
+      return;
+    }
+    setState(() {
+      _bytes = bytes;
+      _nome = arquivo.name;
+      _erro = null;
+    });
+  }
+
+  bool get _podeSalvar => _bytes != null && _descCtrl.text.trim().isNotEmpty;
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    return AlertDialog(
+      title: const Text('Adicionar foto comparativa'),
+      content: SizedBox(
+        width: 400,
+        child: SingleChildScrollView(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextFormField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Descrição (ex.: Inicial, 3 meses, Final)', border: OutlineInputBorder())),
+              OutlinedButton.icon(
+                onPressed: _escolherArquivo,
+                icon: const Icon(Icons.photo_library_outlined),
+                label: Text(_nome ?? 'Escolher imagem'),
+              ),
+              if (_erro != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(_erro!, style: TextStyle(color: tema.colorScheme.error)),
+                ),
+              if (_bytes != null) ...[
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.memory(_bytes!, height: 140, fit: BoxFit.cover),
+                ),
+              ],
               const SizedBox(height: 12),
-              CheckboxListTile(title: const Text('É foto "ANTES" (inicial)'), value: isAntes, onChanged: (v) => setState(() => isAntes = v ?? false)),
-              const SizedBox(height: 8),
-              const Text('Integração com galeria/câmera será implementada.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              TextField(
+                controller: _descCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Descrição (ex.: Inicial, 3 meses, Final) *',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: const Text('Foto "ANTES" (inicial)'),
+                value: _antes,
+                onChanged: (v) => setState(() => _antes = v ?? false),
+              ),
             ],
           ),
-          actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-          FilledButton(
-            onPressed: () {
-              if (descCtrl.text.trim().isEmpty) return;
-              final foto = FotoComparativaOrto(
-                id: ortodontiaRepository.novoId(),
-                pacienteId: widget.paciente.id,
-                data: DateTime.now(),
-                descricao: descCtrl.text.trim(),
-                caminhoArquivo: 'https://via.placeholder.com/300x225?text=${Uri.encodeComponent(descCtrl.text.trim())}',
-                isAntes: isAntes,
-                profissionalId: widget.usuario.id,
-              );
-              ortodontiaRepository.adicionarFoto(foto);
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Foto adicionada (placeholder)')));
-            },
-            child: const Text('Adicionar'),
-          ),
-        ],
+        ),
       ),
-    ),
-  );
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
+        FilledButton(
+          onPressed: _podeSalvar
+              ? () => Navigator.of(context).pop(
+                    _NovaFoto(_descCtrl.text.trim(), _antes, _nome!, _bytes!),
+                  )
+              : null,
+          child: const Text('Adicionar'),
+        ),
+      ],
+    );
   }
 }

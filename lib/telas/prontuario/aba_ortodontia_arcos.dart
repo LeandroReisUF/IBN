@@ -1,82 +1,95 @@
 import 'package:flutter/material.dart';
-import '../../core/auth_service.dart';
-import '../../core/formadores.dart';
-import '../../core/odontograma.dart';
-import '../../core/paciente.dart';
-import '../../core/politica_acesso_service.dart';
-import '../../core/usuario.dart';
+import '../../core/ortodontia.dart';
 
-/// Widgets da seção **Arcos e Elásticos** (Fase F).
+/// Seção **Arcos e Elásticos**: mostra o que está na ficha. A edição é feita na
+/// aba Ficha (os campos ficam lá, junto da versão salva).
 class SecaoArcosElasticos extends StatelessWidget {
   final FichaOrtodontica? ficha;
   final bool podeEditar;
-  final VoidCallback onEditarFicha;
 
   const SecaoArcosElasticos({
+    super.key,
     required this.ficha,
     required this.podeEditar,
-    required this.onEditarFicha,
   });
 
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Arcos e Elásticos Atuais', style: tema.textTheme.titleLarge),
-            const SizedBox(height: 16),
-            Row(
+    final f = ficha;
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: _card(context, 'Superior', ficha?.arcoSuperior, ficha?.elasticosSuperior)),
-                const SizedBox(width: 12),
-                Expanded(child: _card(context, 'Inferior', ficha?.arcoInferior, ficha?.elasticosInferior)),
+                Text('Arcos e elásticos atuais', style: tema.textTheme.titleLarge),
+                const SizedBox(height: 16),
+                if (f == null)
+                  const Text('Crie a ficha ortodôntica para registrar arcos e elásticos.')
+                else
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      _cartao(context, 'Superior', f.arcoSuperior, f.elasticosSuperior),
+                      _cartao(context, 'Inferior', f.arcoInferior, f.elasticosInferior),
+                    ],
+                  ),
+                if (podeEditar) ...[
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: () => DefaultTabController.of(context).animateTo(0),
+                    icon: const Icon(Icons.edit_outlined),
+                    label: Text(f == null ? 'Ir para a ficha' : 'Alterar na ficha'),
+                  ),
+                ],
               ],
             ),
-            if (podeEditar) ...[
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: onEditarFicha,
-                icon: const Icon(Icons.edit),
-                label: const Text('Editar arcos/elásticos (na ficha acima)'),
-              ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _cartao(BuildContext context, String titulo, ArcoOrtodontico? arco,
+      ElasticosOrtodonticos? elasticos) {
+    final tema = Theme.of(context);
+    return SizedBox(
+      width: 280,
+      child: Card(
+        color: tema.colorScheme.surfaceContainerHighest,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(titulo, style: tema.textTheme.titleMedium),
+              const SizedBox(height: 8),
+              _linha('Fio', arco?.fio),
+              _linha('Calibre', arco?.calibre),
+              const Divider(height: 16),
+              _linha('Elásticos', elasticos?.descricao),
             ],
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _card(BuildContext context, String titulo, ArcoOrtodontico? arco, ElasticosOrtodonticos? elasticos) {
-    return Card(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(titulo, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            _linha('Fio', arco?.fio ?? '—'),
-            _linha('Calibre', arco?.calibre ?? '—'),
-            const Divider(height: 16),
-            _linha('Elásticos', elasticos?.descricao ?? '—'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _linha(String label, String valor) {
+  Widget _linha(String rotulo, String? valor) {
+    final texto = (valor == null || valor.isEmpty) ? '—' : valor;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 60, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w500))),
-          Expanded(child: Text(valor)),
+          SizedBox(width: 72, child: Text(rotulo, style: const TextStyle(fontWeight: FontWeight.w500))),
+          Expanded(child: Text(texto)),
         ],
       ),
     );

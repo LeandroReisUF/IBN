@@ -14,11 +14,17 @@ import '../../core/usuario.dart';
 class TelaFormAgendamento extends StatefulWidget {
   final Agendamento? agendamento; // null = novo
   final DateTime dataInicial;
+  final String? pacienteIdInicial;
+  final String? procedimentoIdInicial;
+  final String? profissionalIdInicial;
 
   const TelaFormAgendamento({
     super.key,
     this.agendamento,
     required this.dataInicial,
+    this.pacienteIdInicial,
+    this.procedimentoIdInicial,
+    this.profissionalIdInicial,
   });
 
   @override
@@ -90,8 +96,25 @@ class _TelaFormAgendamentoState extends State<TelaFormAgendamento> {
       _hora = TimeOfDay(hour: a.inicio.hour, minute: a.inicio.minute);
       _duracaoCtrl.text = a.fim.difference(a.inicio).inMinutes.toString();
       _obsCtrl.text = a.observacoes;
-    } else {
+        } else {
       _data = widget.dataInicial;
+      _pacienteId = widget.pacienteIdInicial;
+      final prof = widget.profissionalIdInicial == null
+          ? null
+          : auth.buscarPorId(widget.profissionalIdInicial!);
+      if (prof != null) {
+        _tipo = prof.perfil;
+        _profissionalId = prof.id;
+      }
+      final proc = widget.procedimentoIdInicial == null
+          ? null
+          : buscarProcedimento(widget.procedimentoIdInicial!);
+      if (proc != null && (_tipo?.especialidades.contains(proc.especialidade) ?? false)) {
+        _procedimentoId = proc.id;
+        _duracaoCtrl.text = proc.duracaoMinutos.toString();
+        final aptas = _salasAptas;
+        if (aptas.length == 1) _salaNumero = aptas.first.numero; // Sala 3 (RN01)
+      }
     }
     _dataCtrl.text = formatarData(_data);
     _horaCtrl.text = _hora == null ? '' : _fmtHora(_hora!);

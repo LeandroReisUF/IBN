@@ -216,27 +216,35 @@ class OdontogramaRepository extends ChangeNotifier {
 
   /// Marcações ortodônticas de arcada ativas (últimas de cada (arcada, tipo)).
   /// "Ativa" = não retificada nem anulada.
-  Map<ArcadaOdonto, List<TipoMarcaArcada>> marcasArcadaAtivas(
-    String pacienteId,
-  ) {
-    final ativos = _marcasArcada
-        .where((m) => m.pacienteId == pacienteId)
-        .where((m) => m.retificaId == null)
-        .toList();
-    // Último por (arcada, tipo)
-    final vistos = <String, MarcaArcada>{};
-    for (final m in ativos) {
-      final chave = '${m.arcada.name}-${m.tipo.name}';
-      vistos[chave] = m; // lista já está na ordem de inclusão
+    /// Ids de marcas de arcada já corrigidas por outra (desmarcadas).
+  Set<String> _marcasRetificadas(String pacienteId) => {
+        for (final m in _marcasArcada)
+          if (m.pacienteId == pacienteId && m.retificaId != null) m.retificaId!,
+      };
+
+  /// A marca ativa de (arcada, tipo): não é uma retificação e não foi retificada.
+  MarcaArcada? marcaAtiva(String pacienteId, ArcadaOdonto arcada, TipoMarcaArcada tipo) {
+    final retificadas = _marcasRetificadas(pacienteId);
+    for (final m in _marcasArcada.reversed) {
+      if (m.pacienteId == pacienteId &&
+          m.arcada == arcada &&
+          m.tipo == tipo &&
+          m.retificaId == null &&
+          !retificadas.contains(m.id)) {
+        return m;
+      }
     }
-    final resultado = {
-      ArcadaOdonto.superior: <TipoMarcaArcada>[],
-      ArcadaOdonto.inferior: <TipoMarcaArcada>[],
+    return null;
+  }
+
+  Map<ArcadaOdonto, List<TipoMarcaArcada>> marcasArcadaAtivas(String pacienteId) {
+    return {
+      for (final arcada in ArcadaOdonto.values)
+        arcada: [
+          for (final tipo in TipoMarcaArcada.values)
+            if (marcaAtiva(pacienteId, arcada, tipo) != null) tipo,
+        ],
     };
-    for (final m in vistos.values) {
-      resultado[m.arcada]!.add(m.tipo);
-    }
-    return resultado;
   }
 
   /// Histórico completo de marcas de arcada (do mais recente ao mais antigo).

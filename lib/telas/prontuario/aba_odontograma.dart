@@ -70,58 +70,27 @@ class _AbaOdontogramaState extends State<AbaOdontograma> {
     setState(() => _marcasArcadaAtivas = ativas);
   }
 
-  void _alternarMarcaArcada(ArcadaOdonto arcada, TipoMarcaArcada tipo) {
-    final ativas = Map<ArcadaOdonto, List<TipoMarcaArcada>>.from(_marcasArcadaAtivas);
-    final lista = List<TipoMarcaArcada>.from(ativas[arcada]!);
-    final exists = lista.any((t) => t == tipo);
-    if (exists) {
-      lista.remove(tipo);
-    } else {
-      lista.add(tipo);
-    }
-    ativas[arcada] = lista;
-    setState(() => _marcasArcadaAtivas = ativas);
+    void _alternarMarcaArcada(ArcadaOdonto arcada, TipoMarcaArcada tipo) {
+    final usuarioId = auth.usuarioLogado!.id;
+    final existente = odontogramas.marcaAtiva(_paciente.id, arcada, tipo);
 
-    // Persiste a marca (só inclusão - se existir, atualiza o status/data; se não, cria).
-    final existentes = odontogramas.historicoMarcasArcada(_paciente.id);
-    MarcaArcada? existente;
-    for (final m in existentes) {
-      if (m.arcada == arcada && m.tipo == tipo && m.retificaId == null) {
-        existente = m;
-        break;
-      }
-    }
-    if (exists) {
-      // Desmarcou: cria registro de retificação anulando o anterior? 
-      // Pela simplicidade, só remove do estado ativo. O histórico guarda.
-      // O modelo exige retificação para "apagar", mas aqui é toggle visual.
-      // Para consistência com RN05, criamos um registro de "Nenhum" que retifica o anterior.
-      if (existente != null) {
-        final retificacao = MarcaArcada(
-          id: odontogramas.novoId(),
-          pacienteId: _paciente.id,
-          arcada: arcada,
-          tipo: tipo,
-          status: StatusTratamento.existente,
-          data: DateTime.now(),
-          profissionalId: auth.usuarioLogado!.id,
-          retificaId: existente.id,
-        );
-        odontogramas.adicionarMarcaArcada(retificacao);
-      }
-    } else {
-      // Marcou: novo registro
-      final novo = MarcaArcada(
-        id: odontogramas.novoId(),
-        pacienteId: _paciente.id,
-        arcada: arcada,
-        tipo: tipo,
-        status: StatusTratamento.existente,
-        data: DateTime.now(),
-        profissionalId: auth.usuarioLogado!.id,
-      );
-      odontogramas.adicionarMarcaArcada(novo);
-    }
+    // Desmarcar = novo registro que retifica o ativo (nada é apagado, RN05).
+    odontogramas.adicionarMarcaArcada(MarcaArcada(
+      id: odontogramas.novoId(),
+      pacienteId: _paciente.id,
+      arcada: arcada,
+      tipo: tipo,
+      status: StatusTratamento.existente,
+      data: DateTime.now(),
+      profissionalId: usuarioId,
+      retificaId: existente?.id,
+    ));
+    logsAcesso.registrar(
+      usuarioId: usuarioId,
+      acao: existente == null ? 'marcou_arcada_orto' : 'desmarcou_arcada_orto',
+      entidade: 'paciente',
+      entidadeId: _paciente.id,
+    );
     _carregarMarcasArcada();
   }
 
