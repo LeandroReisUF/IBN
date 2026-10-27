@@ -1,0 +1,82 @@
+import 'package:flutter/material.dart';
+import '../../core/auth_service.dart';
+import '../../core/formadores.dart';
+import '../../core/log_acesso.dart';
+import '../../core/paciente.dart';
+import '../../core/prontuario.dart';
+import '../../core/politica_acesso_service.dart';
+
+/// Aba de Anamnese: formulário dinâmico baseado em ModeloAnamnese.
+class AbaAnamnese extends StatefulWidget {
+  final Paciente paciente;
+  const AbaAnamnese({super.key, required this.paciente});
+
+  @override
+  State<AbaAnamnese> createState() => _AbaAnamneseState();
+}
+
+class _AbaAnamneseState extends State<AbaAnamnese> {
+  ModeloAnamnese? _modeloSelecionado;
+  final Map<String, String> _respostas = {};
+  bool _carregado = false;
+
+  Paciente get _paciente => widget.paciente;
+  Usuario get _usuario => auth.usuarioLogado!;
+  bool get _podeEditar => politicaAcesso.podeEditarOdontograma(_usuario, _paciente) || 
+      politicaAcesso.podeAcessarProntuario(_usuario, _paciente);
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarModelos();
+  }
+
+  void _carregarModelos() {
+    final especialidades = _usuario.perfil.especialidades;
+    if (especialidades.isNotEmpty) {
+      final modelos = <ModeloAnamnese>[];
+      for (final esp in especialidades) {
+        modelos.addAll(prontuarioRepository.modelosPorEspecialidade(esp.name));
+      }
+      if (modelos.isNotEmpty && _modeloSelecionado == null) {
+        _modeloSelecionado = modelos.first;
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: prontuarioRepository,
+      builder: (context, _) {
+        final atendimentos = prontuarioRepository.atendimentosDoPaciente(_paciente.id);
+        final atendimentoAtivo = atendimentos.firstWhere(
+          (a) => a.status == StatusAtendimento.emAtendimento,
+          orElse: () => atendimentos.firstOrNull,
+        );
+
+        final modelos = _getModelosDisponiveis();
+
+        return Column(
+          children: [
+            _buildHeader(modelos),
+            const SizedBox(height: 12),
+            Expanded(
+              child: _modeloSelecionado == null
+                  ? _buildSemModelo()
+                  : _buildFormulario(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  List<ModeloAnamnese> _getModelosDisponiveis() {
+    final especialidades = _usuario.perfil.especialidades;
+    final modelos = <ModeloAnamnese>[];
+    for (final esp in especialidades) {
+      modelos.addAll(prontuarioRepository.modelosPorEspecialidade(esp.name));
+    }
+    return modelos;
+  }

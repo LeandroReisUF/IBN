@@ -25,6 +25,12 @@ const List<Procedimento> procedimentos = [
   Procedimento(id: 'consulta-odontologica', nome: 'Consulta odontológica', especialidade: Especialidade.odontologia, duracaoMinutos: 30),
   Procedimento(id: 'profilaxia', nome: 'Profilaxia (limpeza)', especialidade: Especialidade.odontologia, duracaoMinutos: 40),
   Procedimento(id: 'restauracao', nome: 'Restauração', especialidade: Especialidade.odontologia, duracaoMinutos: 60),
+
+// Ortodontia (Fase E)
+Procedimento(id: 'instalacao-aparelho', nome: 'Instalação de aparelho ortodôntico', especialidade: Especialidade.odontologia, duracaoMinutos: 90),
+Procedimento(id: 'manutencao-ortodontica', nome: 'Manutenção ortodôntica', especialidade: Especialidade.odontologia, duracaoMinutos: 30),
+Procedimento(id: 'remocao-aparelho', nome: 'Remoção de aparelho ortodôntico', especialidade: Especialidade.odontologia, duracaoMinutos: 60),
+Procedimento(id: 'moldagem-escaneamento', nome: 'Moldagem / escaneamento ortodôntico', especialidade: Especialidade.odontologia, duracaoMinutos: 45),
   Procedimento(id: 'toxina-botulinica', nome: 'Toxina botulínica', especialidade: Especialidade.harmonizacaoOrofacial, duracaoMinutos: 30),
   Procedimento(id: 'preenchimento', nome: 'Preenchimento facial', especialidade: Especialidade.harmonizacaoOrofacial, duracaoMinutos: 45),
   Procedimento(id: 'peeling', nome: 'Peeling', especialidade: Especialidade.biomedicina, duracaoMinutos: 60),

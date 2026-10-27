@@ -6,6 +6,7 @@ import '../../core/paciente.dart';
 import '../../core/perfil.dart';
 import '../../core/politica_acesso_service.dart';
 import 'aba_odontograma.dart';
+import 'aba_ortodontia.dart';
 
 /// Prontuário de um paciente, com abas conforme o perfil logado (RF03.2).
 class TelaProntuarioPaciente extends StatefulWidget {
@@ -48,11 +49,12 @@ class _TelaProntuarioPacienteState extends State<TelaProntuarioPaciente> {
 
     final ehDentista = usuario.perfil == Perfil.dentista;
     final titulos = ehDentista
-        ? ['Odontograma', 'Harmonização (HOF)', 'Exames', 'Documentos']
+        ? ['Odontograma', 'Ortodontia', 'Harmonização (HOF)', 'Exames', 'Documentos']
         : ['Prontuário'];
     final corpos = <Widget>[
       if (ehDentista) ...[
         AbaOdontograma(paciente: paciente),
+        AbaOrtodontia(paciente: paciente),
         const _EmBreve('Ficha de Harmonização Orofacial (próxima etapa)'),
         const _EmBreve('Solicitação e upload de exames (próxima etapa)'),
         const _EmBreve('Prescrições, atestados e termos (próxima etapa)'),

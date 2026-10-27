@@ -1,0 +1,101 @@
+import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import '../../core/auth_service.dart';
+import '../../core/formadores.dart';
+import '../../core/documentos.dart';
+import '../../core/log_acesso.dart';
+import '../../core/paciente.dart';
+import '../../core/prontuario.dart';
+import '../../core/politica_acesso_service.dart';
+
+/// Aba de Documentos: modelos, geração, assinatura, PDF.
+class AbaDocumentos extends StatefulWidget {
+  final Paciente paciente;
+  const AbaDocumentos({super.key, required this.paciente});
+
+  @override
+  State<AbaDocumentos> createState() => _AbaDocumentosState();
+}
+
+class _AbaDocumentosState extends State<AbaDocumentos> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  ModeloDocumento? _modeloSelecionado;
+  final Map<String, String> _variaveis = {};
+
+  Paciente get _paciente => widget.paciente;
+  Usuario get _usuario => auth.usuarioLogado!;
+  bool get _podeEditar => politicaAcesso.podeEditarOdontograma(_usuario, _paciente) || 
+      politicaAcesso.podeAcessarProntuario(_usuario, _paciente);
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _carregarModelos();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _carregarModelos() {
+    final especialidades = _usuario.perfil.especialidades;
+    if (especialidades.isNotEmpty) {
+      final modelos = <ModeloDocumento>[];
+      for (final esp in especialidades) {
+        modelos.addAll(documentosRepository.modelosPorEspecialidade(esp.name));
+      }
+      if (modelos.isNotEmpty && _modeloSelecionado == null) {
+        _modeloSelecionado = modelos.first;
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: documentosRepository,
+      builder: (context, _) {
+        final documentos = documentosRepository.documentosDoPaciente(_paciente.id);
+        final modelos = _getModelosDisponiveis();
+
+        return Column(
+          children: [
+            _buildHeader(modelos),
+            const SizedBox(height: 12),
+            TabBar(
+              controller: _tabController,
+              tabs: const [
+                Tab(text: 'Gerar Documento'),
+                Tab(text: 'Documentos Emitidos'),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _modeloSelecionado == null
+                      ? _buildSemModelo()
+                      : _buildFormulario(),
+                  _buildListaDocumentos(documentos),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  List<ModeloDocumento> _getModelosDisponiveis() {
+    final especialidades = _usuario.perfil.especialidades;
+    final modelos = <ModeloDocumento>[];
+    for (final esp in especialidades) {
+      modelos.addAll(documentosRepository.modelosPorEspecialidade(esp.name));
+    }
+    return modelos;
+  }

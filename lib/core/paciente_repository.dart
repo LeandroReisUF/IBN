@@ -29,7 +29,7 @@ class PacienteRepository extends ChangeNotifier {
         telefone: '81988887777',
       ),
       termoLgpd: TermoLGPD(aceitoEm: DateTime(2026, 9, 10), versao: versaoTermoLgpd),
-      profissionaisVinculados: {'5'}, // médico
+      profissionaisVinculados: {'5', '3'}, // médico, dentista
     ),
     Paciente(
       id: 'p3',

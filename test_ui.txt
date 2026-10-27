@@ -1,0 +1,29 @@
+00:00 +0: loading F:/UAST/Projetos/ibn/test/agenda_service_test.dart
+00:00 +0: F:/UAST/Projetos/ibn/test/agenda_service_test.dart: AgendaService - conflitos (RN01 e RN02) aceita um agendamento válido
+00:00 +1: F:/UAST/Projetos/ibn/test/agenda_service_test.dart: AgendaService - conflitos (RN01 e RN02) aceita um agendamento válido
+00:00 +2: F:/UAST/Projetos/ibn/test/agenda_service_test.dart: AgendaService - conflitos (RN01 e RN02) aceita um agendamento válido
+00:00 +3: F:/UAST/Projetos/ibn/test/anatomia_dente_test.dart: AnatomiaDente - numeração quadrantes 2, 3, 6 e 7 usam o desenho do lado direito, espelhado
+00:00 +4: F:/UAST/Projetos/ibn/test/agenda_service_test.dart: AgendaService - conflitos (RN01 e RN02) recusa a mesma sala em horário sobreposto (RN02)
+00:00 +5: F:/UAST/Projetos/ibn/test/anatomia_dente_test.dart: AnatomiaDente - numeração decíduos reaproveitam o desenho de um permanente
+00:00 +6: F:/UAST/Projetos/ibn/test/agenda_service_test.dart: AgendaService - conflitos (RN01 e RN02) recusa o mesmo profissional em outra sala no mesmo horário (RN02)
+00:00 +7: F:/UAST/Projetos/ibn/test/agenda_service_test.dart: AgendaService - conflitos (RN01 e RN02) recusa o mesmo profissional em outra sala no mesmo horário (RN02)
+00:00 +8: F:/UAST/Projetos/ibn/test/anatomia_dente_test.dart: AnatomiaDente - numeração nome completo do dente
+00:00 +9: F:/UAST/Projetos/ibn/test/agenda_service_test.dart: AgendaService - conflitos (RN01 e RN02) Sala 3 não aceita medicina (RN01)
+00:00 +10: F:/UAST/Projetos/ibn/test/anatomia_dente_test.dart: AnatomiaDente - raízes quantidade de raízes por tipo de dente
+00:00 +11: F:/UAST/Projetos/ibn/test/anatomia_dente_test.dart: AnatomiaDente - raízes quantidade de raízes por tipo de dente
+00:00 +12: F:/UAST/Projetos/ibn/test/agenda_service_test.dart: AgendaService - conflitos (RN01 e RN02) profissional só realiza a própria especialidade
+00:00 +13: F:/UAST/Projetos/ibn/test/anatomia_dente_test.dart: AnatomiaDente - raízes a raiz mesial fica sempre do lado da linha média (na tela)
+00:00 +14: F:/UAST/Projetos/ibn/test/agenda_service_test.dart: AgendaService - conflitos (RN01 e RN02) horários que apenas encostam não conflitam
+00:00 +15: F:/UAST/Projetos/ibn/test/agenda_service_test.dart: AgendaService - conflitos (RN01 e RN02) Faltou/Desmarcou libera o horário
+00:00 +16: F:/UAST/Projetos/ibn/test/agenda_service_test.dart: AgendaService - conflitos (RN01 e RN02) Faltou/Desmarcou libera o horário
+00:00 +17: F:/UAST/Projetos/ibn/test/anatomia_dente_test.dart: AnatomiaDente - raízes molares decíduos: 3 raízes em cima e 2 embaixo
+00:00 +18: F:/UAST/Projetos/ibn/test/agenda_service_test.dart: AgendaService - conflitos (RN01 e RN02) agendar vincula o paciente ao profissional escolhido (RN03)
+00:00 +19: F:/UAST/Projetos/ibn/test/caixa_dente_test.dart: faceNoPonto (EstiloCaixa.quadrada) o centro é a face oclusal
+00:01 +20: F:/UAST/Projetos/ibn/test/caixa_dente_test.dart: faceNoPonto (EstiloCaixa.quadrada) cada lado devolve a face correta
+00:01 +21: F:/UAST/Projetos/ibn/test/caixa_dente_test.dart: faceNoPonto (EstiloCaixa.quadrada) os cantos seguem as diagonais
+00:01 +22: F:/UAST/Projetos/ibn/test/caixa_dente_test.dart: faceNoPonto (EstiloCaixa.quadrada) fora da caixa não devolve face
+00:01 +23: F:/UAST/Projetos/ibn/test/caixa_dente_test.dart: faceNoPonto (EstiloCaixa.redonda) o centro é a face oclusal
+00:01 +24: F:/UAST/Projetos/ibn/test/caixa_dente_test.dart: faceNoPonto (EstiloCaixa.redonda) cada lado devolve a face correta
+00:01 +25: F:/UAST/Projetos/ibn/test/caixa_dente_test.dart: faceNoPonto (EstiloCaixa.redonda) os cantos seguem as diagonais
+00:01 +26: F:/UAST/Projetos/ibn/test/caixa_dente_test.dart: faceNoPonto (EstiloCaixa.redonda) fora da caixa não devolve face
+00:01 +27: F:/UAST/Projetos/ibn/test/caixa_dente_test.dart: na caixa redonda, o canto fica fora do círculo
