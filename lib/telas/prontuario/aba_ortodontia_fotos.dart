@@ -96,19 +96,20 @@ class _SecaoFotosState extends State<SecaoFotos> {
 
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Adicionar foto comparativa'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextFormField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Descrição (ex.: Inicial, 3 meses, Final)', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            CheckboxListTile(title: const Text('É foto "ANTES" (inicial)'), value: isAntes, onChanged: (v) => (context as dynamic).setState(() => isAntes = v ?? false)),
-            const SizedBox(height: 8),
-            const Text('Integração com galeria/câmera será implementada.', style: TextStyle(fontSize: 12, color: Colors.grey)),
-          ],
-        ),
-        actions: [
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Adicionar foto comparativa'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Descrição (ex.: Inicial, 3 meses, Final)', border: OutlineInputBorder())),
+              const SizedBox(height: 12),
+              CheckboxListTile(title: const Text('É foto "ANTES" (inicial)'), value: isAntes, onChanged: (v) => setState(() => isAntes = v ?? false)),
+              const SizedBox(height: 8),
+              const Text('Integração com galeria/câmera será implementada.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+            ],
+          ),
+          actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
           FilledButton(
             onPressed: () {
@@ -130,6 +131,7 @@ class _SecaoFotosState extends State<SecaoFotos> {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 }
