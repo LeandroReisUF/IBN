@@ -1,4 +1,4 @@
-import '../../../core/especialidade.dart';
+import 'package:ibn/core/especialidade.dart';
 
 /// Perfis de acesso do sistema (RF01.1).
 enum Perfil {

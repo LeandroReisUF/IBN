@@ -1,28 +1,49 @@
 import 'package:flutter/material.dart';
-import '../../core/agenda_service.dart';
-import '../../core/agendamento.dart';
-import '../../features/auth/data/auth_service.dart';
-import '../../core/formadores.dart';
-import '../../core/paciente_repository.dart';
-import '../../core/politica_acesso_service.dart';
-import '../../core/procedimento.dart';
-import '../../core/sala.dart';
-import '../../features/auth/domain/usuario.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:ibn/core/agenda_service.dart';
+import 'package:ibn/core/agendamento.dart';
+import 'package:ibn/core/formadores.dart';
+import 'package:ibn/core/paciente_repository.dart';
+import 'package:ibn/core/politica_acesso_service.dart';
+import 'package:ibn/core/procedimento.dart';
+import 'package:ibn/core/sala.dart';
+import 'package:ibn/features/agenda/presentation/cubit/agendamento_cubit.dart';
+import 'package:ibn/features/agenda/presentation/cubit/agendamento_state.dart';
+import 'package:ibn/features/auth/data/auth_service.dart';
+import 'package:ibn/features/auth/domain/usuario.dart';
 import 'tela_form_agendamento.dart';
 
 enum _Periodo { dia, semana, mes }
 
 enum _Visao { geral, sala, profissional }
 
-/// Agenda da clínica (RF02): visão por dia/semana/mês e por sala/profissional.
-class TelaAgenda extends StatefulWidget {
+/// Agenda da clínica (RF02). Esta classe só **fornece** o Cubit;
+/// o desenho da tela está em [_AgendaView].
+class TelaAgenda extends StatelessWidget {
   const TelaAgenda({super.key});
 
   @override
-  State<TelaAgenda> createState() => _TelaAgendaState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => AgendamentoCubit(
+        servico: agenda,
+        usuario: auth.usuarioLogado!,
+      )..carregar(),
+      child: const _AgendaView(),
+    );
+  }
 }
 
-class _TelaAgendaState extends State<TelaAgenda> {
+class _AgendaView extends StatefulWidget {
+  const _AgendaView();
+
+  @override
+  State<_AgendaView> createState() => _AgendaViewState();
+}
+
+/// Aqui fica só o estado **de tela** (qual dia/semana/mês, qual visão, qual
+/// filtro). Os dados da agenda vêm do Cubit.
+class _AgendaViewState extends State<_AgendaView> {
   DateTime _data = soData(DateTime.now());
   _Periodo _periodo = _Periodo.dia;
   _Visao _visao = _Visao.geral;
@@ -81,6 +102,8 @@ class _TelaAgendaState extends State<TelaAgenda> {
   // ---------- ações ----------
 
   void _abrirForm({Agendamento? agendamento}) {
+    // O formulário ainda usa o AgendaService direto (ele fica numa rota fora do
+    // BlocProvider). Como o Cubit escuta o serviço, a lista atualiza sozinha.
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => TelaFormAgendamento(
@@ -119,6 +142,8 @@ class _TelaAgendaState extends State<TelaAgenda> {
     final statusPermitidos = politicaAcesso.statusPermitidos(usuario, a);
     final podeAgendar = politicaAcesso.podeAgendar(usuario);
     final tema = Theme.of(context);
+    // Pega o Cubit AQUI, antes de abrir a folha (ela fica fora do BlocProvider).
+    final cubit = context.read<AgendamentoCubit>();
 
     showModalBottomSheet<void>(
       context: context,
@@ -148,10 +173,10 @@ class _TelaAgendaState extends State<TelaAgenda> {
                       ChoiceChip(
                         label: Text(st.rotulo),
                         selected: st == a.status,
-                        onSelected: (_) {
-                          final erro = agenda.mudarStatus(a.id, st);
+                        onSelected: (_) async {
                           Navigator.of(ctx).pop();
-                          if (erro != null) _aviso(erro);
+                          final erro = await cubit.mudarStatus(a.id, st);
+                          if (erro != null && mounted) _aviso(erro);
                         },
                       ),
                   ],
@@ -411,6 +436,57 @@ class _TelaAgendaState extends State<TelaAgenda> {
     );
   }
 
+  // ---------- corpo por estado ----------
+
+  Widget _erro(String mensagem) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
+          const SizedBox(height: 12),
+          Text(mensagem),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: () => context.read<AgendamentoCubit>().carregar(),
+            child: const Text('Tentar de novo'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Aplica os filtros de TELA (sala/profissional/período) sobre as consultas
+  /// que o Cubit já entregou filtradas pelo perfil (RN03).
+  Widget _sucesso(
+    List<Agendamento> consultas,
+    Usuario usuario,
+    bool global,
+    String profId,
+  ) {
+    var lista = consultas;
+    if (global && _visao == _Visao.sala) {
+      lista = lista.where((a) => a.salaNumero == _salaFiltro).toList();
+    }
+    if (global && _visao == _Visao.profissional) {
+      lista = lista.where((a) => a.profissionalId == profId).toList();
+    }
+    final ini = _inicioPeriodo;
+    final fim = _fimPeriodo;
+    lista = lista
+        .where((a) => !a.inicio.isBefore(ini) && a.inicio.isBefore(fim))
+        .toList()
+      ..sort((a, b) => a.inicio.compareTo(b.inicio));
+
+    if (_periodo == _Periodo.mes) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+        child: _grade(lista),
+      );
+    }
+    return _listaDeAgendamentos(lista, usuario);
+  }
+
   @override
   Widget build(BuildContext context) {
     final usuario = auth.usuarioLogado!;
@@ -419,25 +495,11 @@ class _TelaAgendaState extends State<TelaAgenda> {
     final profissionais = auth.profissionaisSaude;
     final profId = _profFiltro ?? profissionais.first.id;
 
+    // `pacientes` ainda é um ChangeNotifier: os nomes na lista dependem dele.
     return ListenableBuilder(
-      listenable: Listenable.merge([agenda, pacientes]),
-      builder: (context, _) {
-        // RN03: cada perfil só recebe os agendamentos que pode ver.
-        var lista = politicaAcesso.filtrarAgenda(usuario, agenda.todos);
-        if (global && _visao == _Visao.sala) {
-          lista = lista.where((a) => a.salaNumero == _salaFiltro).toList();
-        }
-        if (global && _visao == _Visao.profissional) {
-          lista = lista.where((a) => a.profissionalId == profId).toList();
-        }
-        final ini = _inicioPeriodo;
-        final fim = _fimPeriodo;
-        lista = lista
-            .where((a) => !a.inicio.isBefore(ini) && a.inicio.isBefore(fim))
-            .toList()
-          ..sort((a, b) => a.inicio.compareTo(b.inicio));
-
-        return Scaffold(
+      listenable: pacientes,
+      builder: (context, _) => BlocBuilder<AgendamentoCubit, AgendamentoState>(
+        builder: (context, state) => Scaffold(
           floatingActionButton: podeAgendar
               ? FloatingActionButton.extended(
                   onPressed: () => _abrirForm(),
@@ -453,19 +515,20 @@ class _TelaAgendaState extends State<TelaAgenda> {
                 children: [
                   _cabecalho(global, profissionais, profId),
                   Expanded(
-                    child: _periodo == _Periodo.mes
-                        ? SingleChildScrollView(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-                            child: _grade(lista),
-                          )
-                        : _listaDeAgendamentos(lista, usuario),
+                    child: switch (state) {
+                      AgendamentoInitial() || AgendamentoLoading() =>
+                        const Center(child: CircularProgressIndicator()),
+                      AgendamentoError(:final mensagem) => _erro(mensagem),
+                      AgendamentoSuccess(:final consultas) =>
+                        _sucesso(consultas, usuario, global, profId),
+                    },
                   ),
                 ],
               ),
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

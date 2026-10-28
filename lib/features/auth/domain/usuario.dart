@@ -1,4 +1,4 @@
-import 'perfil.dart';
+import 'package:ibn/features/auth/domain/perfil.dart';
 
 /// Usuário autenticado no sistema.
 class Usuario {

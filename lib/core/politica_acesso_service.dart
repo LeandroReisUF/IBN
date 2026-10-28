@@ -29,6 +29,12 @@ class PoliticaAcessoService {
   /// Criar e editar agendamentos: Recepção e Admin.
   bool podeAgendar(Usuario usuario) => usuario.perfil.veClinicaInteira;
 
+  /// Dentista pode agendar o RETORNO de paciente vinculado a ele, só para si mesmo.
+  /// (Recepção/Admin continuam agendando qualquer um, por `podeAgendar`.)
+  bool podeAgendarRetorno(Usuario usuario, Paciente paciente) =>
+      usuario.perfil == Perfil.dentista &&
+      paciente.profissionaisVinculados.contains(usuario.id);
+
   /// Recepção e Admin veem a agenda da clínica toda; profissionais só a própria.
   bool podeVerAgendaGlobal(Usuario usuario) => usuario.perfil.veClinicaInteira;
 

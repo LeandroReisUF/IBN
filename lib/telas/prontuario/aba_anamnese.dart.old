@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/auth_service.dart';
+import 'package:ibn/features/auth/data/auth_service.dart';
 import '../../core/formadores.dart';
 import '../../core/log_acesso.dart';
 import '../../core/paciente.dart';
