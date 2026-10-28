@@ -101,14 +101,17 @@ class _AgendaViewState extends State<_AgendaView> {
 
   // ---------- ações ----------
 
-  void _abrirForm({Agendamento? agendamento}) {
-    // O formulário ainda usa o AgendaService direto (ele fica numa rota fora do
-    // BlocProvider). Como o Cubit escuta o serviço, a lista atualiza sozinha.
+    void _abrirForm({Agendamento? agendamento}) {
+    // Reaproveita o MESMO Cubit da tela (lista e formulário compartilham o estado).
+    final cubit = context.read<AgendamentoCubit>();
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => TelaFormAgendamento(
-          agendamento: agendamento,
-          dataInicial: _data,
+        builder: (_) => BlocProvider.value(
+          value: cubit,
+          child: TelaFormAgendamento(
+            agendamento: agendamento,
+            dataInicial: _data,
+          ),
         ),
       ),
     );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:ibn/features/agenda/data/agenda_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:ibn/features/agenda/presentation/cubit/agendamento_cubit.dart';
 import 'package:ibn/features/agenda/domain/agendamento.dart';
 import 'package:ibn/features/auth/data/auth_service.dart';
 import 'package:ibn/core/formadores.dart';
@@ -10,6 +11,7 @@ import 'package:ibn/core/procedimento.dart';
 import 'package:ibn/features/agenda/domain/sala.dart';
 import 'package:ibn/features/auth/domain/usuario.dart';
 import 'package:ibn/core/politica_acesso_service.dart';
+
 
 /// Criar / editar agendamento (RF02.1) com validação de conflitos ao vivo.
 class TelaFormAgendamento extends StatefulWidget {
@@ -215,31 +217,35 @@ class _TelaFormAgendamentoState extends State<TelaFormAgendamento> {
     );
   }
 
-  void _salvar() {
+    Future<void> _salvar() async {
     if (!_formKey.currentState!.validate()) return;
-    final ag = _montar(id: widget.agendamento?.id ?? agenda.novoId());
+    final cubit = context.read<AgendamentoCubit>();
+    final ag = _montar(id: widget.agendamento?.id ?? cubit.novoId());
     if (ag == null) return;
 
-      if (_restrito) {
+    final mensagem = ScaffoldMessenger.of(context);
+    final navegador = Navigator.of(context);
+
+    if (_restrito) {
       final usuario = auth.usuarioLogado!;
       final p = pacientes.buscarPorId(ag.pacienteId);
       if (p == null ||
           ag.profissionalId != usuario.id ||
           !politicaAcesso.podeAgendarRetorno(usuario, p)) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        mensagem.showSnackBar(
           const SnackBar(content: Text('Você só pode agendar retorno dos seus pacientes, para você mesmo.')),
         );
         return;
       }
     }
 
-    final erro = _editando ? agenda.atualizar(ag) : agenda.criar(ag);
-    final mensagem = ScaffoldMessenger.of(context);
+    final erro = _editando ? await cubit.atualizar(ag) : await cubit.criar(ag);
+    if (!mounted) return;
     if (erro != null) {
       mensagem.showSnackBar(SnackBar(content: Text(erro)));
       return;
     }
-    Navigator.of(context).pop();
+    navegador.pop();
     mensagem.showSnackBar(
       SnackBar(content: Text(_editando ? 'Agendamento atualizado.' : 'Agendamento criado.')),
     );
@@ -270,7 +276,7 @@ class _TelaFormAgendamentoState extends State<TelaFormAgendamento> {
   Widget _previa(ColorScheme cores) {
     final ag = _montar(id: widget.agendamento?.id ?? 'previa');
     if (ag == null) return const SizedBox.shrink();
-    final erro = agenda.validarConflitos(ag);
+    final erro = context.read<AgendamentoCubit>().validarConflitos(ag);
     final ok = erro == null;
     return Card(
       color: ok ? Colors.green.withValues(alpha: 0.12) : cores.errorContainer,

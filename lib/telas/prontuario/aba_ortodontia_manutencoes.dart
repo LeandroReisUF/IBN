@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:ibn/features/agenda/data/agenda_service.dart';
+import 'package:ibn/features/agenda/presentation/cubit/agendamento_cubit.dart';
 import 'package:ibn/core/formadores.dart';
 import 'package:ibn/core/log_acesso.dart';
 import 'package:ibn/core/ortodontia.dart';
 import 'package:ibn/core/paciente.dart';
-import '../../features/auth/domain/usuario.dart';
+import 'package:ibn/features/auth/domain/usuario.dart';
 import 'package:ibn/features/agenda/presentation/pages/tela_form_agendamento.dart';
 
 /// Seção **Manutenções Ortodônticas**. Só inclusão: "Retificar" cria um novo
@@ -58,14 +61,18 @@ class _SecaoManutencoesState extends State<SecaoManutencoes> {
   }
 
   /// Abre o agendamento já com paciente, procedimento e profissional.
-  void _agendar() {
+    void _agendar() {
+    final usuario = widget.usuario;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => TelaFormAgendamento(
-          dataInicial: soData(DateTime.now()),
-          pacienteIdInicial: widget.paciente.id,
-          procedimentoIdInicial: 'manutencao-ortodontica',
-          profissionalIdInicial: widget.usuario.id,
+        builder: (_) => BlocProvider(
+          create: (_) => AgendamentoCubit(servico: agenda, usuario: usuario),
+          child: TelaFormAgendamento(
+            dataInicial: soData(DateTime.now()),
+            pacienteIdInicial: widget.paciente.id,
+            procedimentoIdInicial: 'manutencao-ortodontica',
+            profissionalIdInicial: usuario.id,
+          ),
         ),
       ),
     );

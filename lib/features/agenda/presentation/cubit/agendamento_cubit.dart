@@ -65,6 +65,9 @@ class AgendamentoCubit extends Cubit<AgendamentoState> {
   /// Validação ao vivo do formulário (sem salvar).
   String? validarConflitos(Agendamento a) => _servico.validarConflitos(a);
 
+  /// Id para um agendamento novo (o formulário não precisa conhecer o serviço).
+  String novoId() => _servico.novoId();
+  
   @override
   Future<void> close() {
     _servico.removeListener(_aoMudarServico);
