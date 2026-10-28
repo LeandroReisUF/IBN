@@ -110,7 +110,7 @@ class _SecaoFotosState extends State<SecaoFotos> {
                 child: Image.memory(
                   f.bytes,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
+                  errorBuilder: (_, _, _) =>
                       const Center(child: Icon(Icons.broken_image_outlined, size: 40)),
                 ),
               ),

@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 
 /// Ortodontia — Fase F (ficha, manutenções e fotos).

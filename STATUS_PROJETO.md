@@ -1,124 +1,119 @@
 # Status do Projeto — ibn (Sistema Clínico)
 
-**Última atualização:** 27/10/2026  
-**Stack:** Flutter (Windows, Android, Web) — dados em memória (sem servidor)  
-**Testes:** 75/75 ✅
+**Última atualização:** 27/10/2026 (revisão código × documentação)
+**Stack:** Flutter (Windows, Android, Web) — dados em memória (sem servidor)
+**Legenda:** ✅ funciona · 🟡 parcial (existe, mas com falhas conhecidas) · 🔴 quebrado / não compila · ⬜ não iniciado
+
+> **Regra deste documento:** só marca ✅ o que foi conferido no código. Antes, vários itens estavam
+> marcados como concluídos sem estarem (ex.: "Fase F 90%"). Esta versão corrige isso.
 
 ---
 
-## Legenda
-- ✅ Concluído
-- 🟡 Parcial / Em andamento
-- ❌ Pendente
+## 1. Resumo honesto da Sprint 1
+
+| Bloco da Sprint 1 (PDF de requisitos) | Situação real |
+|---|---|
+| Infra/segurança base (BD, nuvem, RBAC) | 🟡 RBAC só no app; sem banco, sem servidor |
+| Cadastro de pacientes (RF03.1) | ✅ (faltam foto, endereço, versões do termo) |
+| Agenda multissala (RF02, RN01, RN02) | ✅ (revalidação no servidor pendente) |
+| Odontologia — Anamnese | 🔴 arquivo existe, não compila |
+| Odontologia — Odontograma (RF04.1) | ✅ Fases A–E |
+| Odontologia — Ortodontia (extra, Fase F) | 🟡 ver seção 3 |
+| Odontologia — HOF (RF04.2) | 🔴 só aba "em breve" + arquivos quebrados |
+| Odontologia — Exames (RF04.3) | 🔴 idem |
+| Odontologia — Prescrição/Atestados (RF04.4) | 🔴 idem |
+| Biomedicina inteira (RF05) | ⬜ não iniciada (está na Sprint 1 do PDF) |
+
+**Estimativa realista de conclusão da Sprint 1: ~45–50%** (o documento anterior dizia 90%).
 
 ---
 
-## Sprint 1 — Core + Odontologia + Biomedicina
+## 2. Odontograma (RF04.1)
 
-| Módulo / Fase | Status | Observações |
-|---------------|--------|-------------|
-| Login / Perfis (RF01.1, RF01.2) | ✅ | Contas de teste, `Modulo` por perfil |
-| Pacientes + LGPD (RF03.1) | ✅ | Responsável, termo, vínculos, inativar/excluir |
-| Agenda + Salas (RF02, RN01, RN02) | ✅ | Conflitos, 10 testes |
-| Política de Acesso (RN03) | ✅ | `PoliticaAcessoService`, `LogAcesso` |
-| **Odontograma Fase A** (desenho + caixa) | ✅ | 18 testes |
-| **Odontograma Fase B** (condições, evolução) | ✅ | 33 testes |
-| **Odontograma Fase C** (raízes) | ✅ | 9 testes |
-| **Odontograma Fase D** (decíduos) | ✅ | 4 testes |
-| **Odontograma Fase E** (orto camada 1) | ✅ | **NOVO** — Marcas no dente + arcada |
-| **Odontograma Fase F** (orto aba própria) | 🟡 | Modelos ✅, Repository ✅, UI 90% ✅ |
-| HOF, Exames, Documentos, Anamnese | ❌ | Próximos |
-| Servidor/API/PostgreSQL | ❌ | Após Sprint 1 |
+| Fase | Descrição | Status | Observação conferida no código |
+|---|---|---|---|
+| A | Desenho 2D + caixa dividida | ✅ | `desenho_dente.dart`, `caixa_dente.dart` |
+| B | Condições, evolução, retificação, visões | ✅ | `condicao_odonto.dart`, `dialogo_evolucao.dart`, `menu_condicoes.dart` |
+| C | Raízes | ✅ | divisão em faixas horizontais |
+| D | Decíduos | ✅ | escala **0,75** (a spec dizia 0,7); limite 13 anos |
+| E | Ortodontia camada 1 | 🟡 | ver bug abaixo |
+| F | Ortodontia aba própria | 🟡 | seção 3 |
+
+**Bug na Fase E (marcas de arcada):** `OdontogramaRepository.marcasArcadaAtivas` descarta
+os registros com `retificaId`, mas **não descarta o registro original que foi retificado**.
+Resultado: ao desmarcar um tipo de aparelho, a marca "volta" ao recarregar. Correção: ignorar também os ids apontados por `retificaId` (como `estadoAtual` já faz).
+
+Outras observações:
+- As marcas de arcada ficam só nos chips; **não são desenhadas** nas arcadas.
+- `MarcaOrtodontia` está em `condicao_odonto.dart` (a doc dizia `odontograma.dart`).
+- `OrtodontiaRepository` mora dentro de `core/odontograma.dart` (deveria ter arquivo próprio).
 
 ---
 
-## Total de Testes: **75/75 ✅**
+## 3. Ortodontia — Fase F (🟡, longe de 90%)
+
+| Item | Real |
+|---|---|
+| Modelos `FichaOrtodontica`, `ManutencaoOrtodontica`, `FotoComparativaOrto` | ✅ (falta campo `queixaPrincipal` na ficha) |
+| Ficha — escolher datas | 🔴 `onEscolherDataInstalacao` e `onEscolherPrevisaoTermino` são `() {}` |
+| Ficha — salvar | 🔴 `onSalvar` é `() {}`; além disso não há `Form`, então os validators nunca rodam |
+| Ficha — campo "Queixa principal" | 🔴 usa `objetivos` (mesmo dado nos dois campos) |
+| Arcos e elásticos — editar | 🔴 não existem campos no formulário; `onEditarFicha` é `() {}` |
+| Manutenções — data no diálogo | 🔴 `AlertDialog` sem `StatefulBuilder`: a data escolhida não aparece |
+| Manutenções — editar | 🔴 `adicionarManutencao` só inclui → editar duplica o registro |
+| Manutenções — lista atualiza | 🔴 `AbaOrtodontia` é `StatelessWidget` e não escuta o repositório |
+| Manutenções — "Agendar" | 🟡 abre o formulário em branco (sem paciente/procedimento) |
+| Fotos — upload real | 🔴 usa URL `via.placeholder.com`; `image_picker`/`file_picker` importados e não usados |
+| Estrutura | 🟡 `Scaffold` + `AppBar` aninhados dentro da aba |
+| Testes da Fase F | ⬜ nenhum |
+
+---
+
+## 4. HOF, Exames, Documentos, Anamnese, Prontuário base (🔴)
+
+Na tela, `tela_prontuario_paciente.dart` mostra `_EmBreve(...)` nessas abas. Os arquivos que existem no
+repositório **estão corrompidos/incompletos e não compilam** (só não derrubam o app porque ninguém os importa):
+
+| Arquivo | Problema |
+|---|---|
+| `core/prontuario.dart` | classes cortadas e coladas umas dentro das outras; campos não-`final` em classes `const`; **não existe `prontuarioRepository`** |
+| `core/documentos.dart` | `preencher()` cortado ao meio; classes inseridas dentro de outra; `copiarCom` do TCLE truncado; construtores passam `pacienteId: ''` e `emitidoEm: DateTime.now()` ao `super`, apagando os dados |
+| `core/exames.dart` | `copiarCom` truncado; trecho solto depois de `examesRepository` |
+| `core/hof.dart` | enum `LadoFaceHOF` partido (valores no fim do arquivo); `ProcedimentoHOF` truncado; `FichaHOF.copiarCom` passa `DateTime?` a campo `DateTime`; procedimentos novos não entram em `ficha.procedimentos` (a aba nunca mostraria) |
+| `aba_prontuario.dart`, `aba_anamnese.dart`, `aba_exames.dart`, `aba_hof.dart`, `aba_documentos.dart` | métodos fora da classe, métodos `_build...` inexistentes, `Usuario` sem import, acesso a membros privados de outra biblioteca |
+| `aba_hof_dialogs.dart`, `aba_hof_dialogs_part2.dart` | classes privadas (`_Dialog...`) em arquivos que não são `part`; o `part2` termina com lixo **UTF‑16** |
+
+**Provável causa:** arquivos gravados por redirecionamento do PowerShell (`>>`, que grava UTF‑16) e/ou
+colagens parciais. Padrão: arquivos longos "emendados" em pedaços.
+
+**Por que "75 testes passam":** os testes só compilam o que é importado a partir de `main.dart`. Rodar
+`flutter analyze` mostrará dezenas de erros.
+
+---
+
+## 5. Testes
 
 | Suite | Testes |
-|-------|--------|
+|---|---|
 | AgendaService | 10 |
 | AnatomiaDente | 18 |
-| CaixaDente (quadrada + redonda) | 10 |
+| CaixaDente | 10 |
 | DesenhoDente (faixaDaRaiz) | 4 |
-| Odontograma (estado, retificação, raízes, decíduos, visões, catálogo, acesso) | 33 |
+| Odontograma | 33 |
+| **Total declarado** | **75** (os arquivos de teste não foram reconferidos nesta revisão) |
+| Fase F, HOF, Exames, Documentos, Prontuário | 0 |
 
 ---
 
-## Fases do Odontograma (RF04.1)
+## 6. Divergências entre documentos corrigidas
 
-| Fase | Descrição | Status |
-|------|-----------|--------|
-| **A** | Desenho 2D + caixa dividida | ✅ |
-| **B** | Condições, evolução, retificação, visões | ✅ |
-| **C** | Tratamentos de raiz | ✅ |
-| **D** | Dentes decíduos | ✅ |
-| **E** | Ortodontia — marcas no odontograma | ✅ **NOVO** |
-| **F** | Ortodontia — aba própria (ficha, manutenções, fotos) | 🟡 |
+- `PROXIMOS_PASSOS` colocava Biomedicina/HOF na Sprint 2 e servidor na Sprint 3. **No PDF:** Biomedicina e HOF são Sprint 1; Sprint 2 = multidisciplinar + estoque + financeiro; Sprint 3 = WhatsApp + marketing + BI. O "marco do servidor" fica **entre a Sprint 1 e a 2**.
+- Login/RBAC e Política de Acesso estavam ✅; ficam 🟡 (sem hash, 2FA, RBAC granular, nada no servidor).
+- `GUIA_USO_SVGS_ODONTOGRAMA.md` agora existe no projeto (o status antigo dizia que não).
+- Checklist pedia "excluir manutenção/foto": **contraria a RN05** (prontuário não se apaga). Troca-se por anulação/retificação.
 
-### Fase E — Concluída (27/10/2026)
-- 7 condições ortodônticas no catálogo (Bm, Be, Bd, Tb, Bt, Cf, Mi)
-- Desenho no `CustomPainter` sobre a coroa
-- Checkboxes por arcada (5 tipos × 2 arcadas) — só modo editável
-- Toggle persiste via `OdontogramaRepository` com retificação RN05
-- 4 procedimentos ortodônticos no catálogo
-- Filtro "Ortodontia" nas categorias
-- **75 testes passando**
+## 7. Pendências técnicas (inalteradas)
 
-### Fase F — Parcial (27/10/2026)
-✅ Modelos: `FichaOrtodontica`, `ManutencaoOrtodontica`, `FotoComparativaOrto`  
-✅ Repository: `OrtodontiaRepository` (ChangeNotifier)  
-✅ UI: `AbaOrtodontia` composta por 4 widgets separados:
-- `aba_ortodontia_ficha.dart` — ficha com tipo aparelho, datas, objetivos
-- `aba_ortodontia_arcos.dart` — arcos/elásticos por arcada
-- `aba_ortodontia_manutencoes.dart` — lista + dialog nova/editar
-- `aba_ortodontia_fotos.dart` — grid + dialog adicionar (placeholder)
-✅ Integração: aba "Ortodontia" no prontuário do dentista  
-❌ Botão "Agendar manutenção" → `TelaFormAgendamento`  
-❌ Upload real de fotos (`image_picker` / `file_picker`)  
-❌ Testes automatizados
-
----
-
-## Próximas Prioridades
-
-1. **Fase F — Conclusão**
-   - Botão "Agendar manutenção" no dialog de manutenção
-   - Upload real de fotos
-   - Testes automatizados
-
-2. **Prontuário Base** (`Prontuario`, `Atendimento`, `Evolucao`, `Adendo`, `Anamnese`)
-
-3. **HOF** (fichas, pontos, lote, fotos)
-
-4. **Exames + Foto do paciente**
-
-5. **Documentos** (prescrição, atestados, TCLE, PDF)
-
-6. **Biomedicina** (RF05)
-
-7. **Servidor** (API REST, PostgreSQL, hash, 2FA, RBAC, logs)
-
----
-
-## Pendências Técnicas Conhecidas
-
-- ⚠️ Contas de teste com senha `123456` — remover antes de uso real
-- ⚠️ Dados em memória — perdem ao fechar app
-- ⚠️ `GUIA_USO_SVGS_ODONTOGRAMA.md` não existe no repo (existem `manifest_direito.json` e `manifest_esquerdo.json`)
-- ❓ Confirmar licença da imagem raster vetorizada (uso comercial)
-- ❓ Validar siglas/cores com dentistas da clínica
-- ❓ Limite idade decíduos (atual: 13 anos, constante)
-- ❓ Raízes 3º molares ajustáveis por paciente
-- ❓ Formas próprias de decíduos (hoje escala 0.75)
-
----
-
-## Arquivos de Documentação no Projeto
-
-| Arquivo | Descrição |
-|---------|-----------|
-| `Fase_E_ORTODONTIA_CAMADA1.md` | Detalhamento completo Fase E |
-| `FASE_F_ORTODONTIA_ABA.md` | Detalhamento completo Fase F |
-| `STATUS_PROJETO.md` | Este arquivo |
-| `melhorias_odontograma.md` | Spec original (referência) |
-| `diagramas_de_classe_sistema_clinico.md` | Diagramas Mermaid |
+- Contas de teste e senha `123456` · dados em memória · sem servidor/API/PostgreSQL
+- Licença da imagem raster dos dentes · validar siglas/cores com dentistas
+- Raízes dos 3º molares ajustáveis · formas próprias de decíduos

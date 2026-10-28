@@ -1,202 +1,101 @@
-# Próximos Passos - Sprint 1
-## ibn Sistema Clínico - Conclusão Sprint 1
+# Próximos Passos — Sprint 1 (plano de correção)
 
-**Data:** 27/10/2026  
-**Status Atual:** 🟡 **Parcialmente Concluída - 90%**
-**Testes:** 75/75 ✅
-**Objetivo:** Fechar Fase F (Ortodontia) e estabilizar Sprint 1
+**Data:** 27/10/2026 · **Substitui** `PROXIMOS_PASSOS_SPRINT1.md` e `CHECKLIST_SPRINT1.md` anteriores.
+**Diagnóstico completo:** `STATUS_PROJETO.md`. Cada passo termina com **critério de aceite** e deve ser feito na ordem.
 
----
-
-## 🎯 Situação Atual
-
-### ✅ Concluído na Sprint 1
-- **Core System**: Login, Perfis, Agenda, Política de Acesso
-- **Odontograma Fase A-E**: Desenho, condições, raízes, decíduos, ortodontia integrada
-- **Modelos Fase F**: FichaOrtodontica, ManutencaoOrtodontica, FotoComparativaOrto
-- **Repository**: OrtodontiaRepository (ChangeNotifier)
-- **UI Base**: AbaOrtodontia com 4 sub-abas
-- **Integração**: Aba Ortodontia no prontuário do dentista
-
-### 🟡 Pendente Fase F (Ortodontia Aba Própria)
-- Botões de ação funcionais
-- Upload real de fotos
-- Testes automatizados
-- Integração com agendamento
+Regras de trabalho (evitam repetir o que corrompeu os arquivos):
+1. Edite arquivos no VS Code (UTF‑8). **Nunca** use `>>`/`echo` do PowerShell para gerar código.
+2. Cada arquivo inteiro e completo por vez; depois rode `flutter analyze`. Meta: **0 erros**.
+3. Um commit por passo.
 
 ---
 
-## 📋 Passos Restantes - Prioridade Alta
+## Passo 0 — Limpar o repositório (≈1 h)
 
-### 1. **Fase F - Conclusão Ortodontia** (Estimativa: 2-3 dias)
+1. Rode `flutter analyze` e anote os erros.
+2. Mova para uma pasta fora de `lib/` (ex.: `_quarentena/`) os arquivos quebrados que ainda não serão reescritos:
+   `aba_prontuario.dart`, `aba_anamnese.dart`, `aba_exames.dart`, `aba_hof.dart`, `aba_hof_dialogs.dart`, `aba_hof_dialogs_part2.dart`, `aba_documentos.dart`, e o conteúdo de `core/prontuario.dart`, `documentos.dart`, `exames.dart`, `hof.dart`.
+3. Rode `flutter analyze` de novo.
 
-#### 1.1. Manutenções Ortodônticas
-- [ ] **Implementar `_abrirDialogo` em `aba_ortodontia_manutencoes.dart`**
-  - Dialog para criar/editar manutenção
-  - Campos: data, ativação realizada, próxima manutenção, observações
-  - Validação de campos obrigatórios
-  - Integração com `ortodontiaRepository.adicionarManutencao()`
-  
-- [ ] **Botão "Agendar Manutenção"**
-  - Conexão com `TelaFormAgendamento`
-  - Preencher automaticamente paciente e procedimento
-  - Validar conflitos (RN01, RN02)
-  
-- [ ] **Listagem com ações**
-  - Botão editar/excluir em cada linha
-  - Filtro por período
-  - Busca por termo
+**Aceite:** `flutter analyze` sem erros; `flutter test` passa; app abre.
 
-#### 1.2. Fotos Comparativas
-- [ ] **Upload real de fotos**
-  - Implementar `image_picker` (câmera/galeria)
-  - Implementar `file_picker` (arquivos)
-  - Salvar em diretório local/pasta do paciente
-  - Exibir thumbnail real (não placeholder)
-  
-- [ ] **Organização de fotos**
-  - Classificar por "Antes/Depois"
-  - Tags por data/estágio
-  - Visualização em grid com zoom
-  - Opção deletar
+## Passo 1 — Consertar a Ortodontia (≈1–2 dias)
 
-#### 1.3. Ficha Ortodôntica
-- [ ] **Validação completa**
-  - Campos obrigatórios (tipo aparelho, data instalação)
-  - Validação de datas (instalação < previsao)
-  - Feedback visual de erros
-  
-- [ ] **Persistência melhorada**
-  - Atualização em tempo real com ChangeNotifier
-  - Feedback visual após salvar
-  - Undo/Redo básico
+**1.1 Estrutura**
+- Criar `core/ortodontia_repository.dart` (mover `OrtodontiaRepository` e deixar os modelos em `ortodontia.dart`). Atualizar imports.
+- Em `FichaOrtodontica`, adicionar `queixaPrincipal` (separado de `objetivos`).
+- Em `AbaOrtodontia`: envolver tudo em `ListenableBuilder(listenable: ortodontiaRepository)` e ler ficha/manutenções/fotos **dentro** do builder. Remover o `Scaffold`/`AppBar` interno (usar só `TabBar` + `TabBarView`).
 
-#### 1.4. Testes Automatizados
-- [ ] **Testes Fase F**
-  ```dart
-  test('FichaOrtodontica salva e carrega corretamente')
-  test('ManutencaoOrtodontica persiste com ordenação')
-  test('FotoComparativaOrto adiciona e lista')
-  test('OrtodontiaRepository notifica listeners')
-  ```
-  - Meta: +15 testes (total 90)
+**1.2 Ficha (data e salvar)**
+- Em `_AbaFichaWidget`: criar `GlobalKey<FormState>`, envolver o formulário em `Form` e guardar os controllers de arco/elástico como campos do `State` (não criar novos a cada `build`).
+- Implementar `_escolherDataInstalacao` e `_escolherPrevisaoTermino` com `showDatePicker` + `setState`.
+- Implementar `_salvar`: validar o `Form`, exigir tipo de aparelho e data de instalação, validar `previsao > instalação`, montar `FichaOrtodontica` (reusar `id` e `criadoEm` se existir), chamar `ortodontiaRepository.salvarFicha`, registrar `LogAcesso` (`salvou_ficha_orto`), fechar o modo edição e mostrar `SnackBar`.
+- Adicionar ao formulário os campos de arco superior/inferior (fio, calibre) e elásticos; `onEditarFicha` da aba Arcos deve abrir o modo edição da Ficha (trocar para a aba 0).
 
----
+**1.3 Manutenções**
+- No diálogo, usar `StatefulBuilder` (ou widget próprio) para a data aparecer ao escolher.
+- Criar `atualizarManutencao` no repositório; editar passa a **substituir** (e não duplicar). Por RN05, prefira "retificar" mantendo o original riscado.
+- **Sem botão excluir.** Se necessário, "anular" com justificativa.
+- "Agendar manutenção": adicionar parâmetros opcionais em `TelaFormAgendamento` (`pacienteIdInicial`, `procedimentoIdInicial = 'manutencao-ortodontica'`, `profissionalIdInicial`). **Decisão pendente:** hoje só Recepção/Admin agendam (`podeAgendar`); definir se o dentista pode agendar o retorno do próprio paciente.
 
-### 2. **Correções Técnicas Urgentes** (Estimativa: 1 dia)
+**1.4 Fotos**
+- Remover a URL `via.placeholder.com`. Usar `file_picker` (Windows/Web/Android) e `image_picker` (Android/iOS). Em Web não há `dart:io`: guardar bytes em memória por enquanto; em Windows/Android copiar para a pasta de documentos do app (`path_provider`).
+- Mostrar miniatura com `Image.file`/`Image.memory`; visualizar em tela cheia ao tocar.
 
-#### 2.1. Bugs Conhecidos
-- [ ] **Contexto em widgets**: Alguns `_linha` e `_card` precisam de `BuildContext`
-- [ ] **State classes**: Verificar todos `extends State<Widget>` corretos
-- [ ] **Getters widget.***: Usar `widget.paciente` em vez de `paciente` direto
+**1.5 Fase E (bug)**
+- Em `marcasArcadaAtivas`, ignorar também os ids retificados (`retificaId`), como em `estadoAtual`.
+- Teste: marcar → desmarcar → recarregar mantém desmarcado.
 
-#### 2.2. Importações
-- [ ] **Import Usuario**: Todos arquivos de seção devem importar `../../core/usuario.dart`
-- [ ] **Consistência**: Verificar todos imports de `auth_service`, `formadores`
+**1.6 Testes** (`test/ortodontia_test.dart`, meta ≥ 12): salvar/carregar ficha; validação de datas; manutenções ordenadas; editar não duplica; fotos; `notifyListeners`; bug das marcas de arcada.
 
-#### 2.3. Documentação
-- [ ] **FASE_F_ORTODONTIA_ABA.md**: Atualizar com status real
-- [ ] **STATUS_PROJETO.md**: Atualizar após conclusão Fase F
+**Aceite:** escolher datas funciona; salvar ficha persiste e reaparece ao reabrir a aba; manutenção nova aparece na lista na hora; foto real aparece; `flutter test` verde.
 
----
+## Passo 2 — Prontuário base (≈2–3 dias) — destrava HOF, Exames e Documentos
 
-### 3. **Refinamentos UI/UX** (Estimativa: 1-2 dias)
+1. Reescrever `core/prontuario.dart` **do zero**, com classes imutáveis (`final`) e `copiarCom`: `Prontuario`, `Atendimento`, `Evolucao`, `Adendo`, modelos de Anamnese.
+2. Criar `core/prontuario_repository.dart` (`ProntuarioRepository` com `iniciarAtendimento`, `encerrarAtendimento`, `adicionarEvolucao`, `assinarEvolucao`, `adicionarAdendo`) e a instância `prontuarioRepository`.
+3. **RN05:** evolução assinada ou atendimento encerrado → o repositório recusa alteração; correção só por `Adendo`.
+4. Todo atendimento/evolução gera `LogAcesso`.
+5. Vincular o atendimento ao `Agendamento` (muda o status para Em atendimento/Atendido).
+6. Testes: encerramento, assinatura, adendo, bloqueio de edição.
 
-#### 3.1. Prontuário Completo
-- [ ] **Aba Anamnese**: Formulário básico de anamnese
-- [ ] **Aba Documentos**: Upload de laudos, receitas, termos
-- [ ] **Aba Exames**: Solicitação e visualização de exames
-- [ ] **Aba HOF**: Integração básica (placeholder)
+**Aceite:** dentista inicia atendimento, registra evolução, assina; não consegue editar; adendo funciona.
 
-#### 3.2. Melhorias Odontograma
-- [ ] **Tooltip**: Mostrar condição ao hover/click
-- [ ] **Histórico**: Visualizar evolução temporal
-- [ ] **Export**: Exportar odontograma como PDF/PNG
+## Passo 3 — HOF (≈2 dias)
+
+Reescrever `core/hof.dart` completo (enums `TipoHOF`, `AreaFaceHOF`, `LadoFaceHOF`; `PontoAplicacao`, `InsumoHOF` com lote e validade, `ProcedimentoHOF`, `FotoComparativaHOF`, `HOFRepository`).
+Tela: lista de procedimentos, diálogo (tipo, pontos, produto, UI/ml, marca, **lote e validade obrigatórios — RN06**), galeria antes/depois. Dialogs em arquivos públicos (sem `_` se forem usados em outro arquivo) e ligados à aba `Harmonização (HOF)`.
+**Aceite:** registrar procedimento com lote; ele aparece na lista; lote vencido é recusado.
+
+## Passo 4 — Exames (≈1–2 dias)
+
+Reescrever `core/exames.dart`. Solicitar exame (guia imprimível vem no Passo 5), anexar JPG/PNG/PDF (reaproveitar o seletor de arquivos do Passo 1.4), listar por paciente.
+**Aceite:** solicitar, anexar e visualizar um arquivo.
+
+## Passo 5 — Documentos (≈2 dias)
+
+Reescrever `core/documentos.dart` (sem passar `''`/`DateTime.now()` ao `super`). Modelos (prescrição, atestado, TCLE) com preenchimento automático de paciente/data/profissional (CRO). Gerar PDF (`pdf` + `printing`). Assinado = imutável (RN05).
+**Aceite:** gerar prescrição a partir de modelo, ver PDF, documento assinado não edita.
+
+## Passo 6 — Anamnese odontológica (≈1 dia)
+
+Formulário dinâmico por `ModeloAnamnese`; modelo odontológico padrão.
+
+## Passo 7 — Ligar as abas
+
+Em `tela_prontuario_paciente.dart`, trocar os `_EmBreve` pelas abas reais, só quando cada uma estiver aceita. Abas ainda vazias continuam como "em breve".
+
+## Passo 8 — Fechamento da Sprint 1
+
+- [ ] `flutter analyze` limpo · `flutter test` ≥ 100 testes
+- [ ] `flutter run -d windows`, `flutter build apk --debug`, `flutter build web`
+- [ ] Atualizar `STATUS_PROJETO.md`, `diagramas_de_classe_sistema_clinico.md`, `melhorias_odontograma.md`
+- [ ] **Biomedicina (RF05)** — está na Sprint 1 do PDF e não foi iniciada: replanejar (Sprint 1b) ou mover formalmente.
 
 ---
 
-## 📊 Estimativa de Tempo
+## Depois da Sprint 1 (alinhado ao PDF)
 
-| Fase | Tarefa | Horas | Status |
-|------|--------|-------|--------|
-| Fase F | Manutenções completas | 6h | 🟡 |
-| Fase F | Fotos upload real | 4h | 🟡 |
-| Fase F | Testes automatizados | 3h | ❌ |
-| Correções | Bugs técnicos | 4h | 🟡 |
-| Refinamentos | UI/UX | 6h | ❌ |
-| **Total** | | **23h** | |
-
-**Previsão de conclusão**: 3-4 dias úteis
-
----
-
-## 🚀 Próximos Módulos (Pós Sprint 1)
-
-### Sprint 2 - Biomedicina + HOF
-1. **Prontuário Base**
-   - Modelo `Prontuario`, `Atendimento`, `Evolucao`
-   - Anamnese estruturada
-   - Histórico completo
-
-2. **HOF (Harmonização Orofacial)**
-   - Fichas de avaliação facial
-   - Pontos anatômicos
-   - Fotos com marcação
-   - Relatórios
-
-3. **Biomedicina**
-   - Prontuário específico
-   - Procedimentos correlacionados
-   - Integração com agenda
-
-### Sprint 3 - Infraestrutura
-1. **Servidor/API**
-   - REST API com FastAPI/Node
-   - PostgreSQL
-   - Autenticação JWT
-   - Hash de senhas
-   - 2FA
-
-2. **Sync & Backup**
-   - Sincronização offline/online
-   - Backup automático
-   - Export/import dados
-
----
-
-## ✅ Critérios de Aceitação Sprint 1
-
-- [ ] **Aba Ortodontia 100% funcional**
-  - CRUD ficha
-  - CRUD manutenções
-  - Upload fotos real
-  - Integração agendamento
-  
-- [ ] **Testes**: 90+ testes passando
-- [ ] **Build Windows**: Sem erros de compilação
-- [ ] **Build Android**: APK funcional
-- [ ] **Build Web**: Funcional básico
-- [ ] **Documentação**: Status atualizado
-
----
-
-## 📝 Observações
-
-### Pendências Técnicas
-- ⚠️ Dados em memória (perdem ao fechar app)
-- ⚠️ Contas de teste com senha fraca
-- ⚠️ Sem servidor ainda
-- ⚠️ Licença imagens odontograma
-
-### Próximos Passos Imediatos
-1. Corrigir bugs de compilação Fase F
-2. Implementar dialog de manutenções
-3. Upload real de fotos
-4. Escrever testes automatizados
-5. Testar build em Windows/Android
-
----
-
-**Responsável**: Time de Desenvolvimento  
-**Revisão**: 28/10/2026  
-**Meta**: Fechar Sprint 1 até 31/10/2026
+1. **Marco do servidor** (antes da Sprint 2, dados financeiros): API REST, PostgreSQL, senha com hash, 2FA, RBAC, `LogAcesso` e conflitos de agenda no servidor. Um servidor na máquina da clínica, acessível por `http://IP-do-servidor` na rede wifi, e por domínio/VPN para acesso externo; o mesmo app Flutter fala com a API.
+2. **Sprint 2:** multidisciplinar (SOAP, nutrição, psicologia criptografada, fisio), estoque (RN06), financeiro.
+3. **Sprint 3:** WhatsApp API oficial, marketing/opt-out, dashboards.

@@ -1,0 +1,27 @@
+# ==============================================================================
+# DIRETRIZES DE REORGANIZAÇÃO DA BASE DE CÓDIGO - SISTEMA CLÍNICO MULTIPLATAFORMA
+# ==============================================================================
+
+## 1. REORGANIZAÇÃO DE PASTAS E ARQUITETURA
+- Adote estritamente a Clean Architecture baseada em Features (recursos) sob a pasta 'lib/features/'.
+- Módulos atuais criados na Sprint 1 devem ser fatiados em: 'data/' (modelos, datasources), 'domain/' (entidades, usecases) e 'presentation/' (telas, cubits).
+- Códigos globais e utilitários devem ir estritamente para a pasta 'lib/core/' (ex: temas, redes, segurança).
+- REQUISITO DE ECONOMIA: Ao mover ou reorganizar arquivos, altere apenas os caminhos dos 'imports'. Não reescreva a lógica interna dos widgets ou classes a menos que explicitamente solicitado.
+
+## 2. REGRAS DE RESPONSIVIDADE (WEB / DESKTOP / MOBILE)
+- Proibido criar arquivos de tela duplicados para dispositivos diferentes (ex: tela_web.dart e tela_mobile.dart).
+- Use o componente base 'ResponsiveLayout' (com LayoutBuilder) para gerenciar o comportamento das visualizações na mesma tela.
+- Use widgets flexíveis como 'Wrap', 'LayoutBuilder' e 'GridView' para formulários clínicos. Eles devem se adaptar de colunas (Web) para linhas empilhadas (Mobile) automaticamente.
+- Tabelas densas de dados devem virar Cards empilhados no Mobile de forma programática dentro do mesmo Widget de apresentação.
+
+## 3. PADRÕES DE CÓDIGO E GERENCIAMENTO DE ESTADO
+- Use exclusivamente Cubit (do pacote flutter_bloc) para gerenciamento de estados de tela.
+- Mantenha os Cubits enxutos, focados apenas em emitir Estados (Loading, Success, Error). Regras de validação complexas ficam nos UseCases.
+- Evite o uso de geradores de código pesados (como freezed/build_runner) para mapeamento de JSON. Use Dart puro com métodos 'fromMap' e 'toMap' gerados manualmente de forma concisa.
+
+## 4. OTIMIZAÇÃO DE TOKENS E CONSUMO DA API (CRÍTICO)
+- MODIFICAÇÕES CIRÚRGICAS: Nunca reescreva um arquivo inteiro para alterar poucas linhas. Use edições em blocos específicos ou ferramentas de diff da IDE.
+- ESCOPO LIMITADO: Ao trabalhar em uma funcionalidade, limite seu contexto de leitura estritamente à pasta daquela Feature específica.
+- MULTIPLATAFORMA SEGURO: Antes de sugerir ou instalar qualquer pacote do pub.dev, verifique se ele possui suporte estável simultâneo para Web, Windows, Android e iOS.
+- LGPD POR PADRÃO: Toda exibição, persistência ou tráfego de dados sensíveis de pacientes (CPF, prontuários, diagnósticos) deve prever tratamento seguro de nulos e mascaramento visual básico por padrão.
+-
