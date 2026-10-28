@@ -1,10 +1,10 @@
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import '../../core/formadores.dart';
-import '../../core/log_acesso.dart';
-import '../../core/ortodontia.dart';
-import '../../core/paciente.dart';
+import 'package:ibn/core/formadores.dart';
+import 'package:ibn/core/log_acesso.dart';
+import 'package:ibn/core/ortodontia.dart';
+import 'package:ibn/core/paciente.dart';
 import '../../features/auth/domain/usuario.dart';
 
 /// Seção **Fotos Comparativas**. Só inclusão (RN05): não há botão de excluir.

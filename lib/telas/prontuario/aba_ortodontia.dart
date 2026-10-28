@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../features/auth/data/auth_service.dart';
-import '../../core/ortodontia.dart';
-import '../../core/paciente.dart';
-import '../../core/politica_acesso_service.dart';
+import 'package:ibn/core/ortodontia.dart';
+import 'package:ibn/core/paciente.dart';
+import 'package:ibn/core/politica_acesso_service.dart';
 import 'aba_ortodontia_arcos.dart';
 import 'aba_ortodontia_ficha.dart';
 import 'aba_ortodontia_fotos.dart';

@@ -1,6 +1,6 @@
 # Status do Projeto — ibn (Sistema Clínico)
 
-**Última atualização:** 27/10/2026 (revisão código × documentação)
+**Última atualização:** 28/10/2026 (Passo 1 validado; Passo 2 entregue, aguardando validação)
 **Stack:** Flutter (Windows, Android, Web) — dados em memória (sem servidor)
 **Legenda:** ✅ funciona · 🟡 parcial (existe, mas com falhas conhecidas) · 🔴 quebrado / não compila · ⬜ não iniciado
 
@@ -16,15 +16,15 @@
 | Infra/segurança base (BD, nuvem, RBAC) | 🟡 RBAC só no app; sem banco, sem servidor |
 | Cadastro de pacientes (RF03.1) | ✅ (faltam foto, endereço, versões do termo) |
 | Agenda multissala (RF02, RN01, RN02) | ✅ (revalidação no servidor pendente) |
-| Odontologia — Anamnese | 🔴 arquivo existe, não compila |
+| Odontologia — Anamnese | ⬜ em quarentena (`.dart.old`), Passo 6 |
 | Odontologia — Odontograma (RF04.1) | ✅ Fases A–E |
-| Odontologia — Ortodontia (extra, Fase F) | 🟡 ver seção 3 |
+| Odontologia — Ortodontia (extra, Fase F) | ✅ validado (analyze limpo, testes e roteiro manual) |
 | Odontologia — HOF (RF04.2) | 🔴 só aba "em breve" + arquivos quebrados |
 | Odontologia — Exames (RF04.3) | 🔴 idem |
 | Odontologia — Prescrição/Atestados (RF04.4) | 🔴 idem |
 | Biomedicina inteira (RF05) | ⬜ não iniciada (está na Sprint 1 do PDF) |
 
-**Estimativa realista de conclusão da Sprint 1: ~45–50%** (o documento anterior dizia 90%).
+**Estimativa realista de conclusão da Sprint 1: ~55%** (o documento anterior dizia 90%). Falta HOF, exames, documentos, anamnese e Biomedicina.
 
 ---
 
@@ -36,10 +36,10 @@
 | B | Condições, evolução, retificação, visões | ✅ | `condicao_odonto.dart`, `dialogo_evolucao.dart`, `menu_condicoes.dart` |
 | C | Raízes | ✅ | divisão em faixas horizontais |
 | D | Decíduos | ✅ | escala **0,75** (a spec dizia 0,7); limite 13 anos |
-| E | Ortodontia camada 1 | 🟡 | ver bug abaixo |
-| F | Ortodontia aba própria | 🟡 | seção 3 |
+| E | Ortodontia camada 1 | ✅ | bug das marcas de arcada corrigido |
+| F | Ortodontia aba própria | ✅ | seção 3 |
 
-**Bug na Fase E (marcas de arcada):** `OdontogramaRepository.marcasArcadaAtivas` descarta
+**Bug na Fase E (marcas de arcada) — CORRIGIDO no Passo 1:** `OdontogramaRepository.marcasArcadaAtivas` descarta
 os registros com `retificaId`, mas **não descarta o registro original que foi retificado**.
 Resultado: ao desmarcar um tipo de aparelho, a marca "volta" ao recarregar. Correção: ignorar também os ids apontados por `retificaId` (como `estadoAtual` já faz).
 
@@ -50,26 +50,34 @@ Outras observações:
 
 ---
 
-## 3. Ortodontia — Fase F (🟡, longe de 90%)
+## 3. Ortodontia — Fase F (✅ validado em 27/10/2026)
 
-| Item | Real |
+Corrigido no Passo 1 e conferido por `flutter analyze` (0 erros), `flutter test` e roteiro manual completo.
+
+| Item | Situação |
 |---|---|
-| Modelos `FichaOrtodontica`, `ManutencaoOrtodontica`, `FotoComparativaOrto` | ✅ (falta campo `queixaPrincipal` na ficha) |
-| Ficha — escolher datas | 🔴 `onEscolherDataInstalacao` e `onEscolherPrevisaoTermino` são `() {}` |
-| Ficha — salvar | 🔴 `onSalvar` é `() {}`; além disso não há `Form`, então os validators nunca rodam |
-| Ficha — campo "Queixa principal" | 🔴 usa `objetivos` (mesmo dado nos dois campos) |
-| Arcos e elásticos — editar | 🔴 não existem campos no formulário; `onEditarFicha` é `() {}` |
-| Manutenções — data no diálogo | 🔴 `AlertDialog` sem `StatefulBuilder`: a data escolhida não aparece |
-| Manutenções — editar | 🔴 `adicionarManutencao` só inclui → editar duplica o registro |
-| Manutenções — lista atualiza | 🔴 `AbaOrtodontia` é `StatelessWidget` e não escuta o repositório |
-| Manutenções — "Agendar" | 🟡 abre o formulário em branco (sem paciente/procedimento) |
-| Fotos — upload real | 🔴 usa URL `via.placeholder.com`; `image_picker`/`file_picker` importados e não usados |
-| Estrutura | 🟡 `Scaffold` + `AppBar` aninhados dentro da aba |
-| Testes da Fase F | ⬜ nenhum |
+| Ficha: datas, validação, salvar (cada salvar = nova versão, RN05) | ✅ |
+| Arcos e elásticos (editados na ficha, exibidos na aba) | ✅ |
+| Manutenções: data no diálogo, retificação (sem excluir, RN05), lista atualiza na hora | ✅ |
+| Agendar manutenção pré-preenchido (paciente, dentista, procedimento, Sala 3) | ✅ |
+| Fotos com upload real (`file_picker`, bytes em memória) | ✅ (arquivo no servidor: marco do servidor) |
+| Modelos/repositório em `core/ortodontia.dart` | ✅ |
+| Testes (`ortodontia_test.dart`, 14) | ✅ |
+
+**Decisão (27/10/2026):** o dentista pode agendar o retorno do próprio paciente (implementada no Passo 2).
 
 ---
 
-## 4. HOF, Exames, Documentos, Anamnese, Prontuário base (🔴)
+## 4. Prontuário base, HOF, Exames, Documentos, Anamnese
+
+**Passo 0 (✅):** os arquivos quebrados foram para quarentena (`*.dart.old`); `flutter analyze` ficou sem erros.
+
+**Passo 2 (🟡 entregue, aguardando validação):** `prontuario.dart` (reescrito), `prontuario_repository.dart`,
+`aba_prontuario.dart` ("Atendimentos"), `prontuario_test.dart`. Só vira ✅ depois do analyze, dos testes e do roteiro de `PASSO2_APLICAR.md`.
+
+**Ainda em quarentena / a reescrever:** HOF (Passo 3), Exames (4), Documentos (5), Anamnese (6).
+
+Diagnóstico original dos arquivos quebrados (histórico):
 
 Na tela, `tela_prontuario_paciente.dart` mostra `_EmBreve(...)` nessas abas. Os arquivos que existem no
 repositório **estão corrompidos/incompletos e não compilam** (só não derrubam o app porque ninguém os importa):

@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_drawing/path_drawing.dart';
-import '../../core/odontograma.dart';
+import 'package:ibn/core/odontograma.dart';
 
 enum EstiloCaixa { quadrada, redonda }
 

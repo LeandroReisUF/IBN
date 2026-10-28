@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../../core/anatomia_dente.dart';
-import '../../core/condicao_odonto.dart';
-import '../../core/desenhos_dentes.dart';
+import 'package:ibn/core/anatomia_dente.dart';
+import 'package:ibn/core/condicao_odonto.dart';
+import 'package:ibn/core/desenhos_dentes.dart';
 import 'caixa_dente.dart' show EstiloMarca;
 
 /// Marca ortodôntica desenhada sobre a coroa (Fase E).

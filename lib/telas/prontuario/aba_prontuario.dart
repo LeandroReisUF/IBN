@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../core/agenda_service.dart';
-import '../../core/agendamento.dart';
+import 'package:ibn/features/agenda/data/agenda_service.dart';
+import 'package:ibn/features/agenda/domain/agendamento.dart';
 import 'package:ibn/features/auth/data/auth_service.dart';
-import '../../core/formadores.dart';
-import '../../core/log_acesso.dart';
-import '../../core/paciente.dart';
-import '../../core/politica_acesso_service.dart';
-import '../../core/prontuario.dart';
-import '../../core/prontuario_repository.dart';
+import 'package:ibn/core/formadores.dart';
+import 'package:ibn/core/log_acesso.dart';
+import 'package:ibn/core/paciente.dart';
+import 'package:ibn/core/politica_acesso_service.dart';
+import 'package:ibn/core/prontuario.dart';
+import 'package:ibn/core/prontuario_repository.dart';
 import '../../features/auth/domain/usuario.dart';
 
 /// Atendimentos do paciente: cada profissional vê só os que ele mesmo registrou.

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:ibn/features/auth/data/auth_service.dart';
-import '../../core/formadores.dart';
-import '../../core/hof.dart';
-import '../../core/log_acesso.dart';
-import '../../core/paciente.dart';
-import '../../core/politica_acesso_service.dart';
+import 'package:ibn/core/formadores.dart';
+import 'package:ibn/core/hof.dart';
+import 'package:ibn/core/log_acesso.dart';
+import 'package:ibn/core/paciente.dart';
+import 'package:ibn/core/politica_acesso_service.dart';
 
 /// Aba de HOF (Harmonização Orofacial): ficha, procedimentos, pontos, insumos, fotos.
 class AbaHOF extends StatefulWidget {

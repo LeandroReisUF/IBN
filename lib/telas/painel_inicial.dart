@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import '../core/agenda_service.dart';
-import '../core/agendamento.dart';
+import 'package:ibn/features/agenda/data/agenda_service.dart';
+import 'package:ibn/features/agenda/domain/agendamento.dart';
 import '../features/auth/data/auth_service.dart';
-import '../core/formadores.dart';
+import 'package:ibn/core/formadores.dart';
 import '../features/auth/domain/perfil.dart';
-import '../core/politica_acesso_service.dart';
-import '../core/sala.dart';
+import 'package:ibn/core/politica_acesso_service.dart';
+import 'package:ibn/features/agenda/domain/sala.dart';
 
 /// Painel inicial, agora alimentado pela agenda real (em memória).
 class PainelInicial extends StatelessWidget {

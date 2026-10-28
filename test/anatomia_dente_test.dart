@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import '../lib/core/anatomia_dente.dart';
-import '../lib/core/odontograma.dart';
+import 'package:ibn/core/anatomia_dente.dart';
+import 'package:ibn/core/odontograma.dart';
 
 void main() {
   group('AnatomiaDente - numeração', () {

@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import '../lib/features/auth/data/auth_service.dart';
-import '../lib/core/condicao_odonto.dart';
-import '../lib/core/odontograma.dart';
-import '../lib/core/odontograma_repository.dart';
-import '../lib/core/paciente_repository.dart';
-import '../lib/core/politica_acesso_service.dart';
+import 'package:ibn/features/auth/data/auth_service.dart';
+import 'package:ibn/core/condicao_odonto.dart';
+import 'package:ibn/core/odontograma.dart';
+import 'package:ibn/core/odontograma_repository.dart';
+import 'package:ibn/core/paciente_repository.dart';
+import 'package:ibn/core/politica_acesso_service.dart';
 
 /// Monta um registro de teste. Sem [face] = dente inteiro.
 RegistroDente reg(

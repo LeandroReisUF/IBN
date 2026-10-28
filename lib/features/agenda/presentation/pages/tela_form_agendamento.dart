@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../core/agenda_service.dart';
-import '../../core/agendamento.dart';
-import '../../features/auth/data/auth_service.dart';
-import '../../core/formadores.dart';
-import '../../core/paciente_repository.dart';
-import '../../features/auth/domain/perfil.dart';
-import '../../core/procedimento.dart';
-import '../../core/sala.dart';
-import '../../features/auth/domain/usuario.dart';
+import 'package:ibn/features/agenda/data/agenda_service.dart';
+import 'package:ibn/features/agenda/domain/agendamento.dart';
+import 'package:ibn/features/auth/data/auth_service.dart';
+import 'package:ibn/core/formadores.dart';
+import 'package:ibn/core/paciente_repository.dart';
+import 'package:ibn/features/auth/domain/perfil.dart';
+import 'package:ibn/core/procedimento.dart';
+import 'package:ibn/features/agenda/domain/sala.dart';
+import 'package:ibn/features/auth/domain/usuario.dart';
+import 'package:ibn/core/politica_acesso_service.dart';
 
 /// Criar / editar agendamento (RF02.1) com validação de conflitos ao vivo.
 class TelaFormAgendamento extends StatefulWidget {
@@ -48,14 +49,17 @@ class _TelaFormAgendamentoState extends State<TelaFormAgendamento> {
 
   bool get _editando => widget.agendamento != null;
 
+  /// Quem não é Recepção/Admin só agenda retorno dos próprios pacientes.
+  bool get _restrito => !politicaAcesso.podeAgendar(auth.usuarioLogado!);
+
   Procedimento? get _proc =>
       _procedimentoId == null ? null : buscarProcedimento(_procedimentoId!);
 
   /// Passo 1: tipos de profissional que existem na clínica.
   List<Perfil> get _tiposDisponiveis => Perfil.values
       .where((p) => auth.profissionaisSaude.any((u) => u.perfil == p))
+      .where((p) => !_restrito || p == auth.usuarioLogado!.perfil)
       .toList();
-
   /// Passo 2: só os procedimentos do tipo escolhido (lista curta).
   List<Procedimento> get _procedimentosDoTipo {
     final t = _tipo;
@@ -69,7 +73,9 @@ class _TelaFormAgendamentoState extends State<TelaFormAgendamento> {
   List<Usuario> get _profissionaisAptos {
     final t = _tipo;
     if (t == null) return const [];
-    return auth.profissionaisSaude.where((u) => u.perfil == t).toList();
+    return auth.profissionaisSaude
+        .where((u) => u.perfil == t && (!_restrito || u.id == auth.usuarioLogado!.id))
+        .toList();
   }
 
   /// Só aparecem salas que aceitam a especialidade (RN01).
@@ -214,6 +220,19 @@ class _TelaFormAgendamentoState extends State<TelaFormAgendamento> {
     final ag = _montar(id: widget.agendamento?.id ?? agenda.novoId());
     if (ag == null) return;
 
+      if (_restrito) {
+      final usuario = auth.usuarioLogado!;
+      final p = pacientes.buscarPorId(ag.pacienteId);
+      if (p == null ||
+          ag.profissionalId != usuario.id ||
+          !politicaAcesso.podeAgendarRetorno(usuario, p)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Você só pode agendar retorno dos seus pacientes, para você mesmo.')),
+        );
+        return;
+      }
+    }
+
     final erro = _editando ? agenda.atualizar(ag) : agenda.criar(ag);
     final mensagem = ScaffoldMessenger.of(context);
     if (erro != null) {
@@ -268,8 +287,9 @@ class _TelaFormAgendamentoState extends State<TelaFormAgendamento> {
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
-    final pacientesLista = pacientes.todos
+        final pacientesLista = pacientes.todos
         .where((p) => p.ativo || p.id == _pacienteId)
+        .where((p) => !_restrito || politicaAcesso.podeAgendarRetorno(auth.usuarioLogado!, p))
         .toList()
       ..sort((a, b) => a.nome.toLowerCase().compareTo(b.nome.toLowerCase()));
     final profs = _profissionaisAptos;

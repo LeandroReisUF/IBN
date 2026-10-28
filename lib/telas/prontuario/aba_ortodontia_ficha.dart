@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../core/formadores.dart';
-import '../../core/log_acesso.dart';
-import '../../core/ortodontia.dart';
-import '../../core/paciente.dart';
+import 'package:ibn/core/formadores.dart';
+import 'package:ibn/core/log_acesso.dart';
+import 'package:ibn/core/ortodontia.dart';
+import 'package:ibn/core/paciente.dart';
 import '../../features/auth/domain/usuario.dart';
 
 /// Seção **Ficha Ortodôntica**: visualização e edição (cada salvar = nova versão).

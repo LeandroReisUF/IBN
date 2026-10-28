@@ -1,4 +1,4 @@
-import 'package:ibn/core/agendamento.dart';
+import 'package:ibn/features/agenda/domain/agendamento.dart';
 
 /// Estados possíveis da agenda. `sealed` permite ao compilador avisar se
 /// você esquecer de tratar algum estado num `switch`.

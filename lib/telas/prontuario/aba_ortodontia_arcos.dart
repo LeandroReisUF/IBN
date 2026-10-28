@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/ortodontia.dart';
+import 'package:ibn/core/ortodontia.dart';
 
 /// Seção **Arcos e Elásticos**: mostra o que está na ficha. A edição é feita na
 /// aba Ficha (os campos ficam lá, junto da versão salva).

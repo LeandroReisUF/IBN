@@ -1,4 +1,4 @@
-import 'especialidade.dart';
+import 'package:ibn/core/especialidade.dart';
 
 /// Sala física da clínica (RN01).
 class Sala {

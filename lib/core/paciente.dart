@@ -1,4 +1,4 @@
-import 'formadores.dart';
+import 'package:ibn/core/formadores.dart';
 
 /// Versão atual do termo de consentimento (LGPD).
 const versaoTermoLgpd = 'v1.0';

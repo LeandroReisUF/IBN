@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../core/anatomia_dente.dart';
-import '../../core/condicao_odonto.dart';
-import '../../core/odontograma.dart';
+import 'package:ibn/core/anatomia_dente.dart';
+import 'package:ibn/core/condicao_odonto.dart';
+import 'package:ibn/core/odontograma.dart';
 
 /// O que o profissional escolheu no menu: uma condição (registro rápido) ou
 /// abrir o formulário completo "Adicionar evolução".

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../core/anatomia_dente.dart';
+import 'package:ibn/core/anatomia_dente.dart';
 import '../../features/auth/data/auth_service.dart';
-import '../../core/condicao_odonto.dart';
-import '../../core/especialidade.dart';
-import '../../core/odontograma.dart';
-import '../../core/odontograma_repository.dart';
-import '../../core/procedimento.dart';
+import 'package:ibn/core/condicao_odonto.dart';
+import 'package:ibn/core/especialidade.dart';
+import 'package:ibn/core/odontograma.dart';
+import 'package:ibn/core/odontograma_repository.dart';
+import 'package:ibn/core/procedimento.dart';
 
 /// Formulário completo "Adicionar evolução": condição, alvo, status,
 /// procedimento e observação. Também serve para **retificar** um registro

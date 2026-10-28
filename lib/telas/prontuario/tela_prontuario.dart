@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../features/auth/data/auth_service.dart';
-import '../../core/formadores.dart';
-import '../../core/paciente_repository.dart';
-import '../../core/politica_acesso_service.dart';
+import 'package:ibn/core/formadores.dart';
+import 'package:ibn/core/paciente_repository.dart';
+import 'package:ibn/core/politica_acesso_service.dart';
 import 'tela_prontuario_paciente.dart';
 
 /// Lista dos pacientes cujo prontuário o profissional pode abrir (RN03).

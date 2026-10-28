@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
-import 'agendamento.dart';
+import 'package:ibn/features/agenda/domain/agendamento.dart';
 import '../features/auth/data/auth_service.dart';
-import 'formadores.dart';
-import 'paciente_repository.dart';
-import 'procedimento.dart';
-import 'sala.dart';
+import 'package:ibn/core/formadores.dart';
+import 'package:ibn/core/paciente_repository.dart';
+import 'package:ibn/core/procedimento.dart';
+import 'package:ibn/features/agenda/domain/sala.dart';
 
 /// Regras da agenda (RF02, RN01, RN02). Dados em memória (PROVISÓRIO).
 class AgendaService extends ChangeNotifier {

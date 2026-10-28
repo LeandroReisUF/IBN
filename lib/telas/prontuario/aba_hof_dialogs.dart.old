@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:ibn/features/auth/data/auth_service.dart';
-import '../../core/formadores.dart';
-import '../../core/hof.dart';
-import '../../core/paciente.dart';
+import 'package:ibn/core/formadores.dart';
+import 'package:ibn/core/hof.dart';
+import 'package:ibn/core/paciente.dart';
 /// Dialog para criar/editar procedimento HOF
 class _DialogProcedimentoHOF extends StatefulWidget {
   final ProcedimentoHOF? procedimentoExistente;

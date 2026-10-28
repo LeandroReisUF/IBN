@@ -10,7 +10,7 @@ Regras de trabalho (evitam repetir o que corrompeu os arquivos):
 
 ---
 
-## Passo 0 — Limpar o repositório (≈1 h)
+## Passo 0 — Limpar o repositório ✅ (concluído em 27/10/2026)
 
 1. Rode `flutter analyze` e anote os erros.
 2. Mova para uma pasta fora de `lib/` (ex.: `_quarentena/`) os arquivos quebrados que ainda não serão reescritos:
@@ -19,7 +19,7 @@ Regras de trabalho (evitam repetir o que corrompeu os arquivos):
 
 **Aceite:** `flutter analyze` sem erros; `flutter test` passa; app abre.
 
-## Passo 1 — Consertar a Ortodontia (≈1–2 dias)
+## Passo 1 — Consertar a Ortodontia ✅ (validado em 27/10/2026)
 
 **1.1 Estrutura**
 - Criar `core/ortodontia_repository.dart` (mover `OrtodontiaRepository` e deixar os modelos em `ortodontia.dart`). Atualizar imports.
@@ -36,7 +36,7 @@ Regras de trabalho (evitam repetir o que corrompeu os arquivos):
 - No diálogo, usar `StatefulBuilder` (ou widget próprio) para a data aparecer ao escolher.
 - Criar `atualizarManutencao` no repositório; editar passa a **substituir** (e não duplicar). Por RN05, prefira "retificar" mantendo o original riscado.
 - **Sem botão excluir.** Se necessário, "anular" com justificativa.
-- "Agendar manutenção": adicionar parâmetros opcionais em `TelaFormAgendamento` (`pacienteIdInicial`, `procedimentoIdInicial = 'manutencao-ortodontica'`, `profissionalIdInicial`). **Decisão pendente:** hoje só Recepção/Admin agendam (`podeAgendar`); definir se o dentista pode agendar o retorno do próprio paciente.
+- "Agendar manutenção": adicionar parâmetros opcionais em `TelaFormAgendamento` (`pacienteIdInicial`, `procedimentoIdInicial = 'manutencao-ortodontica'`, `profissionalIdInicial`). **Decisão tomada (27/10/2026):** o dentista pode agendar o retorno do próprio paciente (`podeAgendarRetorno`, Passo 2).
 
 **1.4 Fotos**
 - Remover a URL `via.placeholder.com`. Usar `file_picker` (Windows/Web/Android) e `image_picker` (Android/iOS). Em Web não há `dart:io`: guardar bytes em memória por enquanto; em Windows/Android copiar para a pasta de documentos do app (`path_provider`).
@@ -50,7 +50,7 @@ Regras de trabalho (evitam repetir o que corrompeu os arquivos):
 
 **Aceite:** escolher datas funciona; salvar ficha persiste e reaparece ao reabrir a aba; manutenção nova aparece na lista na hora; foto real aparece; `flutter test` verde.
 
-## Passo 2 — Prontuário base (≈2–3 dias) — destrava HOF, Exames e Documentos
+## Passo 2 — Prontuário base 🟡 (entregue em 28/10/2026, aguardando validação — ver `PASSO2_APLICAR.md`)
 
 1. Reescrever `core/prontuario.dart` **do zero**, com classes imutáveis (`final`) e `copiarCom`: `Prontuario`, `Atendimento`, `Evolucao`, `Adendo`, modelos de Anamnese.
 2. Criar `core/prontuario_repository.dart` (`ProntuarioRepository` com `iniciarAtendimento`, `encerrarAtendimento`, `adicionarEvolucao`, `assinarEvolucao`, `adicionarAdendo`) e a instância `prontuarioRepository`.

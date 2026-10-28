@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'paciente.dart';
+import 'prontuario_repository.dart';
 
 /// Guarda os pacientes em memória (PROVISÓRIO).
 /// Quando criarmos a API, esta classe passará a conversar com o servidor.
@@ -67,12 +68,11 @@ class PacienteRepository extends ChangeNotifier {
     return null;
   }
 
-  /// PROVISÓRIO: por enquanto "tem histórico" = tem profissional vinculado.
-  /// Quando existirem agendamentos e prontuários, esta checagem passa a
-  /// consultá-los (qualquer atendimento, evolução ou lançamento financeiro).
+  /// Tem histórico = tem profissional vinculado OU algum atendimento registrado.
+  /// (Quando existirem lançamentos financeiros e exames, entram aqui também.)
   bool temHistorico(Paciente paciente) =>
-      paciente.profissionaisVinculados.isNotEmpty;
-
+      paciente.profissionaisVinculados.isNotEmpty ||
+      prontuarioRepository.temHistorico(paciente.id);
   /// Inativar / reativar: o cadastro e o histórico continuam guardados.
   void definirAtivo(String id, bool ativo) {
     final i = _lista.indexWhere((p) => p.id == id);

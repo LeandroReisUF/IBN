@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../features/auth/data/auth_service.dart';
-import '../core/modulos.dart';
+import 'package:ibn/core/modulos.dart';
 import '../features/auth/domain/perfil.dart';
 import '../features/auth/domain/usuario.dart';
-import 'agenda/tela_agenda.dart';
+import 'package:ibn/features/agenda/presentation/pages/tela_agenda.dart';
 import 'pacientes/tela_pacientes.dart';
 import 'prontuario/tela_prontuario.dart';
 import 'painel_inicial.dart';

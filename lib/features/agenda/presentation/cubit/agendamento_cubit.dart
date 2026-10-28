@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ibn/core/agenda_service.dart';
-import 'package:ibn/core/agendamento.dart';
+import 'package:ibn/features/agenda/data/agenda_service.dart';
+import 'package:ibn/features/agenda/domain/agendamento.dart';
 import 'package:ibn/core/politica_acesso_service.dart';
 import 'package:ibn/features/auth/domain/usuario.dart';
 import 'agendamento_state.dart';

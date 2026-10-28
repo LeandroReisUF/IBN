@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../core/formadores.dart';
-import '../../core/log_acesso.dart';
-import '../../core/ortodontia.dart';
-import '../../core/paciente.dart';
+import 'package:ibn/core/formadores.dart';
+import 'package:ibn/core/log_acesso.dart';
+import 'package:ibn/core/ortodontia.dart';
+import 'package:ibn/core/paciente.dart';
 import '../../features/auth/domain/usuario.dart';
-import '../agenda/tela_form_agendamento.dart';
+import 'package:ibn/features/agenda/presentation/pages/tela_form_agendamento.dart';
 
 /// Seção **Manutenções Ortodônticas**. Só inclusão: "Retificar" cria um novo
 /// registro e deixa o anterior riscado (RN05). Não existe excluir.

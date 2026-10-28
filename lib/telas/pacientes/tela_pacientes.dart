@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../features/auth/data/auth_service.dart';
-import '../../core/formadores.dart';
-import '../../core/paciente.dart';
-import '../../core/paciente_repository.dart';
-import '../../core/politica_acesso_service.dart';
+import 'package:ibn/core/formadores.dart';
+import 'package:ibn/core/paciente.dart';
+import 'package:ibn/core/paciente_repository.dart';
+import 'package:ibn/core/politica_acesso_service.dart';
 import 'tela_form_paciente.dart';
 
 /// Lista de pacientes com busca (RF03.1 + RN03).

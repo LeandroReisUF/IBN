@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../features/auth/data/auth_service.dart';
-import '../../core/formadores.dart';
-import '../../core/log_acesso.dart';
-import '../../core/paciente.dart';
-import '../../features/auth/domain/perfil.dart';
-import '../../core/politica_acesso_service.dart';
+import 'package:ibn/features/auth/data/auth_service.dart';
+import 'package:ibn/core/formadores.dart';
+import 'package:ibn/core/log_acesso.dart';
+import 'package:ibn/core/paciente.dart';
+import 'package:ibn/features/auth/domain/perfil.dart';
+import 'package:ibn/core/politica_acesso_service.dart';
+import 'aba_prontuario.dart';
 import 'aba_odontograma.dart';
 import 'aba_ortodontia.dart';
 
@@ -49,12 +50,13 @@ class _TelaProntuarioPacienteState extends State<TelaProntuarioPaciente> {
 
     final ehDentista = usuario.perfil == Perfil.dentista;
     final titulos = ehDentista
-        ? ['Odontograma', 'Ortodontia', 'Harmonização (HOF)', 'Exames', 'Documentos']
+        ? ['Odontograma', 'Ortodontia', 'Atendimentos', 'Harmonização (HOF)', 'Exames', 'Documentos']
         : ['Prontuário'];
     final corpos = <Widget>[
       if (ehDentista) ...[
         AbaOdontograma(paciente: paciente),
         AbaOrtodontia(paciente: paciente),
+        AbaProntuario(paciente: paciente),
         const _EmBreve('Ficha de Harmonização Orofacial (próxima etapa)'),
         const _EmBreve('Solicitação e upload de exames (próxima etapa)'),
         const _EmBreve('Prescrições, atestados e termos (próxima etapa)'),

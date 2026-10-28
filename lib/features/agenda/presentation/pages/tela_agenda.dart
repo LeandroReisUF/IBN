@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ibn/core/agenda_service.dart';
-import 'package:ibn/core/agendamento.dart';
+import 'package:ibn/features/agenda/data/agenda_service.dart';
+import 'package:ibn/features/agenda/domain/agendamento.dart';
 import 'package:ibn/core/formadores.dart';
 import 'package:ibn/core/paciente_repository.dart';
 import 'package:ibn/core/politica_acesso_service.dart';
 import 'package:ibn/core/procedimento.dart';
-import 'package:ibn/core/sala.dart';
+import 'package:ibn/features/agenda/domain/sala.dart';
 import 'package:ibn/features/agenda/presentation/cubit/agendamento_cubit.dart';
 import 'package:ibn/features/agenda/presentation/cubit/agendamento_state.dart';
 import 'package:ibn/features/auth/data/auth_service.dart';
