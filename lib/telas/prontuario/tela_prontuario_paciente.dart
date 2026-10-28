@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../core/auth_service.dart';
+import '../../features/auth/data/auth_service.dart';
 import '../../core/formadores.dart';
 import '../../core/log_acesso.dart';
 import '../../core/paciente.dart';
-import '../../core/perfil.dart';
+import '../../features/auth/domain/perfil.dart';
 import '../../core/politica_acesso_service.dart';
 import 'aba_odontograma.dart';
 import 'aba_ortodontia.dart';

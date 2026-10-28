@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/agenda_service.dart';
 import '../../core/agendamento.dart';
-import '../../core/auth_service.dart';
+import '../../features/auth/data/auth_service.dart';
 import '../../core/formadores.dart';
 import '../../core/paciente_repository.dart';
-import '../../core/perfil.dart';
+import '../../features/auth/domain/perfil.dart';
 import '../../core/procedimento.dart';
 import '../../core/sala.dart';
-import '../../core/usuario.dart';
+import '../../features/auth/domain/usuario.dart';
 
 /// Criar / editar agendamento (RF02.1) com validação de conflitos ao vivo.
 class TelaFormAgendamento extends StatefulWidget {

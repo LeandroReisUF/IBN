@@ -3,7 +3,7 @@ import '../../core/formadores.dart';
 import '../../core/log_acesso.dart';
 import '../../core/ortodontia.dart';
 import '../../core/paciente.dart';
-import '../../core/usuario.dart';
+import '../../features/auth/domain/usuario.dart';
 import '../agenda/tela_form_agendamento.dart';
 
 /// Seção **Manutenções Ortodônticas**. Só inclusão: "Retificar" cria um novo

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../core/auth_service.dart';
+import '../data/auth_service.dart';
 
 class TelaLogin extends StatefulWidget {
   const TelaLogin({super.key});

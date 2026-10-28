@@ -1,0 +1,37 @@
+The Auth/Login feature has been successfully reorganized into the Clean Architecture structure. Here's a summary of what was done:
+
+## Summary
+
+### New Folder Structure Created:
+```
+lib/features/auth/
+├── data/
+│   └── auth_service.dart
+├── domain/
+│   ├── usuario.dart
+│   └── perfil.dart
+└── presentation/
+    └── tela_login.dart
+```
+
+### Files Moved:
+| Original Location | New Location |
+|-------------------|--------------|
+| `lib/core/usuario.dart` | `lib/features/auth/domain/usuario.dart` |
+| `lib/core/perfil.dart` | `lib/features/auth/domain/perfil.dart` |
+| `lib/core/auth_service.dart` | `lib/features/auth/data/auth_service.dart` |
+| `lib/telas/tela_login.dart` | `lib/features/auth/presentation/tela_login.dart` |
+
+### Imports Updated:
+1. **`perfil.dart`** - Updated to import `especialidade.dart` from `../../core/especialidade.dart`
+2. **`auth_service.dart`** - Updated to import domain entities from `../domain/perfil.dart` and `../domain/usuario.dart`
+3. **`tela_login.dart`** - Updated to import `auth_service` from `../data/auth_service.dart`
+4. **`main.dart`** - Updated to import from new feature paths:
+   - `features/auth/data/auth_service.dart`
+   - `features/auth/presentation/tela_login.dart`
+
+### Verification:
+- No other code files reference the old paths (only documentation in `diagramas_de_classe_sistema_clinico.md`)
+- The structure follows Clean Architecture: **Domain** (entities), **Data** (services/repositories), **Presentation** (UI/Cubits)
+
+The project should now compile with the new structure. You can test the build with `flutter analyze` or `flutter run`.

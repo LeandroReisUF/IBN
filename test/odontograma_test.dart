@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import '../lib/core/auth_service.dart';
+import '../lib/features/auth/data/auth_service.dart';
 import '../lib/core/condicao_odonto.dart';
 import '../lib/core/odontograma.dart';
 import '../lib/core/odontograma_repository.dart';

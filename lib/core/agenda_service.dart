@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'agendamento.dart';
-import 'auth_service.dart';
+import '../features/auth/data/auth_service.dart';
 import 'formadores.dart';
 import 'paciente_repository.dart';
 import 'procedimento.dart';

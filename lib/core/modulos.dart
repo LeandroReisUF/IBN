@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'perfil.dart';
+import '../features/auth/domain/perfil.dart';
 
 /// Um item do menu principal. Se [perfis] for vazio, todos podem ver.
 class Modulo {

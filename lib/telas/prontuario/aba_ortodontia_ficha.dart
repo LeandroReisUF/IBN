@@ -3,7 +3,7 @@ import '../../core/formadores.dart';
 import '../../core/log_acesso.dart';
 import '../../core/ortodontia.dart';
 import '../../core/paciente.dart';
-import '../../core/usuario.dart';
+import '../../features/auth/domain/usuario.dart';
 
 /// Seção **Ficha Ortodôntica**: visualização e edição (cada salvar = nova versão).
 class SecaoFichaOrtodontica extends StatefulWidget {

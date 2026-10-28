@@ -5,7 +5,7 @@ import '../../core/formadores.dart';
 import '../../core/log_acesso.dart';
 import '../../core/ortodontia.dart';
 import '../../core/paciente.dart';
-import '../../core/usuario.dart';
+import '../../features/auth/domain/usuario.dart';
 
 /// Seção **Fotos Comparativas**. Só inclusão (RN05): não há botão de excluir.
 /// Usa só `file_picker` e bytes em memória, então funciona em Windows, Android e Web.

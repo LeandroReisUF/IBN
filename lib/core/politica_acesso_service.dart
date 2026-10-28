@@ -1,7 +1,7 @@
 import 'agendamento.dart';
 import 'paciente.dart';
-import 'perfil.dart';
-import 'usuario.dart';
+import '../features/auth/domain/perfil.dart';
+import '../features/auth/domain/usuario.dart';
 
 /// Regras de quem pode ver/fazer o quê (RN03, RF01.3).
 ///

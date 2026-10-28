@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../core/auth_service.dart';
+import '../features/auth/data/auth_service.dart';
 import '../core/modulos.dart';
-import '../core/perfil.dart';
-import '../core/usuario.dart';
+import '../features/auth/domain/perfil.dart';
+import '../features/auth/domain/usuario.dart';
 import 'agenda/tela_agenda.dart';
 import 'pacientes/tela_pacientes.dart';
 import 'prontuario/tela_prontuario.dart';

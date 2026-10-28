@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'perfil.dart';
-import 'usuario.dart';
+import '../domain/perfil.dart';
+import '../domain/usuario.dart';
 
 /// Controla quem está logado (RF01.1).
 ///

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/auth_service.dart';
+import '../../features/auth/data/auth_service.dart';
 import '../../core/ortodontia.dart';
 import '../../core/paciente.dart';
 import '../../core/politica_acesso_service.dart';

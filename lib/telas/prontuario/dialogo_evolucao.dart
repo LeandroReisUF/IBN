@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/anatomia_dente.dart';
-import '../../core/auth_service.dart';
+import '../../features/auth/data/auth_service.dart';
 import '../../core/condicao_odonto.dart';
 import '../../core/especialidade.dart';
 import '../../core/odontograma.dart';

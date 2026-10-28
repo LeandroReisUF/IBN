@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../core/agenda_service.dart';
 import '../../core/agendamento.dart';
-import '../../core/auth_service.dart';
+import '../../features/auth/data/auth_service.dart';
 import '../../core/formadores.dart';
 import '../../core/paciente_repository.dart';
 import '../../core/politica_acesso_service.dart';
 import '../../core/procedimento.dart';
 import '../../core/sala.dart';
-import '../../core/usuario.dart';
+import '../../features/auth/domain/usuario.dart';
 import 'tela_form_agendamento.dart';
 
 enum _Periodo { dia, semana, mes }

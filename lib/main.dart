@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'core/auth_service.dart';
-import 'telas/tela_login.dart';
+import 'features/auth/data/auth_service.dart';
+import 'features/auth/presentation/tela_login.dart';
 import 'telas/tela_principal.dart';
 
 void main() {
