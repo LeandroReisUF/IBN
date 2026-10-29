@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:ibn/core/formadores.dart';
-import 'package:ibn/core/paciente_repository.dart';
+import 'package:ibn/features/pacientes/data/paciente_repository.dart';
 import 'package:ibn/core/procedimento.dart';
 import 'package:ibn/features/agenda/domain/agendamento.dart';
 import 'package:ibn/features/agenda/domain/sala.dart';

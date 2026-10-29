@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ibn/telas/prontuario/desenho_dente.dart';
+import 'package:ibn/features/odontograma/presentation/widgets/desenho_dente.dart';
 
 void main() {
   group('faixaDaRaiz', () {

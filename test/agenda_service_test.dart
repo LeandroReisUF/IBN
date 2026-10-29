@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ibn/features/agenda/data/agenda_service.dart';
 import 'package:ibn/features/agenda/domain/agendamento.dart';
-import 'package:ibn/core/paciente_repository.dart';
+import 'package:ibn/features/pacientes/data/paciente_repository.dart';
 
 /// Monta um agendamento de teste em 07/01/2030 (data sem agendamentos de exemplo).
 Agendamento ag({

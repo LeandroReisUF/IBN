@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'prontuario.dart';
+import 'package:ibn/features/prontuario/domain/prontuario.dart';
 
 /// Atendimentos, evoluções e adendos em memória (PROVISÓRIO).
 ///

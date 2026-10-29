@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ibn/core/odontograma.dart';
-import 'package:ibn/telas/prontuario/caixa_dente.dart';
+import 'package:ibn/features/odontograma/domain/odontograma.dart';
+import 'package:ibn/features/odontograma/presentation/widgets/caixa_dente.dart';
 
 // Caixa de 100 x 100. Lados: topo = vestibular, base = lingual,
 // esquerda = distal, direita = mesial (como um dente do quadrante 1).

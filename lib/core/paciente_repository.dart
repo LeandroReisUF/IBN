@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'paciente.dart';
-import 'prontuario_repository.dart';
+import 'package:ibn/features/pacientes/domain/paciente.dart';
+import 'package:ibn/features/prontuario/data/prontuario_repository.dart';
 
 /// Guarda os pacientes em memória (PROVISÓRIO).
 /// Quando criarmos a API, esta classe passará a conversar com o servidor.

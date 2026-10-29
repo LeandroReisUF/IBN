@@ -1,0 +1,181 @@
+import 'package:flutter/material.dart';
+import 'package:ibn/features/auth/data/auth_service.dart';
+import 'package:ibn/core/formadores.dart';
+import 'package:ibn/core/hof.dart';
+import 'package:ibn/core/log_acesso.dart';
+import 'package:ibn/features/pacientes/domain/paciente.dart';
+import 'package:ibn/core/politica_acesso_service.dart';
+
+/// Aba de HOF (Harmonização Orofacial): ficha, procedimentos, pontos, insumos, fotos.
+class AbaHOF extends StatefulWidget {
+  final Paciente paciente;
+  const AbaHOF({super.key, required this.paciente});
+
+  @override
+  State<AbaHOF> createState() => _AbaHOFState();
+}
+
+class _AbaHOFState extends State<AbaHOF> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  ProcedimentoHOF? _procedimentoEditando;
+  bool _carregado = false;
+
+  Paciente get _paciente => widget.paciente;
+  Usuario get _usuario => auth.usuarioLogado!;
+  bool get _podeEditar => politicaAcesso.podeEditarOdontograma(_usuario, _paciente) || 
+      politicaAcesso.podeAcessarProntuario(_usuario, _paciente);
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: hofRepository,
+      builder: (context, _) {
+        final ficha = hofRepository.fichaDoPaciente(_paciente.id);
+        final procedimentos = ficha?.procedimentos ?? [];
+        
+        return Column(
+          children: [
+            _buildHeader(ficha, procedimentos),
+            const SizedBox(height: 12),
+            TabBar(
+              controller: _tabController,
+              tabs: const [
+                Tab(text: 'Procedimentos'),
+                Tab(text: 'Fotos Antes/Depois'),
+                Tab(text: 'Insumos / Lotes (RN06)'),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildListaProcedimentos(procedimentos),
+                  _buildFotos(ficha),
+                  _buildInsumosLotes(procedimentos),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildHeader(FichaHOF? ficha, List<ProcedimentoHOF> procedimentos) {
+    final tema = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Harmonização Orofacial', style: tema.textTheme.titleLarge),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${procedimentos.length} procedimento(s) registrado(s)',
+                        style: tema.textTheme.bodySmall?.copyWith(color: tema.colorScheme.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_podeEditar)
+                  FilledButton.icon(
+                    onPressed: _novoProcedimento,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Novo Procedimento'),
+                  ),
+              ],
+            ),
+            if (ficha != null) ...[
+              const SizedBox(height: 12),
+// Ações
+  Future<void> _novoProcedimento() async {
+    await showDialog(
+      context: context,
+      builder: (context) => _DialogProcedimentoHOF(
+        onSalvar: (p) {
+          hofRepository.adicionarProcedimento(p);
+          Navigator.pop(context);
+        },
+      ),
+    );
+  }
+
+  Future<void> _editarProcedimento(ProcedimentoHOF p) async {
+    await showDialog(
+      context: context,
+      builder: (context) => _DialogProcedimentoHOF(
+        procedimentoExistente: p,
+        onSalvar: (novo) {
+          final ficha = hofRepository.fichaDoPaciente(_paciente.id);
+          if (ficha != null) {
+            final idx = ficha.procedimentos.indexWhere((x) => x.id == p.id);
+            if (idx >= 0) {
+              final novaFicha = ficha.copiarCom(
+                procedimentos: [...ficha.procedimentos]..[idx] = novo,
+                atualizadoEm: DateTime.now(),
+              );
+              hofRepository.salvarFicha(novaFicha);
+            }
+          }
+          Navigator.pop(context);
+        },
+      ),
+    );
+  }
+
+  Future<void> _verFotos(ProcedimentoHOF p) async {
+    final fotos = hofRepository.fotosDoProcedimento(p.id);
+    if (fotos.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nenhuma foto para este procedimento')));
+      return;
+    }
+    await showDialog(
+      context: context,
+      builder: (context) => _DialogGaleriaFotos(fotos: fotos, procedimento: p),
+    );
+  }
+
+  Future<void> _duplicarProcedimento(ProcedimentoHOF p) async {
+    final novo = ProcedimentoHOF(
+      id: hofRepository.novoId(),
+      atendimentoId: p.atendimentoId,
+      tipo: p.tipo,
+      tipoOutro: p.tipoOutro,
+      pontos: List.from(p.pontos),
+      insumos: List.from(p.insumos),
+      tecnicaGeral: p.tecnicaGeral,
+      observacoes: p.observacoes,
+      dataHora: DateTime.now(),
+      profissionalId: _usuario.id,
+    );
+    hofRepository.adicionarProcedimento(novo);
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Procedimento duplicado')));
+  }
+}
+              Text('Ficha criada em: ${formatarData(ficha.criadoEm)}  •  Atualizada: ${formatarData(ficha.atualizadoEm)}',
+                  style: tema.textTheme.bodySmall),
+            ],
+          ],
+        ),
+      ),
+    );
+  }

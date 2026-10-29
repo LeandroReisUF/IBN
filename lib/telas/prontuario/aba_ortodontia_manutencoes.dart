@@ -4,8 +4,8 @@ import 'package:ibn/features/agenda/data/agenda_service.dart';
 import 'package:ibn/features/agenda/presentation/cubit/agendamento_cubit.dart';
 import 'package:ibn/core/formadores.dart';
 import 'package:ibn/core/log_acesso.dart';
-import 'package:ibn/core/ortodontia.dart';
-import 'package:ibn/core/paciente.dart';
+import 'package:ibn/features/ortodontia/domain/ortodontia.dart';
+import 'package:ibn/features/pacientes/domain/paciente.dart';
 import 'package:ibn/features/auth/domain/usuario.dart';
 import 'package:ibn/features/agenda/presentation/pages/tela_form_agendamento.dart';
 

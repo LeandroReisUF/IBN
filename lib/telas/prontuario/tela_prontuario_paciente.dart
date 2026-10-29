@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:ibn/features/auth/data/auth_service.dart';
 import 'package:ibn/core/formadores.dart';
 import 'package:ibn/core/log_acesso.dart';
-import 'package:ibn/core/paciente.dart';
+import 'package:ibn/features/pacientes/domain/paciente.dart';
 import 'package:ibn/features/auth/domain/perfil.dart';
 import 'package:ibn/core/politica_acesso_service.dart';
-import 'aba_prontuario.dart';
-import 'aba_odontograma.dart';
-import 'aba_ortodontia.dart';
+import 'package:ibn/features/prontuario/presentation/pages/aba_prontuario.dart';
+import 'package:ibn/features/odontograma/presentation/pages/aba_odontograma.dart';
+import 'package:ibn/features/ortodontia/presentation/pages/aba_ortodontia.dart';
 
 /// Prontuário de um paciente, com abas conforme o perfil logado (RF03.2).
 class TelaProntuarioPaciente extends StatefulWidget {

@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ibn/core/odontograma.dart';
-import 'package:ibn/core/odontograma_repository.dart';
-import 'package:ibn/core/ortodontia.dart';
+import 'package:ibn/features/odontograma/domain/odontograma.dart';
+import 'package:ibn/features/odontograma/data/odontograma_repository.dart';
+import 'package:ibn/features/ortodontia/domain/ortodontia.dart';
 
 // ATENÇÃO: troque "ibn" pelo nome do pacote que está no seu pubspec.yaml (campo "name:").
 

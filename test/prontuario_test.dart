@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ibn/core/paciente.dart';
+import 'package:ibn/features/pacientes/domain/paciente.dart';
 import 'package:ibn/features/auth/domain/perfil.dart';
 import 'package:ibn/core/politica_acesso_service.dart';
-import 'package:ibn/core/prontuario.dart';
-import 'package:ibn/core/prontuario_repository.dart';
+import 'package:ibn/features/prontuario/domain/prontuario.dart';
+import 'package:ibn/features/prontuario/data/prontuario_repository.dart';
 import 'package:ibn/features/auth/domain/usuario.dart';
 
 Atendimento atend({String id = 'a1', String prof = '3', String pac = 'p1'}) => Atendimento(

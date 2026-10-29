@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ibn/features/auth/data/auth_service.dart';
-import 'package:ibn/core/condicao_odonto.dart';
-import 'package:ibn/core/odontograma.dart';
-import 'package:ibn/core/odontograma_repository.dart';
-import 'package:ibn/core/paciente_repository.dart';
+import 'package:ibn/features/odontograma/domain/condicao_odonto.dart';
+import 'package:ibn/features/odontograma/domain/odontograma.dart';
+import 'package:ibn/features/odontograma/data/odontograma_repository.dart';
+import 'package:ibn/features/pacientes/data/paciente_repository.dart';
 import 'package:ibn/core/politica_acesso_service.dart';
 
 /// Monta um registro de teste. Sem [face] = dente inteiro.

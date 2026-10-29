@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import '../features/auth/data/auth_service.dart';
-import 'package:ibn/core/modulos.dart';
+import 'package:ibn/features/home/presentation/modulos.dart';
 import '../features/auth/domain/perfil.dart';
 import '../features/auth/domain/usuario.dart';
 import 'package:ibn/features/agenda/presentation/pages/tela_agenda.dart';
-import 'pacientes/tela_pacientes.dart';
-import 'prontuario/tela_prontuario.dart';
-import 'painel_inicial.dart';
-import 'tela_modulo_em_construcao.dart';
+import 'package:ibn/features/pacientes/presentation/pages/tela_pacientes.dart';
+import 'package:ibn/features/prontuario/presentation/pages/tela_prontuario.dart';
+import 'package:ibn/features/home/presentation/pages/painel_inicial.dart';
+import 'package:ibn/features/home/presentation/pages/tela_modulo_em_construcao.dart';
 
 /// Casca do sistema: menu lateral (Windows/Web) ou gaveta (celular).
 class TelaPrincipal extends StatefulWidget {

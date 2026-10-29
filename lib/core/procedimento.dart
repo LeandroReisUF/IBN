@@ -1,4 +1,4 @@
-import 'especialidade.dart';
+import 'package:ibn/core/especialidade.dart';
 
 /// Procedimento ou tipo de consulta que pode ser agendado.
 class Procedimento {

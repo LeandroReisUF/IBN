@@ -1,5 +1,5 @@
 import 'package:ibn/features/agenda/domain/agendamento.dart';
-import 'paciente.dart';
+import 'package:ibn/features/pacientes/domain/paciente.dart';
 import '../features/auth/domain/perfil.dart';
 import '../features/auth/domain/usuario.dart';
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ibn/core/modulos.dart';
+import 'package:ibn/features/home/presentation/modulos.dart';
 
 /// Tela provisória: cada módulo ganhará sua tela real nas próximas etapas.
 class TelaModuloEmConstrucao extends StatelessWidget {
