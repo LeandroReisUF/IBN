@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:ibn/features/pacientes/presentation/cubit/pacientes_cubit.dart';
 import 'package:ibn/features/auth/data/auth_service.dart';
 import 'package:ibn/core/formadores.dart';
 import 'package:ibn/features/pacientes/domain/paciente.dart';
-import 'package:ibn/features/pacientes/data/paciente_repository.dart';
 import 'package:ibn/core/politica_acesso_service.dart';
 
 /// Cadastro / edição / visualização de paciente (RF03.1).
@@ -104,21 +105,21 @@ class _TelaFormPacienteState extends State<TelaFormPaciente> {
     if (v == null || v.trim().isEmpty) return 'Informe o CPF';
     if (!cpfValido(v)) return 'CPF inválido';
     if (checarDuplicado &&
-        pacientes.cpfJaCadastrado(somenteDigitos(v), ignorarId: ignorarId)) {
-      return 'CPF já cadastrado';
+        context.read<PacientesCubit>().cpfJaCadastrado(somenteDigitos(v), ignorarId: ignorarId)) {      return 'CPF já cadastrado';
     }
     return null;
   }
 
   // ---------- salvar ----------
 
-  void _salvar() {
+    Future<void> _salvar() async {
     final formOk = _formKey.currentState!.validate();
     setState(() => _erroLgpd = !_aceiteLgpd);
     if (!formOk || !_aceiteLgpd) return;
 
+    final cubit = context.read<PacientesCubit>();
     final novo = Paciente(
-      id: _original?.id ?? pacientes.novoId(),
+      id: _original?.id ?? cubit.novoId(),
       nome: _nomeCtrl.text.trim(),
       cpf: somenteDigitos(_cpfCtrl.text),
       dataNascimento: lerData(_nascCtrl.text)!,
@@ -142,9 +143,15 @@ class _TelaFormPacienteState extends State<TelaFormPaciente> {
     );
 
     final mensagem = ScaffoldMessenger.of(context);
+    final navegador = Navigator.of(context);
     final textoSucesso = _editando ? 'Paciente atualizado.' : 'Paciente cadastrado.';
-    pacientes.salvar(novo);
-    Navigator.of(context).pop();
+    final erro = await cubit.salvar(novo);
+    if (!mounted) return;
+    if (erro != null) {
+      mensagem.showSnackBar(SnackBar(content: Text(erro)));
+      return;
+    }
+    navegador.pop();
     mensagem.showSnackBar(SnackBar(content: Text(textoSucesso)));
   }
 
@@ -243,7 +250,7 @@ class _TelaFormPacienteState extends State<TelaFormPaciente> {
     return resposta ?? false;
   }
 
-  Future<void> _alterarAtivo(bool novoAtivo) async {
+    Future<void> _alterarAtivo(bool novoAtivo) async {
     final confirmado = await _confirmar(
       novoAtivo ? 'Reativar paciente?' : 'Inativar paciente?',
       novoAtivo
@@ -252,15 +259,22 @@ class _TelaFormPacienteState extends State<TelaFormPaciente> {
       novoAtivo ? 'Reativar' : 'Inativar',
     );
     if (!confirmado || !mounted) return;
+    final cubit = context.read<PacientesCubit>();
     final mensagem = ScaffoldMessenger.of(context);
-    pacientes.definirAtivo(_original!.id, novoAtivo);
-    Navigator.of(context).pop();
+    final navegador = Navigator.of(context);
+    final erro = await cubit.definirAtivo(_original!.id, novoAtivo);
+    if (!mounted) return;
+    if (erro != null) {
+      mensagem.showSnackBar(SnackBar(content: Text(erro)));
+      return;
+    }
+    navegador.pop();
     mensagem.showSnackBar(
       SnackBar(content: Text(novoAtivo ? 'Paciente reativado.' : 'Paciente inativado.')),
     );
   }
 
-  Future<void> _excluir() async {
+    Future<void> _excluir() async {
     final confirmado = await _confirmar(
       'Excluir definitivamente?',
       'Esta ação não pode ser desfeita. Use apenas para cadastro feito por '
@@ -268,16 +282,17 @@ class _TelaFormPacienteState extends State<TelaFormPaciente> {
       'Excluir',
     );
     if (!confirmado || !mounted) return;
+    final cubit = context.read<PacientesCubit>();
     final mensagem = ScaffoldMessenger.of(context);
-    final excluiu = pacientes.excluirSemHistorico(_original!.id);
-    if (excluiu) {
-      Navigator.of(context).pop();
-      mensagem.showSnackBar(const SnackBar(content: Text('Paciente excluído.')));
-    } else {
-      mensagem.showSnackBar(const SnackBar(
-        content: Text('Este paciente tem histórico e não pode ser excluído. Use Inativar.'),
-      ));
+    final navegador = Navigator.of(context);
+    final erro = await cubit.excluir(_original!.id);
+    if (!mounted) return;
+    if (erro != null) {
+      mensagem.showSnackBar(SnackBar(content: Text(erro)));
+      return;
     }
+    navegador.pop();
+    mensagem.showSnackBar(const SnackBar(content: Text('Paciente excluído.')));
   }
 
   List<Widget> _secaoAcoes() {
