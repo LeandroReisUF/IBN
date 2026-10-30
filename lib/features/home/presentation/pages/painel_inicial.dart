@@ -4,7 +4,9 @@ import 'package:ibn/features/agenda/domain/agendamento.dart';
 import 'package:ibn/features/auth/data/auth_service.dart';
 import 'package:ibn/core/formadores.dart';
 import 'package:ibn/features/auth/domain/perfil.dart';
-import 'package:ibn/core/politica_acesso_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:ibn/features/agenda/presentation/cubit/agendamento_cubit.dart';
+import 'package:ibn/features/agenda/presentation/cubit/agendamento_state.dart';
 import 'package:ibn/features/agenda/domain/sala.dart';
 
 /// Painel inicial, agora alimentado pela agenda real (em memória).
@@ -17,81 +19,90 @@ class PainelInicial extends StatelessWidget {
     required this.nomeUsuario,
   });
 
-  @override
+    @override
   Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => AgendamentoCubit(
+        servico: agenda,
+        usuario: auth.usuarioLogado!,
+      )..carregar(),
+      child: BlocBuilder<AgendamentoCubit, AgendamentoState>(
+        builder: (context, state) => switch (state) {
+          AgendamentoInitial() || AgendamentoLoading() =>
+            const Center(child: CircularProgressIndicator()),
+          AgendamentoError(:final mensagem) => Center(child: Text(mensagem)),
+          AgendamentoSuccess(:final consultas) => _conteudo(context, consultas),
+        },
+      ),
+    );
+  }
+
+  Widget _conteudo(BuildContext context, List<Agendamento> consultas) {
     final tema = Theme.of(context);
+    final cubit = context.read<AgendamentoCubit>();
+    final agora = DateTime.now();
+    final hoje = soData(agora);
+    final amanha = DateTime(hoje.year, hoje.month, hoje.day + 1);
 
-    return ListenableBuilder(
-      listenable: agenda,
-      builder: (context, _) {
-        final usuario = auth.usuarioLogado!;
-        final agora = DateTime.now();
-        final hoje = soData(agora);
-        final amanha = DateTime(hoje.year, hoje.month, hoje.day + 1);
+    final deHoje = consultas
+        .where((a) =>
+            a.status.ocupaHorario &&
+            !a.inicio.isBefore(hoje) &&
+            a.inicio.isBefore(amanha))
+        .toList();
+    final naRecepcao =
+        deHoje.where((a) => a.status == StatusAgendamento.naRecepcao).length;
+    final emAtendimento =
+        deHoje.where((a) => a.status == StatusAgendamento.emAtendimento).length;
 
-        // RN03: profissional só conta os próprios atendimentos.
-        final deHoje = politicaAcesso
-            .filtrarAgenda(usuario, agenda.todos)
-            .where((a) =>
-                a.status.ocupaHorario &&
-                !a.inicio.isBefore(hoje) &&
-                a.inicio.isBefore(amanha))
-            .toList();
-        final naRecepcao =
-            deHoje.where((a) => a.status == StatusAgendamento.naRecepcao).length;
-        final emAtendimento =
-            deHoje.where((a) => a.status == StatusAgendamento.emAtendimento).length;
+    final tituloAgenda =
+        perfil.veClinicaInteira ? 'Agendamentos da clínica hoje' : 'Meus atendimentos hoje';
 
-        final tituloAgenda =
-            perfil.veClinicaInteira ? 'Agendamentos da clínica hoje' : 'Meus atendimentos hoje';
-
-        return ListView(
-          padding: const EdgeInsets.all(24),
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        Text('Olá, $nomeUsuario', style: tema.textTheme.headlineSmall),
+        const SizedBox(height: 4),
+        Text('Resumo do dia', style: tema.textTheme.bodyMedium),
+        const SizedBox(height: 24),
+        Wrap(
+          spacing: 16,
+          runSpacing: 16,
           children: [
-            Text('Olá, $nomeUsuario', style: tema.textTheme.headlineSmall),
-            const SizedBox(height: 4),
-            Text('Resumo do dia', style: tema.textTheme.bodyMedium),
-            const SizedBox(height: 24),
-            Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: [
-                _CartaoResumo(
-                  icone: Icons.event_available_outlined,
-                  titulo: tituloAgenda,
-                  valor: '${deHoje.length}',
-                ),
-                _CartaoResumo(
-                  icone: Icons.how_to_reg_outlined,
-                  titulo: 'Na recepção',
-                  valor: '$naRecepcao',
-                ),
-                _CartaoResumo(
-                  icone: Icons.medical_services_outlined,
-                  titulo: 'Em atendimento',
-                  valor: '$emAtendimento',
-                ),
-              ],
+            _CartaoResumo(
+              icone: Icons.event_available_outlined,
+              titulo: tituloAgenda,
+              valor: '${deHoje.length}',
             ),
-            if (perfil.veClinicaInteira) ...[
-              const SizedBox(height: 32),
-              Text('Salas físicas (agora)', style: tema.textTheme.titleMedium),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 16,
-                runSpacing: 16,
-                children: [
-                  for (final sala in salas)
-                    _CartaoSala(
-                      sala: sala,
-                      ocupada: agenda.salaOcupadaAgora(sala.numero, agora),
-                    ),
-                ],
-              ),
-            ],
+            _CartaoResumo(
+              icone: Icons.how_to_reg_outlined,
+              titulo: 'Na recepção',
+              valor: '$naRecepcao',
+            ),
+            _CartaoResumo(
+              icone: Icons.medical_services_outlined,
+              titulo: 'Em atendimento',
+              valor: '$emAtendimento',
+            ),
           ],
-        );
-      },
+        ),
+        if (perfil.veClinicaInteira) ...[
+          const SizedBox(height: 32),
+          Text('Salas físicas (agora)', style: tema.textTheme.titleMedium),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: [
+              for (final sala in salas)
+                _CartaoSala(
+                  sala: sala,
+                  ocupada: cubit.salaOcupadaAgora(sala.numero, agora),
+                ),
+            ],
+          ),
+        ],
+      ],
     );
   }
 }

@@ -62,6 +62,10 @@ class PoliticaAcessoService {
   bool podeEditarOdontograma(Usuario usuario, Paciente paciente) =>
       usuario.perfil == Perfil.dentista && podeVerPaciente(usuario, paciente);
 
+  /// Harmonização orofacial: só dentistas vinculados ao paciente.
+  bool podeEditarHof(Usuario usuario, Paciente paciente) =>
+      podeEditarOdontograma(usuario, paciente);
+      
   bool podeVerPaciente(Usuario usuario, Paciente paciente) =>
       podeVerListaGlobal(usuario) ||
       paciente.profissionaisVinculados.contains(usuario.id);

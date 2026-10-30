@@ -1,63 +1,66 @@
 import 'package:flutter/material.dart';
-import 'package:ibn/features/agenda/data/agenda_service.dart';
-import 'package:ibn/features/agenda/domain/agendamento.dart';
-import 'package:ibn/features/auth/data/auth_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ibn/core/formadores.dart';
-import 'package:ibn/core/log_acesso.dart';
-import 'package:ibn/features/pacientes/domain/paciente.dart';
 import 'package:ibn/core/politica_acesso_service.dart';
-import 'package:ibn/features/prontuario/domain/prontuario.dart';
-import 'package:ibn/features/prontuario/data/prontuario_repository.dart';
+import 'package:ibn/features/agenda/data/agenda_service.dart';
+import 'package:ibn/features/auth/data/auth_service.dart';
 import 'package:ibn/features/auth/domain/usuario.dart';
+import 'package:ibn/features/pacientes/domain/paciente.dart';
+import 'package:ibn/features/prontuario/data/prontuario_repository.dart';
+import 'package:ibn/features/prontuario/domain/prontuario.dart';
+import 'package:ibn/features/prontuario/presentation/cubit/atendimentos_cubit.dart';
+import 'package:ibn/features/prontuario/presentation/cubit/atendimentos_state.dart';
 
 /// Atendimentos do paciente: cada profissional vê só os que ele mesmo registrou.
 /// Fluxo: iniciar → evoluções (rascunho) → assinar → encerrar. Depois de
 /// assinada, a evolução só se corrige por adendo (RN05).
-class AbaProntuario extends StatefulWidget {
+/// Esta classe só **fornece** o Cubit; o desenho está em [_AtendimentosView].
+class AbaProntuario extends StatelessWidget {
   final Paciente paciente;
   const AbaProntuario({super.key, required this.paciente});
 
   @override
-  State<AbaProntuario> createState() => _AbaProntuarioState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => AtendimentosCubit(
+        repositorio: prontuarioRepository,
+        agendaService: agenda,
+        usuario: auth.usuarioLogado!,
+        paciente: paciente,
+      )..carregar(),
+      child: _AtendimentosView(paciente: paciente),
+    );
+  }
 }
 
-class _AbaProntuarioState extends State<AbaProntuario> {
+class _AtendimentosView extends StatefulWidget {
+  final Paciente paciente;
+  const _AtendimentosView({required this.paciente});
+
+  @override
+  State<_AtendimentosView> createState() => _AtendimentosViewState();
+}
+
+class _AtendimentosViewState extends State<_AtendimentosView> {
   Paciente get _paciente => widget.paciente;
   Usuario get _usuario => auth.usuarioLogado!;
   bool get _podeEditar => politicaAcesso.podeAcessarProntuario(_usuario, _paciente);
-
-  // ---------- utilidades ----------
+  AtendimentosCubit get _cubit => context.read<AtendimentosCubit>();
 
   void _aviso(String texto) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(texto)));
   }
 
-  void _log(String acao, String entidade, String entidadeId) {
-    logsAcesso.registrar(
-      usuarioId: _usuario.id,
-      acao: acao,
-      entidade: entidade,
-      entidadeId: entidadeId,
-    );
+  /// Mostra o erro (se houver) vindo de uma ação do Cubit.
+  void _mostrarErro(String? erro) {
+    if (erro != null && mounted) _aviso(erro);
   }
 
   // ---------- ações ----------
 
   Future<void> _iniciar() async {
-    final hoje = soData(DateTime.now());
-    const iniciaveis = [
-      StatusAgendamento.agendado,
-      StatusAgendamento.confirmadoWhatsapp,
-      StatusAgendamento.naRecepcao,
-    ];
-    final candidatos = agenda.todos
-        .where((a) =>
-            a.pacienteId == _paciente.id &&
-            a.profissionalId == _usuario.id &&
-            mesmoDia(a.inicio, hoje) &&
-            iniciaveis.contains(a.status))
-        .toList()
-      ..sort((a, b) => a.inicio.compareTo(b.inicio));
+    final cubit = _cubit;
+    final candidatos = cubit.agendamentosIniciaveisHoje();
 
     String? agendamentoId;
     if (candidatos.isNotEmpty) {
@@ -82,27 +85,11 @@ class _AbaProntuarioState extends State<AbaProntuario> {
       if (escolha == null || !mounted) return;
       agendamentoId = escolha.isEmpty ? null : escolha;
     }
-
-    final atendimento = Atendimento(
-      id: prontuarioRepository.novoId(),
-      pacienteId: _paciente.id,
-      profissionalId: _usuario.id,
-      agendamentoId: agendamentoId,
-      inicio: DateTime.now(),
-    );
-    final erro = prontuarioRepository.iniciarAtendimento(atendimento);
-    if (erro != null) {
-      _aviso(erro);
-      return;
-    }
-    if (agendamentoId != null) {
-      final e = agenda.mudarStatus(agendamentoId, StatusAgendamento.emAtendimento);
-      if (e != null) _aviso(e);
-    }
-    _log('iniciou_atendimento', 'atendimento', atendimento.id);
+    _mostrarErro(await cubit.iniciar(agendamentoId: agendamentoId));
   }
 
   Future<void> _encerrar(Atendimento a) async {
+    final cubit = _cubit;
     final obs = await showDialog<String>(
       context: context,
       builder: (_) => const _DialogoTexto(
@@ -114,58 +101,35 @@ class _AbaProntuarioState extends State<AbaProntuario> {
       ),
     );
     if (obs == null || !mounted) return;
-    final erro = prontuarioRepository.encerrarAtendimento(a.id, _usuario.id, observacoes: obs);
-    if (erro != null) {
-      _aviso(erro);
-      return;
-    }
-    final ag = a.agendamentoId;
-    if (ag != null) agenda.mudarStatus(ag, StatusAgendamento.atendido);
-    _log('encerrou_atendimento', 'atendimento', a.id);
+    _mostrarErro(await cubit.encerrar(a.id, observacoes: obs));
   }
 
   Future<void> _novaEvolucao(Atendimento a) async {
+    final cubit = _cubit;
     final r = await showDialog<({TipoEvolucao tipo, String texto})>(
       context: context,
       builder: (_) => const _DialogoEvolucao(),
     );
     if (r == null || !mounted) return;
-    final erro = prontuarioRepository.adicionarEvolucao(Evolucao(
-      id: prontuarioRepository.novoId(),
-      atendimentoId: a.id,
-      pacienteId: _paciente.id,
-      profissionalId: _usuario.id,
-      tipo: r.tipo,
-      texto: r.texto,
-      dataHora: DateTime.now(),
-    ));
-    if (erro != null) {
-      _aviso(erro);
-      return;
-    }
-    _log('registrou_evolucao', 'atendimento', a.id);
+    _mostrarErro(await cubit.adicionarEvolucao(a.id, r.tipo, r.texto));
   }
 
   Future<void> _editar(Evolucao e) async {
+    final cubit = _cubit;
     final r = await showDialog<({TipoEvolucao tipo, String texto})>(
       context: context,
       builder: (_) => _DialogoEvolucao(editando: e),
     );
     if (r == null || !mounted) return;
-    final erro = prontuarioRepository.atualizarRascunho(e.id, _usuario.id, r.texto);
-    if (erro != null) _aviso(erro);
+    _mostrarErro(await cubit.atualizarRascunho(e, r.texto));
   }
 
-  void _assinar(Evolucao e) {
-    final erro = prontuarioRepository.assinarEvolucao(e.id, _usuario.id);
-    if (erro != null) {
-      _aviso(erro);
-      return;
-    }
-    _log('assinou_evolucao', 'atendimento', e.atendimentoId);
+  Future<void> _assinar(Evolucao e) async {
+    _mostrarErro(await _cubit.assinar(e));
   }
 
   Future<void> _descartar(Evolucao e) async {
+    final cubit = _cubit;
     final confirmou = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -178,39 +142,26 @@ class _AbaProntuarioState extends State<AbaProntuario> {
       ),
     );
     if (confirmou != true || !mounted) return;
-    final erro = prontuarioRepository.descartarRascunho(e.id, _usuario.id);
-    if (erro != null) _aviso(erro);
+    _mostrarErro(await cubit.descartarRascunho(e));
   }
 
   Future<void> _adendo(Evolucao e) async {
+    final cubit = _cubit;
     final r = await showDialog<({String justificativa, String texto})>(
       context: context,
       builder: (_) => const _DialogoAdendo(),
     );
     if (r == null || !mounted) return;
-    final erro = prontuarioRepository.adicionarAdendo(Adendo(
-      id: prontuarioRepository.novoId(),
-      evolucaoId: e.id,
-      pacienteId: _paciente.id,
-      profissionalId: _usuario.id,
-      justificativa: r.justificativa,
-      texto: r.texto,
-      dataHora: DateTime.now(),
-    ));
-    if (erro != null) {
-      _aviso(erro);
-      return;
-    }
-    _log('registrou_adendo', 'atendimento', e.atendimentoId);
+    _mostrarErro(await cubit.adicionarAdendo(e, r.justificativa, r.texto));
   }
 
   // ---------- visual ----------
 
   String _dataHora(DateTime d) => '${formatarData(d)} ${formatarHora(d)}';
 
-  Widget _linhaEvolucao(Evolucao e, bool atendimentoEncerrado) {
+  Widget _linhaEvolucao(EvolucaoComAdendos item, bool atendimentoEncerrado) {
     final tema = Theme.of(context);
-    final adendos = prontuarioRepository.adendosDaEvolucao(e.id);
+    final e = item.evolucao;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
@@ -248,7 +199,7 @@ class _AbaProntuarioState extends State<AbaProntuario> {
                   TextButton(onPressed: () => _adendo(e), child: const Text('Adicionar adendo')),
               ],
             ),
-          for (final a in adendos)
+          for (final a in item.adendos)
             Container(
               margin: const EdgeInsets.only(left: 16, top: 6),
               padding: const EdgeInsets.all(10),
@@ -272,8 +223,8 @@ class _AbaProntuarioState extends State<AbaProntuario> {
     );
   }
 
-  Widget _cartaoAtendimento(Atendimento a) {
-    final evolucoes = prontuarioRepository.evolucoesDoAtendimento(a.id);
+  Widget _cartaoAtendimento(AtendimentoDetalhe d) {
+    final a = d.atendimento;
     final fim = a.fim == null ? '' : ' – ${formatarHora(a.fim!)}';
     return Card(
       child: ExpansionTile(
@@ -300,15 +251,15 @@ class _AbaProntuarioState extends State<AbaProntuario> {
                 ),
               ],
             ),
-          if (evolucoes.isEmpty)
+          if (d.evolucoes.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
               child: Text('Nenhuma evolução neste atendimento.'),
             )
           else
-            for (final e in evolucoes) ...[
+            for (final item in d.evolucoes) ...[
               const Divider(),
-              _linhaEvolucao(e, a.encerrado),
+              _linhaEvolucao(item, a.encerrado),
             ],
           if (a.encerrado && (a.observacoesEncerramento ?? '').isNotEmpty) ...[
             const Divider(),
@@ -319,56 +270,72 @@ class _AbaProntuarioState extends State<AbaProntuario> {
     );
   }
 
+  Widget _cabecalho(bool temAtivo) {
+    final tema = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Atendimentos', style: tema.textTheme.titleLarge),
+            const SizedBox(height: 4),
+            Text(
+              'Você vê apenas os atendimentos registrados por você. '
+              'Evolução assinada não pode ser alterada: use adendo (RN05).',
+              style: tema.textTheme.bodySmall,
+            ),
+            if (_podeEditar) ...[
+              const SizedBox(height: 12),
+              if (!temAtivo)
+                FilledButton.icon(
+                  onPressed: _iniciar,
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text('Iniciar atendimento'),
+                )
+              else
+                const Text('Há um atendimento em aberto abaixo.'),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final tema = Theme.of(context);
-    return ListenableBuilder(
-      listenable: Listenable.merge([prontuarioRepository, agenda]),
-      builder: (context, _) {
-        final atendimentos =
-            prontuarioRepository.atendimentosDoPaciente(_paciente.id, profissionalId: _usuario.id);
-        final ativo = prontuarioRepository.atendimentoAtivo(_paciente.id, _usuario.id);
-
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Atendimentos', style: tema.textTheme.titleLarge),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Você vê apenas os atendimentos registrados por você. '
-                      'Evolução assinada não pode ser alterada: use adendo (RN05).',
-                      style: tema.textTheme.bodySmall,
-                    ),
-                    if (_podeEditar) ...[
-                      const SizedBox(height: 12),
-                      if (ativo == null)
-                        FilledButton.icon(
-                          onPressed: _iniciar,
-                          icon: const Icon(Icons.play_arrow),
-                          label: const Text('Iniciar atendimento'),
-                        )
-                      else
-                        const Text('Há um atendimento em aberto abaixo.'),
-                    ],
-                  ],
+    return BlocBuilder<AtendimentosCubit, AtendimentosState>(
+      builder: (context, state) => switch (state) {
+        AtendimentosInitial() || AtendimentosLoading() =>
+          const Center(child: CircularProgressIndicator()),
+        AtendimentosError(:final mensagem) => Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
+                const SizedBox(height: 12),
+                Text(mensagem),
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: () => _cubit.carregar(),
+                  child: const Text('Tentar de novo'),
                 ),
-              ),
+              ],
             ),
-            if (atendimentos.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(child: Text('Nenhum atendimento registrado.')),
-              )
-            else
-              for (final a in atendimentos) _cartaoAtendimento(a),
-          ],
-        );
+          ),
+        AtendimentosSuccess(:final atendimentos, :final temAtivo) => ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              _cabecalho(temAtivo),
+              if (atendimentos.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: Text('Nenhum atendimento registrado.')),
+                )
+              else
+                for (final d in atendimentos) _cartaoAtendimento(d),
+            ],
+          ),
       },
     );
   }

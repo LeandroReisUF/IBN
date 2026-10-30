@@ -227,5 +227,13 @@ void main() {
       expect(cubit.novoId(), isNotEmpty);
       await cubit.close();
     });
+        test('salaOcupadaAgora delega ao serviço (encostar não conta)', () async {
+      servico.criar(odonto('a1')); // Sala 3, 09:00–09:30
+      final cubit = AgendamentoCubit(servico: servico, usuario: admin);
+      expect(cubit.salaOcupadaAgora(3, _h(9, 10)), isTrue);
+      expect(cubit.salaOcupadaAgora(3, _h(9, 30)), isFalse);
+      expect(cubit.salaOcupadaAgora(4, _h(9, 10)), isFalse);
+      await cubit.close();
+    });
   });
 }

@@ -8,6 +8,7 @@ import 'package:ibn/core/politica_acesso_service.dart';
 import 'package:ibn/features/prontuario/presentation/pages/aba_prontuario.dart';
 import 'package:ibn/features/odontograma/presentation/pages/aba_odontograma.dart';
 import 'package:ibn/features/ortodontia/presentation/pages/aba_ortodontia.dart';
+import 'package:ibn/features/hof/presentation/pages/aba_hof.dart';
 
 /// Prontuário de um paciente, com abas conforme o perfil logado (RF03.2).
 class TelaProntuarioPaciente extends StatefulWidget {
@@ -57,8 +58,7 @@ class _TelaProntuarioPacienteState extends State<TelaProntuarioPaciente> {
         AbaOdontograma(paciente: paciente),
         AbaOrtodontia(paciente: paciente),
         AbaProntuario(paciente: paciente),
-        const _EmBreve('Ficha de Harmonização Orofacial (próxima etapa)'),
-        const _EmBreve('Solicitação e upload de exames (próxima etapa)'),
+        AbaHof(paciente: paciente),        const _EmBreve('Solicitação e upload de exames (próxima etapa)'),
         const _EmBreve('Prescrições, atestados e termos (próxima etapa)'),
       ] else
         _EmBreve('O prontuário de ${usuario.perfil.rotulo} será construído na Sprint 2.'),

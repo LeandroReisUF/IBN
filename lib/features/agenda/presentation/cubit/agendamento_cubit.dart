@@ -68,6 +68,8 @@ class AgendamentoCubit extends Cubit<AgendamentoState> {
   /// Id para um agendamento novo (o formulário não precisa conhecer o serviço).
   String novoId() => _servico.novoId();
 
+  bool salaOcupadaAgora(int sala, DateTime agora) =>
+      _servico.salaOcupadaAgora(sala, agora);
   @override
   Future<void> close() {
     _servico.removeListener(_aoMudarServico);
