@@ -15,6 +15,7 @@
 lib/
 ├── core/                         compartilhado: especialidade · formadores · log_acesso ·
 │                                 politica_acesso_service · procedimento
+│                                 lote_aplicado · selecao_arquivo
 ├── assets/odontograma/           dentes_vestibular.json (o pubspec aponta para ele)
 ├── features/
 │   ├── auth/
@@ -40,6 +41,15 @@ lib/
 │   ├── ortodontia/
 │   │   ├── domain/               ortodontia            (modelos + repositório juntos, separar ao criar o Cubit)
 │   │   └── presentation/         pages/ (aba_ortodontia) · widgets/ (aba_ortodontia_{ficha,arcos,fotos,manutencoes})
+│   ├── hof/
+│   │   ├── domain/               hof ·  
+│   │   ├── data/                 hof_repository ·
+│   │   └── presentation/         cubit/ (hof_cubit, hof_state) · pages/ (aba_hof)
+│   ├── exames/
+│   │   ├── domain/               exames ·  
+│   │   ├── data/                 exames_repository ·
+│   │   └── presentation/         cubit/ (exames_cubit, exames_state) · pages/ (aba_exames)
+
 │   └── home/
 │       └── presentation/         modulos · pages/ (tela_principal, painel_inicial, tela_modulo_em_construcao)
 └── main.dart
@@ -72,6 +82,8 @@ _quarentena/                      *.dart.old (HOF, exames, documentos, anamnese)
 | Odontograma | ✅ | ⬜ | — |
 | Ortodontia | ✅ | ⬜ | — |
 | Home / Painel | ✅ | ✅ (reusa `AgendamentoCubit`) | — |
+| HOF | ✅ | ✅ | ✅ |
+| Exames | ✅ | ✅ | ✅ |
 
 Ordem sugerida das próximas migrações de estado: **Painel → Odontograma → Ortodontia → Auth**.
 Novas features (HOF, Exames, Documentos, Anamnese) **já nascem** em `features/<nome>/{domain,data,presentation}` com Cubit.

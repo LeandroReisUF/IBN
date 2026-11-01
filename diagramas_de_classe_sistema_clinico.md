@@ -727,7 +727,7 @@ Observações:
 | `Prontuario`, `Atendimento`, `Evolucao`, `Adendo` | ⬜ |
 | `ModeloAnamnese`, `Anamnese`, `PerguntaAnamnese`, `RespostaAnamnese` | ⬜ |
 | `DocumentoClinico` (`Prescricao`, `Atestado`, `TCLE`), `ModeloDocumento` | ⬜ |
-| `Exame`, `ArquivoClinico` | ⬜ |
+| `Exame`, `ArquivoClinico` | ✅ |
 | `Paciente.ativo`, `profissionaisVinculados`, `copiarCom` | ✅ Novos (não estavam no diagrama original) |
 
 ---
@@ -908,7 +908,7 @@ Observações:
 | `RegistroDente` (dente, face, situação, procedimento, data) | ✅ (procedimento por ID; `profissionalId` é novo) |
 | `Odontograma` (agregador) | 🟡 Substituído pelo `OdontogramaRepository` |
 | `PlanoTratamento`, `ItemPlano`, `Orcamento`, `Encaminhamento`, `GuiaProcedimentoExecutante`, `OrcamentoVisibilidadeService` (RN04) | ⬜ |
-| `FichaHOF`, `ProcedimentoHOF`, `PontoAplicacao`, `FotoComparativa`, `TipoHOF` | ⬜ Próxima etapa |
+| `FichaHOF`, `ProcedimentoHOF`, `PontoAplicacao`, `FotoComparativa`, `TipoHOF` | 🟡 (implementados como ProcedimentoHOF, PontoAplicacao, FotoComparativaHOF e LoteAplicado; sem FichaHOF agregadora e sem mapeamento gráfico do rosto) |
 | Dentição decídua (infantil) | ⬜ |
 
 ---
@@ -1402,6 +1402,8 @@ Pasta `lib/` do projeto:
 | `core/formadores.dart` | Formatação, validação de CPF, datas e horas, `MascaraFormatter` | 5 |
 | `core/especialidade.dart` | `Especialidade` (enum) | 3 |
 | `core/procedimento.dart` | `Procedimento` e catálogo provisório | 3 |
+| `core/lote_aplicado.dart
+| `core/selecao_arquivo.dart
 | `features/agenda/domain/sala.dart` | `Sala` e as 4 salas (RN01) | 4 |
 | `features/agenda/domain/agendamento.dart` | `Agendamento`, `StatusAgendamento` | 4 |
 | `features/agenda/data/agenda_service.dart` | `AgendaService`, instância `agenda` (conflitos RN01/RN02) | 4 |
@@ -1411,6 +1413,7 @@ Pasta `lib/` do projeto:
 | `features/odontograma/data/desenhos_dentes.dart` | `DesenhosDentes`, `DesenhoDente` (carrega os desenhos do JSON) | 6 |
 | `core/log_acesso.dart` | `LogAcesso`, `LogAcessoService`, instância `logsAcesso` | 2 |
 | `features/auth/presentation/tela_login.dart` | Login (RF01.1) | 2 |
+| `features/hof/** (domain hof.dart, data hof_repository.dart, cubit, aba_hof.dart)` | Constrói a aba de harmonização facial.
 | `features/home/presentation/pages/tela_principal.dart` | Menu adaptável, conta/sair | 2 |
 | `features/home/presentation/pages/painel_inicial.dart` | Painel com resumo do dia e salas (dados reais da agenda) | 1 |
 | `features/home/presentation/pages/tela_modulo_em_construcao.dart` | Tela provisória dos módulos sem implementação | — |
@@ -1431,11 +1434,16 @@ Pasta `lib/` do projeto:
 | `features/odontograma/presentation/widgets/caixa_dente.dart` | `CaixaDente` e `faceNoPonto`: caixa dividida e toque por face | 6 |
 | `tool/gerar_dentes_json.dart` | Gera `dentes_vestibular.json` a partir dos SVGs | 6 |
 | `features/agenda/presentation/cubit/agendamento_cubit.dart` · `agendamento_state.dart` | `AgendamentoCubit` (Initial/Loading/Success/Error) | 4 |
+| `features/exames/**` | `Exames`  |  |
+| `test/exames_test.dart` | `Teste de Exames`  |  |
+| `test/exames_cubit_test.dart` | `Tesde do Cubit de Exames`  |  |
 | `test/agendamento_cubit_test.dart` | Testes do Cubit (`bloc_test`) | 4 |
 | `test/agenda_service_test.dart` | Testes de conflito de agenda | 4 |
 | `test/odontograma_test.dart` | Testes do odontograma e do acesso ao prontuário | 6 |
 | `test/anatomia_dente_test.dart` | Testes da numeração FDI e do espelhamento | 6 |
 | `test/caixa_dente_test.dart` | Testes do toque por face (quadrada e redonda) | 6 |
+| `test/hof_test.dart` |
+| `test/hof_cubit_test.dart` |
 
 ### Contas de teste (REMOVER antes de uso real)
 

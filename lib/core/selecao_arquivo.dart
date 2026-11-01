@@ -31,3 +31,23 @@ Future<ResultadoSelecao?> escolherImagem({int limiteBytes = limiteImagemBytes}) 
   }
   return ResultadoSelecao.ok(ArquivoSelecionado(arquivo.name, bytes));
 }
+
+/// Extensões de arquivos clínicos aceitas (exames, laudos).
+const extensoesClinicas = ['jpg', 'jpeg', 'png', 'pdf'];
+
+/// Abre o seletor de JPG, PNG ou PDF. Devolve null se o usuário cancelou.
+Future<ResultadoSelecao?> escolherArquivoClinico({int limiteBytes = limiteImagemBytes}) async {
+  final r = await FilePicker.platform.pickFiles(
+    type: FileType.custom,
+    allowedExtensions: extensoesClinicas,
+    withData: true,
+  );
+  if (r == null || r.files.isEmpty) return null;
+  final arquivo = r.files.first;
+  final bytes = arquivo.bytes;
+  if (bytes == null) return const ResultadoSelecao.falha('Não foi possível ler o arquivo.');
+  if (bytes.length > limiteBytes) {
+    return const ResultadoSelecao.falha('O arquivo tem mais de 10 MB.');
+  }
+  return ResultadoSelecao.ok(ArquivoSelecionado(arquivo.name, bytes));
+}

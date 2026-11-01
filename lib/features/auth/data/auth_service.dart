@@ -13,8 +13,8 @@ class AuthService extends ChangeNotifier {
   final List<Usuario> contasTeste = const [
     Usuario(id: '1', nome: 'Ana Admin', email: 'admin@clinica.local', perfil: Perfil.administrador),
     Usuario(id: '2', nome: 'Rita Recepção', email: 'recepcao@clinica.local', perfil: Perfil.recepcionista),
-    Usuario(id: '3', nome: 'Dr. Davi', email: 'dentista@clinica.local', perfil: Perfil.dentista),
-    Usuario(id: '10', nome: 'Dra. Lúcia', email: 'dentista2@clinica.local', perfil: Perfil.dentista),
+    Usuario(id: '3', nome: 'Dr. Davi', email: 'dentista@clinica.local', perfil: Perfil.dentista, conselho: 'CRO-PE', registroConselho: '12345'),
+    Usuario(id: '10', nome: 'Dra. Lúcia', email: 'dentista2@clinica.local', perfil: Perfil.dentista, conselho: 'CRO-PE', registroConselho: '23456'),
     Usuario(id: '4', nome: 'Bia Biomédica', email: 'biomedico@clinica.local', perfil: Perfil.biomedico),
     Usuario(id: '5', nome: 'Dra. Marta', email: 'medico@clinica.local', perfil: Perfil.medico),
     Usuario(id: '6', nome: 'Enf. Eva', email: 'enfermeiro@clinica.local', perfil: Perfil.enfermeiro),

@@ -18,6 +18,8 @@ dependencies:
   file_picker: ^8.0.0
   path_provider: ^2.1.4
   flutter_bloc: ^9.1.1
+  pdf: ^3.13.1
+  printing: ^5.15.1
 
 dev_dependencies:
   flutter_test:
@@ -29,6 +31,8 @@ flutter:
   uses-material-design: true
 
   assets:
+    - lib/assets/fontes/Roboto-Regular.ttf
+    - lib/assets/fontes/Roboto-Bold.ttf
     - lib/assets/odontograma/dentes_vestibular.json
     - lib/assets/odontograma/11/
     - lib/assets/odontograma/12/

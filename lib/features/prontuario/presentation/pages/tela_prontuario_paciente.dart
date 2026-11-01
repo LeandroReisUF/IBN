@@ -5,7 +5,9 @@ import 'package:ibn/core/log_acesso.dart';
 import 'package:ibn/features/pacientes/domain/paciente.dart';
 import 'package:ibn/features/auth/domain/perfil.dart';
 import 'package:ibn/core/politica_acesso_service.dart';
+import 'package:ibn/features/documentos/presentation/pages/aba_documentos.dart';
 import 'package:ibn/features/prontuario/presentation/pages/aba_prontuario.dart';
+import 'package:ibn/features/exames/presentation/pages/aba_exames.dart';
 import 'package:ibn/features/odontograma/presentation/pages/aba_odontograma.dart';
 import 'package:ibn/features/ortodontia/presentation/pages/aba_ortodontia.dart';
 import 'package:ibn/features/hof/presentation/pages/aba_hof.dart';
@@ -58,8 +60,9 @@ class _TelaProntuarioPacienteState extends State<TelaProntuarioPaciente> {
         AbaOdontograma(paciente: paciente),
         AbaOrtodontia(paciente: paciente),
         AbaProntuario(paciente: paciente),
-        AbaHof(paciente: paciente),        const _EmBreve('Solicitação e upload de exames (próxima etapa)'),
-        const _EmBreve('Prescrições, atestados e termos (próxima etapa)'),
+        AbaHof(paciente: paciente),
+        AbaExames(paciente: paciente),
+        AbaDocumentos(paciente: paciente),
       ] else
         _EmBreve('O prontuário de ${usuario.perfil.rotulo} será construído na Sprint 2.'),
     ];

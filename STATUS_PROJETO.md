@@ -19,8 +19,8 @@
 | Odontologia — Anamnese | ⬜ em quarentena (`.dart.old`), Passo 6 |
 | Odontologia — Odontograma (RF04.1) | ✅ Fases A–E |
 | Odontologia — Ortodontia (extra, Fase F) | ✅ validado (analyze limpo, testes e roteiro manual) |
-| Odontologia — HOF (RF04.2) | 🔴 só aba "em breve" + arquivos quebrados |
-| Odontologia — Exames (RF04.3) | 🔴 idem |
+| Odontologia — HOF (RF04.2) | ✅ ("validado em 30/10/2026") |
+| Odontologia — Exames (RF04.3) | ✅ (validado em 31/10/2026) |
 | Odontologia — Prescrição/Atestados (RF04.4) | 🔴 idem |
 | Biomedicina inteira (RF05) | ⬜ não iniciada (está na Sprint 1 do PDF) |
 
@@ -138,6 +138,7 @@ Detalhes e estrutura real em `ARQUITETURA.md`.
 | Pacientes | ✅ | ✅ (validado em 29/10/2026) | 16 |
 | Prontuário (atendimentos) | ✅ | 🟡 entregue, validar | ~17 |
 | Auth, Odontograma, Ortodontia | ✅ | ⬜ | — |
+| Exames | ✅ | ✅ | testes do repositório e do Cubit |
 
 Migração para `features/` concluída em 28/10/2026 (analyze limpo e testes passando após remover 14 duplicatas deixadas nos caminhos antigos).
 

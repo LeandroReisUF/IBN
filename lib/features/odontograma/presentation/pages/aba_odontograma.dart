@@ -571,7 +571,7 @@ class _DenteWidget extends StatelessWidget {
 
     final marcasRaiz = <MarcaRaiz>[
       for (final r in marcacoes)
-        if (r.alvo == AlvoOdonto.raiz && r.raiz != null && raizes.indexOf(r.raiz!) >= 0)
+        if (r.alvo == AlvoOdonto.raiz && r.raiz != null && raizes.contains(r.raiz!))
           MarcaRaiz(
             indice: raizes.indexOf(r.raiz!),
             cor: Color(r.condicao.corArgb),
