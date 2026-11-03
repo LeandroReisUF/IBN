@@ -5,11 +5,13 @@ import 'package:ibn/core/log_acesso.dart';
 import 'package:ibn/features/pacientes/domain/paciente.dart';
 import 'package:ibn/features/auth/domain/perfil.dart';
 import 'package:ibn/core/politica_acesso_service.dart';
+import 'package:ibn/features/anamnese/presentation/pages/aba_anamnese.dart';
 import 'package:ibn/features/documentos/presentation/pages/aba_documentos.dart';
 import 'package:ibn/features/prontuario/presentation/pages/aba_prontuario.dart';
 import 'package:ibn/features/exames/presentation/pages/aba_exames.dart';
 import 'package:ibn/features/odontograma/presentation/pages/aba_odontograma.dart';
 import 'package:ibn/features/ortodontia/presentation/pages/aba_ortodontia.dart';
+import 'package:ibn/features/plano_tratamento/presentation/pages/aba_plano_tratamento.dart';
 import 'package:ibn/features/hof/presentation/pages/aba_hof.dart';
 
 /// Prontuário de um paciente, com abas conforme o perfil logado (RF03.2).
@@ -53,13 +55,15 @@ class _TelaProntuarioPacienteState extends State<TelaProntuarioPaciente> {
 
     final ehDentista = usuario.perfil == Perfil.dentista;
     final titulos = ehDentista
-        ? ['Odontograma', 'Ortodontia', 'Atendimentos', 'Harmonização (HOF)', 'Exames', 'Documentos']
+        ? ['Odontograma', 'Ortodontia', 'Atendimentos', 'Anamnese','Plano de Tratamento', 'Harmonização (HOF)', 'Exames', 'Documentos']
         : ['Prontuário'];
     final corpos = <Widget>[
       if (ehDentista) ...[
         AbaOdontograma(paciente: paciente),
         AbaOrtodontia(paciente: paciente),
         AbaProntuario(paciente: paciente),
+        AbaAnamnese(paciente: paciente),
+        AbaPlanoTratamento(paciente: paciente),
         AbaHof(paciente: paciente),
         AbaExames(paciente: paciente),
         AbaDocumentos(paciente: paciente),

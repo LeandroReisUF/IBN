@@ -73,7 +73,16 @@ class PoliticaAcessoService {
   /// Documentos clínicos: só dentistas vinculados ao paciente.
   bool podeEditarDocumentos(Usuario usuario, Paciente paciente) =>
       podeEditarOdontograma(usuario, paciente);
-  //
+  /// Anamnese: qualquer profissional de saúde vinculado ao paciente.
+  bool podeEditarAnamnese(Usuario usuario, Paciente paciente) =>
+      podeAcessarProntuario(usuario, paciente);
+    /// Plano de tratamento e orçamento: só dentistas vinculados ao paciente.
+  bool podePlanejarTratamento(Usuario usuario, Paciente paciente) =>
+      podeEditarOdontograma(usuario, paciente);
+  /// Executar um procedimento encaminhado (o encaminhamento vincula o dentista).
+  bool podeExecutarProcedimento(Usuario usuario, Paciente paciente) =>
+      podeEditarOdontograma(usuario, paciente);
+
   bool podeVerPaciente(Usuario usuario, Paciente paciente) =>
       podeVerListaGlobal(usuario) ||
       paciente.profissionaisVinculados.contains(usuario.id);
