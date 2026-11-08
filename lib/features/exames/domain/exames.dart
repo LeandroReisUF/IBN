@@ -133,10 +133,12 @@ const guiasExame = [
   GuiaModelo('Radiografia panorâmica', TipoExame.imagem, 'Arcadas superior e inferior.'),
   GuiaModelo('Tomografia computadorizada', TipoExame.imagem, 'Região a especificar.'),
   GuiaModelo('Hemograma completo (pré-operatório)', TipoExame.laboratorial, ''),
+  GuiaModelo('Hemograma completo', TipoExame.laboratorial, ''),
   GuiaModelo('Coagulograma (pré-operatório)', TipoExame.laboratorial, ''),
   GuiaModelo('Glicemia em jejum (pré-operatório)', TipoExame.laboratorial, ''),
+  GuiaModelo('TSH e T4 livre', TipoExame.laboratorial, ''),
+  GuiaModelo('Vitamina D (25-OH)', TipoExame.laboratorial, ''),
 ];
-
 /// Resultado laboratorial estruturado (usado pela Biomedicina, Passo 6).
 class ResultadoLab {
   final String analito;

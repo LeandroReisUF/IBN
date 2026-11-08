@@ -9,6 +9,7 @@ import 'package:ibn/features/exames/data/exames_repository.dart';
 import 'package:ibn/features/exames/domain/exames.dart';
 import 'package:ibn/features/exames/presentation/cubit/exames_cubit.dart';
 import 'package:ibn/features/exames/presentation/cubit/exames_state.dart';
+import 'package:ibn/features/exames/presentation/widgets/secao_resultados_lab.dart';
 import 'package:ibn/features/pacientes/domain/paciente.dart';
 import 'package:ibn/features/prontuario/data/prontuario_repository.dart';
 
@@ -268,6 +269,8 @@ class _ExamesViewState extends State<_ExamesView> {
               const Divider(),
               for (final a in arquivos) _linhaArquivo(e, a, substituidos.contains(a.id)),
             ],
+            if (e.tipo == TipoExame.laboratorial)
+              SecaoResultadosLab(exame: e, paciente: widget.paciente, podeEditar: _podeEditar),
             if (_podeEditar && !cancelado)
               Wrap(
                 spacing: 8,

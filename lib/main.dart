@@ -3,8 +3,11 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'features/auth/data/auth_service.dart';
 import 'features/auth/presentation/tela_login.dart';
 import 'package:ibn/features/home/presentation/pages/tela_principal.dart';
+import 'package:ibn/core/historico_clinico.dart';
+import 'package:ibn/features/pacientes/data/paciente_repository.dart';
 
 void main() {
+  registrarFontesDeHistorico(pacientes);
   runApp(const SistemaClinicoApp());
 }
 

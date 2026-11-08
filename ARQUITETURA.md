@@ -1,6 +1,6 @@
 # Arquitetura do projeto ibn (Sistema Clínico)
 
-**Atualizado:** 28/10/2026 · Flutter (Windows, Android, Web) · estado com **Cubit** (`flutter_bloc`)
+**Atualizado:** 03/11/2026 (fechamento da Sprint 1) · Flutter (Windows, Android, Web) · estado com **Cubit** (`flutter_bloc`)
 
 ## 1. Princípios
 
@@ -14,8 +14,8 @@
 ```
 lib/
 ├── core/                         compartilhado: especialidade · formadores · log_acesso ·
-│                                 politica_acesso_service · procedimento
-│                                 lote_aplicado · selecao_arquivo
+│                                 politica_acesso_service · procedimento · lote_aplicado ·
+│                                 selecao_arquivo · pdf_simples · widgets/dialogo_lote_aplicado
 ├── assets/odontograma/           dentes_vestibular.json (o pubspec aponta para ele)
 ├── features/
 │   ├── auth/
@@ -33,7 +33,7 @@ lib/
 │   ├── prontuario/
 │   │   ├── domain/               prontuario            (Atendimento, Evolução, Adendo)
 │   │   ├── data/                 prontuario_repository
-│   │   └── presentation/         cubit/ (atendimentos_cubit, atendimentos_state) · pages/ (tela_prontuario, tela_prontuario_paciente, aba_prontuario)
+│   │   └── presentation/         cubit/ (atendimentos_cubit, atendimentos_state) · pages/ (tela_prontuario, tela_prontuario_paciente, aba_prontuario) · abas_prontuario (registro das abas por perfil)
 │   ├── odontograma/
 │   │   ├── domain/               odontograma · condicao_odonto · anatomia_dente
 │   │   ├── data/                 odontograma_repository · desenhos_dentes
@@ -42,18 +42,32 @@ lib/
 │   │   ├── domain/               ortodontia            (modelos + repositório juntos, separar ao criar o Cubit)
 │   │   └── presentation/         pages/ (aba_ortodontia) · widgets/ (aba_ortodontia_{ficha,arcos,fotos,manutencoes})
 │   ├── hof/
-│   │   ├── domain/               hof ·  
-│   │   ├── data/                 hof_repository ·
+│   │   ├── domain/               hof
+│   │   ├── data/                 hof_repository
 │   │   └── presentation/         cubit/ (hof_cubit, hof_state) · pages/ (aba_hof)
 │   ├── exames/
-│   │   ├── domain/               exames ·  
-│   │   ├── data/                 exames_repository ·
-│   │   └── presentation/         cubit/ (exames_cubit, exames_state) · pages/ (aba_exames)
-
+│   │   ├── domain/               exames · resultado_exame
+│   │   ├── data/                 exames_repository · resultados_lab_repository
+│   │   └── presentation/         cubit/ (exames_cubit, exames_state, resultados_lab_cubit) · pages/ (aba_exames) · widgets/ (secao_resultados_lab)
+│   ├── documentos/
+│   │   ├── domain/               documentos
+│   │   ├── data/                 documentos_repository
+│   │   └── presentation/         cubit/ (documentos_cubit, documentos_state) · pages/ (aba_documentos)
+│   ├── anamnese/
+│   │   ├── domain/               anamnese
+│   │   ├── data/                 anamnese_repository
+│   │   └── presentation/         cubit/ (anamnese_cubit, anamnese_state) · pages/ (aba_anamnese) · widgets/ (formulario_anamnese)
+│   ├── plano_tratamento/
+│   │   ├── domain/               plano_tratamento · orcamento_visibilidade   (RN04: a guia do executante não tem campos de dinheiro)
+│   │   ├── data/                 plano_repository
+│   │   └── presentation/         cubit/ (plano_cubit, plano_state) · pages/ (aba_plano_tratamento)
+│   ├── biomedicina/
+│   │   ├── domain/               biomedicina
+│   │   ├── data/                 biomedicina_repository
+│   │   └── presentation/         cubit/ (biomedicina_cubit, biomedicina_state) · pages/ (aba_procedimentos_biomedicina)
 │   └── home/
 │       └── presentation/         modulos · pages/ (tela_principal, painel_inicial, tela_modulo_em_construcao)
 └── main.dart
-_quarentena/                      *.dart.old (HOF, exames, documentos, anamnese) — reescrever como features
 ```
 
 | Camada | O que entra | Pode depender de |
@@ -78,15 +92,19 @@ _quarentena/                      *.dart.old (HOF, exames, documentos, anamnese)
 | Auth / Login | ✅ | ⬜ | — |
 | Agenda | ✅ | ✅ | 13 |
 | Pacientes | ✅ | ✅ | 16 |
-| Prontuário (atendimentos) | ✅ | 🟡 entregue, validar (`PRONTUARIO_APLICAR.md`) | ~17 |
+| Prontuário (atendimentos) | ✅ | ✅ | ~17 |
 | Odontograma | ✅ | ⬜ | — |
 | Ortodontia | ✅ | ⬜ | — |
 | Home / Painel | ✅ | ✅ (reusa `AgendamentoCubit`) | — |
 | HOF | ✅ | ✅ | ✅ |
 | Exames | ✅ | ✅ | ✅ |
+| Documentos | ✅ | ✅ | ✅ |
+| Anamnese | ✅ | ✅ | ✅ |
+| Plano de tratamento | ✅ | ✅ | ✅ |
+| Biomedicina | ✅ | ✅ | ✅ |
 
-Ordem sugerida das próximas migrações de estado: **Painel → Odontograma → Ortodontia → Auth**.
-Novas features (HOF, Exames, Documentos, Anamnese) **já nascem** em `features/<nome>/{domain,data,presentation}` com Cubit.
+Ordem sugerida das próximas migrações de estado: **Odontograma → Ortodontia → Auth** (o Painel já usa o `AgendamentoCubit`).
+As features novas (HOF, Exames, Documentos, Anamnese, Plano de tratamento e Biomedicina) já nasceram em `features/<nome>/{domain,data,presentation}` com Cubit.
 
 ## 5. Pontos de atenção e lições
 
@@ -95,3 +113,12 @@ Novas features (HOF, Exames, Documentos, Anamnese) **já nascem** em `features/<
 - Disco C: cheio derruba o `flutter test` (erro 112): usar `$env:TEMP = "F:\temp"` se faltar espaço.
 - Imports relativos nos testes (`'../lib/...'`) geram bibliotecas duplicadas e testes que falham de forma enganosa.
 - `ortodontia.dart` mistura modelos e repositório; separar em `domain/` e `data/` quando fizer o Cubit da Ortodontia.
+- Dependências de PDF: `pdf` e `printing`, usadas só por `core/pdf_simples.dart` (gera o PDF e abre a pré-visualização/impressão, inclusive de PDFs anexados). A fonte Roboto em `lib/assets/fontes/` é opcional; sem ela o PDF usa Helvetica. O plugin `printing` baixa o PDFium na primeira compilação para Windows (precisa de internet).
+- `MultiPage` (pacote `pdf`) só quebra a página entre widgets: um texto muito longo precisa ser dividido em linhas, senão dá `PdfException: Widget won't fit into the page`.
+- `Usuario` ganhou `conselho` e `registroConselho` (opcionais) para os documentos; as contas de teste usam números fictícios.
+- Todo `.dart` novo copiado precisa do `import` na tela que o usa; sem ele o `analyze` acusa `undefined_method`.
+- **Abas do prontuário por perfil** ficam em `features/prontuario/presentation/abas_prontuario.dart` (`abasDoPerfil`). Para ligar uma aba nova, acrescente-a ali; `tela_prontuario_paciente.dart` não precisa mudar. Perfil sem abas = "em breve" (Sprint 2).
+- **Bloqueio extra no encerramento do atendimento:** `ProntuarioRepository.registrarBloqueioEncerramento`. Cada módulo registra o seu (hoje, `DocumentosRepository` bloqueia com rascunho de documento pendente) sem que o prontuário dependa dele.
+- **RN04 pela forma dos dados:** `GuiaProcedimentoExecutante` não tem nenhum campo de dinheiro, e o `PlanoCubit` de quem só executa carrega zero planos. Os testes varrem a guia atrás de valor, desconto, total, pagamento e "R$". Valores são guardados em **centavos inteiros**.
+- **Visibilidade da Anamnese:** o profissional vê as suas (rascunhos inclusive) e as **assinadas** de colegas da mesma especialidade do modelo; rascunhos de colegas e o modelo geral não são compartilhados.
+- **Pendência conhecida (antes do servidor):** `PacienteRepository.temHistorico` só conhece vínculos e atendimentos; precisa consultar todos os módulos (anamnese, plano, exames, documentos etc.), senão um paciente com dados e sem vínculo poderia ser excluído pelo Administrador.

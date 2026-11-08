@@ -24,7 +24,15 @@ const int _idadeDeciduosAutomatico = 13;
 /// Odontograma interativo (RF04.1): desenho, número e caixa dividida de cada dente.
 class AbaOdontograma extends StatefulWidget {
   final Paciente paciente;
-  const AbaOdontograma({super.key, required this.paciente});
+
+  /// Quando informada, os registros são lidos e gravados sob esta chave no lugar
+  /// do id do paciente (usado pelo odontograma desejado de um plano).
+  final String? chaveRegistros;
+
+  /// Aviso mostrado no topo (opcional).
+  final String? aviso;
+
+  const AbaOdontograma({super.key, required this.paciente, this.chaveRegistros, this.aviso});
 
   @override
   State<AbaOdontograma> createState() => _AbaOdontogramaState();
@@ -54,8 +62,22 @@ class _AbaOdontogramaState extends State<AbaOdontograma> {
     CategoriaCondicao.ortodontia,
   ];
 
-  Paciente get _paciente => widget.paciente;
-
+  /// Com [chaveRegistros], todo `_paciente.id` do arquivo vira essa chave; as
+  /// permissões (vínculos) continuam as do paciente real.
+  Paciente get _paciente {
+    final chave = widget.chaveRegistros;
+    if (chave == null) return widget.paciente;
+    final p = widget.paciente;
+    return Paciente(
+      id: chave,
+      nome: p.nome,
+      cpf: p.cpf,
+      dataNascimento: p.dataNascimento,
+      telefone: p.telefone,
+      termoLgpd: p.termoLgpd,
+      profissionaisVinculados: p.profissionaisVinculados,
+    );
+  }
   @override
   void initState() {
     super.initState();
@@ -89,8 +111,8 @@ class _AbaOdontogramaState extends State<AbaOdontograma> {
       usuarioId: usuarioId,
       acao: existente == null ? 'marcou_arcada_orto' : 'desmarcou_arcada_orto',
       entidade: 'paciente',
-      entidadeId: _paciente.id,
-    );
+      entidadeId: widget.paciente.id,
+          );
     _carregarMarcasArcada();
   }
 
@@ -175,8 +197,8 @@ class _AbaOdontogramaState extends State<AbaOdontograma> {
       usuarioId: registro.profissionalId,
       acao: registro.retificaId == null ? 'registrou_odontograma' : 'retificou_odontograma',
       entidade: 'paciente',
-      entidadeId: _paciente.id,
-    );
+      entidadeId: widget.paciente.id,
+          );
   }
 
   Future<void> _escolherData() async {
@@ -256,6 +278,14 @@ class _AbaOdontogramaState extends State<AbaOdontograma> {
           builder: (context, carregamento) => ListView(
             padding: const EdgeInsets.all(16),
             children: [
+                            if (widget.aviso != null)
+                Card(
+                  color: tema.colorScheme.secondaryContainer,
+                  child: ListTile(
+                    leading: const Icon(Icons.info_outline),
+                    title: Text(widget.aviso!),
+                  ),
+                ),
               if (carregamento.hasError)
                 Card(
                   color: tema.colorScheme.errorContainer,

@@ -1,6 +1,6 @@
 # Status do Projeto — ibn (Sistema Clínico)
 
-**Última atualização:** 28/10/2026 (Passos 1 e 2 validados; refatoração da Agenda em features/ + Cubit)
+**Última atualização:** 03/11/2026 (Sprint 1: todos os módulos clínicos validados; fechamento em andamento)
 **Stack:** Flutter (Windows, Android, Web) · Cubit (`flutter_bloc`) · dados em memória (sem servidor) · estrutura em `ARQUITETURA.md`
 **Legenda:** ✅ funciona · 🟡 parcial (existe, mas com falhas conhecidas) · 🔴 quebrado / não compila · ⬜ não iniciado
 
@@ -16,15 +16,16 @@
 | Infra/segurança base (BD, nuvem, RBAC) | 🟡 RBAC só no app; sem banco, sem servidor |
 | Cadastro de pacientes (RF03.1) | ✅ (faltam foto, endereço, versões do termo) |
 | Agenda multissala (RF02, RN01, RN02) | ✅ (revalidação no servidor pendente) |
-| Odontologia — Anamnese | ⬜ em quarentena (`.dart.old`), Passo 6 |
+| Anamnese configurável (RF03.3) | ✅ validado (modelos odontológico, estético e geral; assinadas compartilhadas por especialidade) |
 | Odontologia — Odontograma (RF04.1) | ✅ Fases A–E |
 | Odontologia — Ortodontia (extra, Fase F) | ✅ validado (analyze limpo, testes e roteiro manual) |
-| Odontologia — HOF (RF04.2) | ✅ ("validado em 30/10/2026") |
-| Odontologia — Exames (RF04.3) | ✅ (validado em 31/10/2026) |
-| Odontologia — Prescrição/Atestados (RF04.4) | 🔴 idem |
-| Biomedicina inteira (RF05) | ⬜ não iniciada (está na Sprint 1 do PDF) |
+| Odontologia — HOF (RF04.2) | ✅ validado em 30/10/2026 (lote e validade RN06, retificação RN05, fotos antes/depois) |
+| Odontologia — Exames (RF04.3) | ✅ validado em 31/10/2026 (solicitação, anexos JPG/PNG/PDF, substituição por retificação) |
+| Odontologia — Documentos: prescrição, atestado, TCLE e PDF (RF04.4) | ✅ validado em 31/10/2026 |
+| Odontologia — Plano de tratamento e orçamento com sigilo ao executante (RF04.5, **RN04**) | ✅ validado (guia sem valores; falta o odontograma de planejamento do plano) |
+| Biomedicina (RF05): anamnese estética, procedimentos com lote e validade (RN06), exames e resultados com alerta | ✅ validado |
 
-**Estimativa realista de conclusão da Sprint 1: ~60%** (o documento anterior dizia 90%). Falta HOF, exames, documentos, anamnese e Biomedicina.
+**Estimativa realista de conclusão da Sprint 1: ~95%.** Falta o fechamento (Passo 7): odontograma de planejamento dentro do plano, builds nas 3 plataformas e a revisão final de RN03/RN04/RN05/RN06 por perfil. Depois vem o **marco do servidor**.
 
 ---
 
@@ -74,7 +75,7 @@ Corrigido no Passo 1 e conferido por `flutter analyze` (0 erros), `flutter test`
 
 **Passo 2 (✅ validado em 28/10/2026):** `prontuario.dart`, `prontuario_repository.dart`, `aba_prontuario.dart` ("Atendimentos": iniciar → evoluir → assinar → encerrar; adendo, RN05), `prontuario_test.dart`. Analyze limpo, testes passando e roteiro manual completo. Decisão aplicada: dentista agenda retorno do próprio paciente (`podeAgendarRetorno`).
 
-**Ainda em quarentena / a reescrever:** HOF (Passo 3), Exames (4), Documentos (5), Anamnese (6).
+**Reescritos como features (todos validados):** HOF, Exames (com resultados laboratoriais), Documentos (com PDF), Anamnese, Plano de tratamento e Biomedicina. A pasta `_quarentena/` foi removida no Passo 7.
 
 Diagnóstico original dos arquivos quebrados (histórico):
 
@@ -107,8 +108,8 @@ colagens parciais. Padrão: arquivos longos "emendados" em pedaços.
 | CaixaDente | 10 |
 | DesenhoDente (faixaDaRaiz) | 4 |
 | Odontograma | 33 |
-| **Total declarado** | **75** (os arquivos de teste não foram reconferidos nesta revisão) |
-| Fase F, HOF, Exames, Documentos, Prontuário | 0 |
+| **Total declarado (28/10)** | **75** — desatualizado; use o resultado de `flutter test` |
+| Fase F, HOF, Exames, Documentos, Anamnese, Prontuário | cada módulo tem testes do repositório (e do Cubit, quando existe); o total atual sai de `flutter test` |
 
 ---
 
@@ -124,6 +125,15 @@ colagens parciais. Padrão: arquivos longos "emendados" em pedaços.
 - Contas de teste e senha `123456` · dados em memória · sem servidor/API/PostgreSQL
 - Licença da imagem raster dos dentes · validar siglas/cores com dentistas
 - Raízes dos 3º molares ajustáveis · formas próprias de decíduos
+- Contas de teste com **registro de conselho fictício** (`Usuario.conselho` e `registroConselho`): cadastrar os reais antes de emitir documentos de verdade
+- Validar com os profissionais os textos dos modelos de documento, as perguntas da anamnese e o receituário de controle especial (hoje só texto, sem o formulário oficial)
+- PDF (`pdf` e `printing`): validado no Windows; conferir Web e Android · fonte Roboto opcional em `lib/assets/fontes/`
+- ✅ O encerramento do atendimento passou a ser bloqueado enquanto houver rascunho de documento (Passo 7)
+- Anamnese: as **assinadas** são compartilhadas entre profissionais da mesma especialidade (decisão); rascunhos e o modelo geral ficam privados. Confirmar no servidor
+- `PacienteRepository.temHistorico` precisa consultar todos os módulos (anamnese, plano, exames, documentos, HOF, biomedicina), senão um paciente com dados e sem vínculo poderia ser excluído (RN05)
+- O Administrador respeita RN04 pela regra, mas ainda não tem tela para ver os valores dos planos (vem com o Financeiro, Sprint 2)
+- Resultado de exame fora do padrão **só alerta** (decisão): não bloqueia procedimento
+- Odontograma de planejamento dentro do plano de tratamento: estado desejado ao fim do tratamento (Passo 7)
 
 ---
 
@@ -136,10 +146,15 @@ Detalhes e estrutura real em `ARQUITETURA.md`.
 | Agenda | ✅ | ✅ | 13 |
 | Home / Painel | ✅ | ✅ (validado em 30/10/2026) | 1 |
 | Pacientes | ✅ | ✅ (validado em 29/10/2026) | 16 |
-| Prontuário (atendimentos) | ✅ | 🟡 entregue, validar | ~17 |
+| Prontuário (atendimentos) | ✅ | ✅ | ~17 |
 | Auth, Odontograma, Ortodontia | ✅ | ⬜ | — |
+| HOF | ✅ | ✅ | testes do repositório e do Cubit |
 | Exames | ✅ | ✅ | testes do repositório e do Cubit |
+| Documentos | ✅ | ✅ | testes do repositório, do Cubit e do PDF |
+| Anamnese | ✅ | ✅ | testes do repositório e do Cubit |
+| Plano de tratamento | ✅ | ✅ | testes do repositório, da RN04 e do Cubit |
+| Biomedicina | ✅ | ✅ | testes do repositório, dos resultados de exames e do Cubit |
 
 Migração para `features/` concluída em 28/10/2026 (analyze limpo e testes passando após remover 14 duplicatas deixadas nos caminhos antigos).
 
-Lições registradas: usar sempre `package:ibn/...` (inclusive nos testes); fechar as abas do editor antes de mover arquivos; disco C: cheio derruba o `flutter test` (usar `TEMP` em F:).
+Lições registradas: usar sempre `package:ibn/...` (inclusive nos testes); fechar as abas do editor antes de mover arquivos; disco C: cheio derruba o `flutter test` (usar `TEMP` em F:); o `MultiPage` do pacote `pdf` só quebra a página entre widgets (dividir o texto em linhas, como em `pdf_simples.dart`); arquivo novo copiado sem o `import` na tela que o usa dá `undefined_method`.

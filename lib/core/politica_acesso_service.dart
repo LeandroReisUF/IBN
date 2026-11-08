@@ -66,10 +66,13 @@ class PoliticaAcessoService {
   bool podeEditarHof(Usuario usuario, Paciente paciente) =>
       podeEditarOdontograma(usuario, paciente);
 
-    /// Exames: só dentistas vinculados ao paciente.
+   /// Exames: dentistas e biomédicos vinculados ao paciente.
   bool podeEditarExames(Usuario usuario, Paciente paciente) =>
-      podeEditarOdontograma(usuario, paciente);
-  
+      (usuario.perfil == Perfil.dentista || usuario.perfil == Perfil.biomedico) &&
+      podeVerPaciente(usuario, paciente);
+        /// Procedimentos estéticos (Biomedicina): só biomédicos vinculados ao paciente.
+  bool podeEditarProcedimentosEsteticos(Usuario usuario, Paciente paciente) =>
+      usuario.perfil == Perfil.biomedico && podeVerPaciente(usuario, paciente);
   /// Documentos clínicos: só dentistas vinculados ao paciente.
   bool podeEditarDocumentos(Usuario usuario, Paciente paciente) =>
       podeEditarOdontograma(usuario, paciente);

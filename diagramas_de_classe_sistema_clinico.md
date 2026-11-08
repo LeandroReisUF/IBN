@@ -7,7 +7,7 @@ Os diagramas usam **Mermaid** (`classDiagram`). Identificadores sem acento para 
 
 ---
 
-## Status do projeto — onde estamos (revisado contra o código em 27/10/2026)
+## Status do projeto — onde estamos (revisado contra o código em 03/11/2026)
 
 **Stack:** Flutter · VS Code · Windows (foco atual), Android e Web · Linux fica para depois.
 **Arquitetura:** Clean Architecture por features + Cubit (`flutter_bloc`); ver `ARQUITETURA.md`. Os caminhos da seção 13 já refletem as pastas novas.
@@ -16,18 +16,18 @@ Os diagramas usam **Mermaid** (`classDiagram`). Identificadores sem acento para 
 
 | Etapa | Entrega | Situação | O que falta |
 |---|---|---|---|
-| 1 | Tela principal: menu adaptável (lateral no PC/Web, gaveta no celular) e painel inicial | ✅ | Painel usa números fictícios |
+| 1 | Tela principal: menu adaptável (lateral no PC/Web, gaveta no celular) e painel inicial | ✅ | Painel alimentado pela agenda real (usa o `AgendamentoCubit`) |
 | 2 | Login e perfis de acesso (RF01.1) | 🟡 | Contas de teste; faltam senha com hash, 2FA e sessão persistente; `LogAcesso` já é gravado em memória (sem tela de consulta) |
 | 2 | Menu por perfil (RF01.2) | 🟡 | Regra provisória em `Modulo.perfis`; falta RBAC granular (`Permissao`) |
 | 3 | Cadastro de pacientes (RF03.1) | 🟡 | Faltam foto de perfil, endereço e histórico de versões do termo LGPD |
 | 3 | Privacidade por profissional (RN03) | 🟡 | Aplicada só no app (vínculo automático pela agenda já funciona); falta no servidor |
 | 3.1 | Inativar / excluir paciente e vincular a profissional (pessoa, não cargo) | ✅ | `temHistorico` é provisório até existirem agendamentos e prontuários |
 | 4 | Agenda e salas (RF02, RN01, RN02): dia/semana/mês, por sala e por profissional, status, conflitos, vínculo automático | ✅ | `EscalaSala`, `BloqueioAgenda` e revalidação no servidor |
-| 5 | **Prontuário (casca por perfil) e Odontograma interativo (RF04.1)** | 🟡 | Odontograma Fases A–D ✅ e E 🟡 (bug nas marcas de arcada). Ortodontia (Fase F) 🟡: ficha não salva/sem datas, fotos placeholder. **HOF, exames, documentos, anamnese e `Prontuario`/`Atendimento`: arquivos existentes estão corrompidos (não compilam); abas mostram "em breve"** |
+| 5 | **Prontuário por perfil, Odontograma (RF04.1), Ortodontia, HOF, Exames, Documentos e Anamnese** | 🟡 | Odontograma Fases A–E ✅ e Ortodontia (Fase F) ✅; `Atendimento`/`Evolucao`/`Adendo` ✅; HOF (RF04.2), Exames (RF04.3) e Documentos com PDF (RF04.4) ✅ validados em 30–31/10/2026; Anamnese (RF03.3), Plano de tratamento com sigilo ao executante (RN04) e Biomedicina (RF05) ✅ validados. Prontuário dos perfis das Salas 1 e 2: "em breve" (Sprint 2) |
 | — | Servidor (API REST), banco PostgreSQL, criptografia (RNF02) | ⬜ | Entra após as telas da Sprint 1 |
-| — | Odontologia: HOF, exames, documentos, anamnese | 🔴 | Reescrever (ver `PROXIMOS_PASSOS_SPRINT1.md`) |
-| — | Biomedicina (RF05) | ⬜ | Sprint 1 do PDF, não iniciada |
-| — | RN04 (sigilo orçamentário), RN05 (imutabilidade), RN06 (lote) | ⬜ | Dependem de Orçamento, Prontuário e Estoque |
+| — | Odontologia: HOF, exames, documentos, anamnese, plano de tratamento | ✅ | Validados (falta o odontograma de planejamento do plano, Passo 7) |
+| — | Biomedicina (RF05) | ✅ | Anamnese estética, procedimentos com lote e validade, exames e resultados com alerta |
+| — | RN04 (sigilo orçamentário), RN05 (imutabilidade), RN06 (lote) | 🟡 | ✅ no app: guia do executante sem valores (RN04), retificação/adendo (RN05), lote e validade em HOF e Biomedicina (RN06). Falta a baixa de estoque (Sprint 2) e repetir tudo no servidor |
 | — | Sprints 2 e 3 (multidisciplinar, estoque, financeiro, WhatsApp, BI) | ⬜ | — |
 
 ### Decisões de projeto já tomadas
@@ -54,8 +54,15 @@ Os diagramas usam **Mermaid** (`classDiagram`). Identificadores sem acento para 
 7. Revalidar os conflitos de agenda **no servidor** (RN01/RN02): dois computadores agendando ao mesmo tempo só são barrados com a validação central.
 8. Catálogo de procedimentos, salas e as especialidades de cada perfil estão em constantes (`procedimento.dart`, `sala.dart`, `perfil.dart`); migrar para cadastro/servidor.
 9. Odontograma: legenda de cores configurável e vínculo dos registros com `Atendimento` (decíduos já feitos).
-10. Arquivos `features/prontuario/domain/prontuario.dart`, `documentos.dart`, `exames.dart`, `hof.dart` e as `aba_*` correspondentes estão incompletos/corrompidos; reescrever um a um.
-11. `marcasArcadaAtivas` não ignora o registro original retificado (desmarcar não persiste).
+10. ✅ Os arquivos corrompidos de HOF, exames, documentos e anamnese foram reescritos como features (30–31/10/2026); os `.dart.old` em `_quarentena/` saem no Passo 7.
+11. ✅ `marcasArcadaAtivas` já ignora o registro retificado (corrigido no Passo 1 da Ortodontia).
+12. Contas de teste com registro de conselho **fictício** (`Usuario.conselho`/`registroConselho`): cadastrar os reais antes de emitir documentos.
+13. Textos dos modelos de documento, perguntas da anamnese e receituário de controle especial: validar com os profissionais.
+14. ✅ O encerramento do atendimento é bloqueado enquanto houver rascunho de documento (Passo 7).
+15. Anamnese: as assinadas são compartilhadas entre profissionais da mesma especialidade; rascunhos e o modelo geral ficam privados. Confirmar no servidor.
+16. `PacienteRepository.temHistorico` precisa consultar todos os módulos (anamnese, plano, exames, documentos, HOF, biomedicina), senão um paciente com dados e sem vínculo poderia ser excluído (RN05).
+17. O Administrador respeita RN04 pela regra, mas ainda não tem tela para ver os valores dos planos (Financeiro, Sprint 2).
+18. Odontograma de planejamento dentro do plano de tratamento (estado desejado ao fim do tratamento): Passo 7.
 
 ### Roteiro proposto (próximos passos)
 
@@ -63,15 +70,15 @@ Tamanho relativo: **P** pequeno · **M** médio · **G** grande. A ordem leva em
 
 | # | Entrega | Tam. | Depende de | Observação |
 |---|---|---|---|---|
-| 1 | **Odontograma, Fase B:** catálogo de condições (sigla e cor), menu ao tocar no dente, "Adicionar evolução", retificação, visões Atual/Planejado/Realizado | G | Fase A ✅ | Muda o modelo de dados do odontograma |
-| 2 | Odontograma, Fases C e D: raízes e dentes decíduos | M | #1 | Raízes usam a divisão horizontal da silhueta |
-| 3 | **Prontuário base:** `Prontuario`, `Atendimento`, `Evolucao`, `Adendo`, encerramento do atendimento (RN05) e Anamnese configurável | G | #1 | Tudo o que vem depois (HOF, exames, documentos) se prende ao `Atendimento` |
-| 4 | Harmonização Orofacial: ficha, pontos de aplicação, lote, fotos antes/depois | G | #3 | Alimenta o controle de lote (RN06) |
-| 5 | Exames: solicitação e upload (JPG/PNG/PDF); foto de perfil do paciente | M | #3 | Precisa de pacote de seleção de arquivo (Windows, Android e Web) |
-| 6 | Documentos: prescrição, atestados e TCLE com modelos e PDF | G | #3 | Pacotes de PDF e impressão |
-| 7 | Ortodontia, Fases E e F | M + G | #1 | Fase F inclui novos procedimentos na agenda |
-| 8 | **Biomedicina (RF05):** anamnese estética, ficha de procedimentos, laudos em PDF | G | #3, #5 | Reaproveita anamnese, exames e lote |
-| 9 | Plano de tratamento e orçamento com sigilo para o executante (RN04) | G | #3 | Parte do valor financeiro entra na Sprint 2 |
+| 1 | **Odontograma, Fase B:** catálogo de condições (sigla e cor), menu ao tocar no dente, "Adicionar evolução", retificação, visões Atual/Planejado/Realizado | G | Fase A ✅ | Muda o modelo de dados do odontograma — ✅ feito |
+| 2 | Odontograma, Fases C e D: raízes e dentes decíduos | M | #1 | Raízes usam a divisão horizontal da silhueta — ✅ feito |
+| 3 | **Prontuário base:** `Prontuario`, `Atendimento`, `Evolucao`, `Adendo`, encerramento do atendimento (RN05) e Anamnese configurável | G | #1 | Tudo o que vem depois (HOF, exames, documentos) se prende ao `Atendimento` (✅ prontuário base; 🟡 anamnese a validar) |
+| 4 | Harmonização Orofacial: ficha, pontos de aplicação, lote, fotos antes/depois | G | #3 | Alimenta o controle de lote (RN06) — ✅ feito (30/10/2026) |
+| 5 | Exames: solicitação e upload (JPG/PNG/PDF); foto de perfil do paciente | M | #3 | Precisa de pacote de seleção de arquivo (Windows, Android e Web) — ✅ feito (31/10/2026); foto de perfil do paciente segue pendente |
+| 6 | Documentos: prescrição, atestados e TCLE com modelos e PDF | G | #3 | Pacotes de PDF e impressão — ✅ feito (`pdf` e `printing`, 31/10/2026) |
+| 7 | Ortodontia, Fases E e F | M + G | #1 | Fase F inclui novos procedimentos na agenda — ✅ feito |
+| 8 | **Biomedicina (RF05):** anamnese estética, ficha de procedimentos, laudos em PDF | G | #3, #5 | Reaproveita anamnese, exames e lote — ✅ feito |
+| 9 | Plano de tratamento e orçamento com sigilo para o executante (RN04) | G | #3 | Parte do valor financeiro entra na Sprint 2 — ✅ feito (odontograma do plano: Passo 7) |
 | 10 | **Marco do servidor:** API REST, banco PostgreSQL, senha com hash, 2FA, `LogAcesso` no servidor, regras RN03/RN04/RN05 e conflitos de agenda aplicados no servidor | G | fim da Sprint 1 | Antes da Sprint 2 (dados financeiros e sensíveis) |
 
 Sprints 2 (multidisciplinar, estoque, financeiro) e 3 (WhatsApp, marketing, BI) seguem o documento de requisitos.
@@ -221,6 +228,9 @@ classDiagram
         +String nome
         +String email
         +Perfil perfil
+        +String conselho
+        +String registroConselho
+        +registroFormatado() String
     }
     class AuthService {
         <<service>>
@@ -254,6 +264,10 @@ classDiagram
         +statusPermitidos(usuario, agendamento) List~StatusAgendamento~
         +podeAcessarProntuario(usuario, paciente) Boolean
         +podeEditarOdontograma(usuario, paciente) Boolean
+        +podeEditarHof(usuario, paciente) Boolean
+        +podeEditarExames(usuario, paciente) Boolean
+        +podeEditarDocumentos(usuario, paciente) Boolean
+        +podeEditarAnamnese(usuario, paciente) Boolean
     }
     class LogAcesso {
         +DateTime dataHora
@@ -285,7 +299,8 @@ classDiagram
 | `LogAcesso` | 🟡 `LogAcessoService` em memória, sem `ip` (registra abertura de prontuário e registros do odontograma); falta gravar no servidor e a tela de consulta |
 | `podeVerValores` (RN04), `podeAcessarSessaoPsicologia` | ⬜ Dependem de Orçamento e Psicologia |
 | `filtrarPacientes(usuario)` | 🟡 Recebe também a lista: `filtrarPacientes(usuario, todos)` |
-| Métodos `podeEditar/Inativar/Excluir/VincularProfissional`, `podeAgendar`, `podeVerAgendaGlobal`, `filtrarAgenda`, `statusPermitidos`, `podeAcessarProntuario`, `podeEditarOdontograma` | ✅ Novos (não estavam no diagrama original) |
+| Métodos `podeEditar/Inativar/Excluir/VincularProfissional`, `podeAgendar`, `podeVerAgendaGlobal`, `filtrarAgenda`, `statusPermitidos`, `podeAcessarProntuario`, `podeEditarOdontograma`, `podeAgendarRetorno`, `podeEditarHof`, `podeEditarExames`, `podeEditarDocumentos`, `podeEditarAnamnese` | ✅ Novos (não estavam no diagrama original) |
+| `Usuario.conselho`, `Usuario.registroConselho`, `registroFormatado` | ✅ Novos (opcionais; usados nos documentos) |
 | `Perfil.especialidades` | ✅ Novo: define o que cada perfil pode atender (usado na agenda) |
 
 ---
@@ -384,7 +399,7 @@ Observações:
 
 | Item do diagrama | Situação |
 |---|---|
-| `Profissional` (classe própria) com `registroConselho`, `conselho`, `corAgenda`, `percentualRepasse` | ⬜ |
+| `Profissional` (classe própria) com `registroConselho`, `conselho`, `corAgenda`, `percentualRepasse` | 🟡 `conselho` e `registroConselho` já existem em `Usuario` (opcionais); o resto ⬜ |
 | `Conselho` (enum) | ⬜ |
 | `Procedimento.valorBase`, `Procedimento.exigeLote` | ⬜ (entram com Financeiro e Estoque) |
 | `ProfissionalProcedimento` (comissão por profissional) | ⬜ |
@@ -724,10 +739,10 @@ Observações:
 |---|---|
 | `Paciente.fotoUrl`, `Paciente.endereco` | ⬜ |
 | `TermoLGPD`: `ipAceite`, `assinaturaUrl` e múltiplas versões (`1..*`) | ⬜ Hoje é um único aceite por paciente |
-| `Prontuario`, `Atendimento`, `Evolucao`, `Adendo` | ⬜ |
-| `ModeloAnamnese`, `Anamnese`, `PerguntaAnamnese`, `RespostaAnamnese` | ⬜ |
-| `DocumentoClinico` (`Prescricao`, `Atestado`, `TCLE`), `ModeloDocumento` | ⬜ |
-| `Exame`, `ArquivoClinico` | ✅ |
+| `Prontuario`, `Atendimento`, `Evolucao`, `Adendo` | ✅ `Atendimento`, `Evolucao`, `Adendo` (sem a classe `Prontuario`: o `ProntuarioRepository` faz esse papel) |
+| `ModeloAnamnese`, `Anamnese`, `PerguntaAnamnese`, `RespostaAnamnese` | ✅ `ModeloAnamnese`, `PerguntaAnamnese` e `Anamnese` (respostas em `Map<perguntaId, String>`, sem classe `RespostaAnamnese`; guarda cópia das perguntas e versões por `anteriorId`; assinadas compartilhadas por especialidade) |
+| `DocumentoClinico` (`Prescricao`, `Atestado`, `TCLE`), `ModeloDocumento` | ✅ `DocumentoClinico` e `ModeloDocumento` (o tipo é o enum `TipoDocumento`, sem subclasses; modelos versionados; PDF por `pdf_simples`) |
+| `Exame`, `ArquivoClinico` | ✅ (status solicitado → realizado → resultado disponível; arquivos só de inclusão, substituição por retificação; `ResultadoLab` pronto para a Biomedicina) |
 | `Paciente.ativo`, `profissionaisVinculados`, `copiarCom` | ✅ Novos (não estavam no diagrama original) |
 
 ---
@@ -899,7 +914,7 @@ Observações:
 - Cada dente é desenhado com 5 faces em cruz. A face vestibular fica sempre para fora da boca (em cima nos superiores, embaixo nos inferiores); mesial é o lado voltado para a linha média.
 - **Só inclusão:** não existe editar nem excluir. O estado atual é o último registro de cada dente/face; o histórico completo fica visível (rastreabilidade, espírito da RN05). Para reverter um dente ausente, registra-se "Existente" no dente inteiro.
 - Acesso: só `Perfil.DENTISTA` vinculado ao paciente edita (`podeEditarOdontograma`). Cada registro e cada abertura de prontuário geram `LogAcesso`.
-- Telas: `Prontuário` (lista de pacientes vinculados) → `TelaProntuarioPaciente` (abas por perfil; dentista: Odontograma, HOF, Exames, Documentos) → `AbaOdontograma`.
+- Telas: `Prontuário` (lista de pacientes vinculados) → `TelaProntuarioPaciente` (abas por perfil; dentista: Odontograma, Ortodontia, Atendimentos, Anamnese, HOF, Exames, Documentos) → `AbaOdontograma`.
 - Testes: `test/odontograma_test.dart`.
 - **Fase A do refinamento (✅):** desenho 2D de cada dente (SVGs do repositório, carregados por `CustomPainter` a partir de um JSON gerado por `tool/gerar_dentes_json.dart`) e caixa dividida em 5 setores (quadrada ou redonda). Classes de apoio: `AnatomiaDente`, `DesenhosDentes`, `DenteDesenho`, `CaixaDente`. Plano completo em `melhorias_odontograma.md`.
 
@@ -907,13 +922,13 @@ Observações:
 |---|---|
 | `RegistroDente` (dente, face, situação, procedimento, data) | ✅ (procedimento por ID; `profissionalId` é novo) |
 | `Odontograma` (agregador) | 🟡 Substituído pelo `OdontogramaRepository` |
-| `PlanoTratamento`, `ItemPlano`, `Orcamento`, `Encaminhamento`, `GuiaProcedimentoExecutante`, `OrcamentoVisibilidadeService` (RN04) | ⬜ |
+| `PlanoTratamento`, `ItemPlano`, `Orcamento`, `Encaminhamento`, `GuiaProcedimentoExecutante`, `OrcamentoVisibilidadeService` (RN04) | ✅ (o `Encaminhamento` é o próprio `ItemPlano` com status e `executanteId`; valores em centavos; a guia não tem campos de dinheiro) |
 | `FichaHOF`, `ProcedimentoHOF`, `PontoAplicacao`, `FotoComparativa`, `TipoHOF` | 🟡 (implementados como ProcedimentoHOF, PontoAplicacao, FotoComparativaHOF e LoteAplicado; sem FichaHOF agregadora e sem mapeamento gráfico do rosto) |
-| Dentição decídua (infantil) | ⬜ |
+| Dentição decídua (infantil) | ✅ (Fase D: 51–85, reaproveitando os desenhos dos permanentes) |
 
 ---
 
-## 7. Biomedicina — Sala 4 (RF05) — ⬜ pendente
+## 7. Biomedicina — Sala 4 (RF05) — ✅ feito (Sprint 1)
 
 ```mermaid
 classDiagram
@@ -970,6 +985,8 @@ classDiagram
 ```
 
 `foraDoPadrao()` = `valor < referenciaMin OR valor > referenciaMax` → sinalização visual (alerta).
+
+**Implementação atual ✅:** `ProcedimentoEstetico` (protocolo, região, parâmetros e `LoteAplicado` com lote e validade obrigatórios; só inclusão com retificação/anulação), `BiomedicinaRepository`, `BiomedicinaCubit` e a aba "Procedimentos". Resultados de exames: `ResultadoExame` (envolve `ResultadoLab`) com `ResultadosLabRepository` e `ResultadosLabCubit`; o resultado fora do padrão **só alerta** (não bloqueia o procedimento). A anamnese estética é um `ModeloAnamnese` (fototipo Fitzpatrick I a VI). Ficam de fora: `LaudoLaboratorial` como classe própria (o laudo é o PDF anexado ao exame) e a baixa de estoque (Sprint 2).
 
 ---
 
@@ -1353,10 +1370,10 @@ classDiagram
 1. ⬜ Criar `EntidadeBase`, banco e migrações.
 2. 🟡 Implementar diagrama **2** (Usuario, Perfil, Permissao, Sessao, LogAcesso, `PoliticaAcessoService`). Testar RN03/RN04 antes de seguir.
 3. 🟡 Implementar diagrama **3** (Profissional, Especialidade, Procedimento).
-4. 🟡 Implementar diagrama **5** parcial: Paciente, ResponsavelLegal, TermoLGPD, Prontuario, Atendimento, Evolucao, Adendo, Anamnese.
+4. ✅ Implementar diagrama **5** parcial: Paciente, ResponsavelLegal, TermoLGPD, Atendimento, Evolucao, Adendo e Anamnese.
 5. ✅ Implementar diagrama **4** (Sala, Agendamento, `AgendaService`). Escrever testes automáticos de conflito (mesma sala, mesmo profissional, sala exclusiva).
-6. 🟡 (em andamento: odontograma pronto) Implementar diagrama **6** (Odontologia) e **7** (Biomedicina).
-7. ⬜ Implementar DocumentoClinico, ModeloDocumento, Exame e ArquivoClinico (diagrama **5**).
+6. ✅ Implementar diagrama **6** (Odontologia, exceto o odontograma de planejamento do plano) e **7** (Biomedicina).
+7. ✅ Implementar DocumentoClinico, ModeloDocumento, Exame e ArquivoClinico (diagrama **5**).
 
 **Sprint 2 — Multidisciplinar, Estoque, Financeiro**
 8. ⬜ Diagrama **8** (SOAP, Nutrição, Psicologia com criptografia, Fisioterapia).
@@ -1369,17 +1386,17 @@ classDiagram
 
 **Notas sobre o andamento:**
 - Passo 2: login, perfis e `PoliticaAcessoService` existem (seção 2); faltam hash de senha, 2FA, `Sessao`, `LogAcesso` e as permissões granulares.
-- Passo 3: `Especialidade` e `Procedimento` existem (seção 3); o profissional ainda é um `Usuario`; faltam `Conselho`, `registroConselho` e comissões.
+- Passo 3: `Especialidade` e `Procedimento` existem (seção 3); o profissional ainda é um `Usuario` (que já tem `conselho` e `registroConselho` opcionais); faltam o enum `Conselho` e as comissões.
 - Passo 5: agenda pronta, com testes automáticos de conflito (seção 4).
-- Passo 6: odontograma interativo pronto (seção 6); faltam HOF, plano de tratamento/orçamento (RN04) e Biomedicina.
-- Passo 4: `Paciente`, `ResponsavelLegal` e `TermoLGPD` prontos (seção 5); faltam `Prontuario`, `Atendimento`, `Evolucao`, `Adendo` e `Anamnese`.
+- Passo 6: odontograma, ortodontia, HOF, plano de tratamento/orçamento (RN04) e Biomedicina prontos; falta o odontograma de planejamento do plano.
+- Passo 4: `Paciente`, `ResponsavelLegal`, `TermoLGPD`, `Atendimento`, `Evolucao`, `Adendo`, `Exame`, `ArquivoClinico`, `DocumentoClinico` e `ModeloDocumento` prontos (seção 5); e `Anamnese` prontos.
 - Passo 1: sem banco nem migrações; os dados vivem em memória.
 
 ### Checklist de validação final
 - [ ] Nenhuma tela de profissional lista pacientes sem vínculo (RN03). *🟡 feito no app; falta aplicar no servidor.*
-- [ ] Executante nunca recebe valores (RN04).
-- [ ] Registros assinados não podem ser editados/excluídos (RN05).
-- [ ] Baixa de insumo controlado exige lote e validade (RN06).
+- [x] Executante nunca recebe valores (RN04). *✅ no app: guia sem campos de dinheiro e testes; falta repetir na API.*
+- [x] Registros assinados não podem ser editados/excluídos (RN05). *✅ no app; falta o servidor.*
+- [x] Baixa de insumo controlado exige lote e validade (RN06). *✅ em HOF e Biomedicina; a baixa de estoque é Sprint 2.*
 - [ ] Todo acesso a prontuário gera `LogAcesso` (RNF03). *🟡 gravado em memória no app; falta o servidor e uma tela de consulta.*
 - [ ] Telas carregam em menos de 2 s (RNF01).
 
@@ -1393,7 +1410,7 @@ Pasta `lib/` do projeto:
 |---|---|---|
 | `main.dart` | `SistemaClinicoApp`; troca login/tela principal conforme `auth.logado` | 12 |
 | `features/auth/domain/perfil.dart` | `Perfil` (enum), `veClinicaInteira`, `especialidades` | 2 |
-| `features/auth/domain/usuario.dart` | `Usuario` | 2 |
+| `features/auth/domain/usuario.dart` | `Usuario` (com `conselho` e `registroConselho`) | 2 |
 | `features/auth/data/auth_service.dart` | `AuthService`, instância global `auth`, contas de teste | 2 |
 | `features/home/presentation/modulos.dart` | `Modulo` e a lista de módulos do menu por perfil | 2 |
 | `core/politica_acesso_service.dart` | `PoliticaAcessoService`, instância `politicaAcesso` | 2 |
@@ -1402,8 +1419,9 @@ Pasta `lib/` do projeto:
 | `core/formadores.dart` | Formatação, validação de CPF, datas e horas, `MascaraFormatter` | 5 |
 | `core/especialidade.dart` | `Especialidade` (enum) | 3 |
 | `core/procedimento.dart` | `Procedimento` e catálogo provisório | 3 |
-| `core/lote_aplicado.dart
-| `core/selecao_arquivo.dart
+| `core/lote_aplicado.dart` | `LoteAplicado`, `UnidadeInsumo` (lote, validade e quantidade; RN06) | 6 |
+| `core/selecao_arquivo.dart` | `escolherImagem`, `escolherArquivoClinico` (`file_picker`, bytes em memória) | 6 |
+| `core/pdf_simples.dart` | `gerarPdfSimples` e `imprimirPdf` (pacotes `pdf` e `printing`) | 5 |
 | `features/agenda/domain/sala.dart` | `Sala` e as 4 salas (RN01) | 4 |
 | `features/agenda/domain/agendamento.dart` | `Agendamento`, `StatusAgendamento` | 4 |
 | `features/agenda/data/agenda_service.dart` | `AgendaService`, instância `agenda` (conflitos RN01/RN02) | 4 |
@@ -1413,7 +1431,7 @@ Pasta `lib/` do projeto:
 | `features/odontograma/data/desenhos_dentes.dart` | `DesenhosDentes`, `DesenhoDente` (carrega os desenhos do JSON) | 6 |
 | `core/log_acesso.dart` | `LogAcesso`, `LogAcessoService`, instância `logsAcesso` | 2 |
 | `features/auth/presentation/tela_login.dart` | Login (RF01.1) | 2 |
-| `features/hof/** (domain hof.dart, data hof_repository.dart, cubit, aba_hof.dart)` | Constrói a aba de harmonização facial.
+| `features/hof/domain/hof.dart` · `data/hof_repository.dart` · `presentation/cubit/hof_cubit.dart` · `hof_state.dart` · `presentation/pages/aba_hof.dart` | HOF: `ProcedimentoHOF`, `PontoAplicacao`, `FotoComparativaHOF`, `HofRepository`, `HofCubit` e a aba | 6 |
 | `features/home/presentation/pages/tela_principal.dart` | Menu adaptável, conta/sair | 2 |
 | `features/home/presentation/pages/painel_inicial.dart` | Painel com resumo do dia e salas (dados reais da agenda) | 1 |
 | `features/home/presentation/pages/tela_modulo_em_construcao.dart` | Tela provisória dos módulos sem implementação | — |
@@ -1429,25 +1447,34 @@ Pasta `lib/` do projeto:
 | `features/odontograma/presentation/pages/menu_condicoes.dart`, `dialogo_evolucao.dart` | Menu de condições e evolução/retificação | 6 |
 | `features/ortodontia/presentation/{pages,widgets}/aba_ortodontia*.dart` | Ortodontia (🟡: não salva, sem datas) | 6 |
 | `features/prontuario/domain/prontuario.dart` · `prontuario_repository.dart` · `features/prontuario/presentation/pages/aba_prontuario.dart` | ✅ Atendimento, Evolução, Adendo (RN05) | 5 |
-| `core/documentos.dart`, `exames.dart`, `hof.dart` e `aba_{anamnese,exames,hof,documentos}*.dart` | em quarentena (`.dart.old`); serão reescritos como features | 5/6 |
+| `_quarentena/*.dart.old` | tentativas antigas de HOF, exames, documentos e anamnese; já reescritas como features, remover no Passo 7 | — |
 | `features/odontograma/presentation/widgets/desenho_dente.dart` | `DenteDesenho`: desenho 2D do dente | 6 |
 | `features/odontograma/presentation/widgets/caixa_dente.dart` | `CaixaDente` e `faceNoPonto`: caixa dividida e toque por face | 6 |
 | `tool/gerar_dentes_json.dart` | Gera `dentes_vestibular.json` a partir dos SVGs | 6 |
 | `features/agenda/presentation/cubit/agendamento_cubit.dart` · `agendamento_state.dart` | `AgendamentoCubit` (Initial/Loading/Success/Error) | 4 |
-| `features/exames/**` | `Exames`  |  |
-| `test/exames_test.dart` | `Teste de Exames`  |  |
-| `test/exames_cubit_test.dart` | `Tesde do Cubit de Exames`  |  |
+| `features/exames/domain/exames.dart` · `data/exames_repository.dart` · `presentation/cubit/exames_cubit.dart` · `exames_state.dart` · `presentation/pages/aba_exames.dart` | Exames: `Exame`, `ArquivoClinico`, `ResultadoLab`, `ExamesRepository`, `ExamesCubit` e a aba | 5 |
+| `features/documentos/domain/documentos.dart` · `data/documentos_repository.dart` · `presentation/cubit/documentos_cubit.dart` · `documentos_state.dart` · `presentation/pages/aba_documentos.dart` | Documentos: `ModeloDocumento`, `DocumentoClinico`, `DocumentosRepository`, `DocumentosCubit` e a aba (PDF) | 5 |
+| `features/anamnese/domain/anamnese.dart` · `data/anamnese_repository.dart` · `presentation/cubit/anamnese_cubit.dart` · `anamnese_state.dart` · `presentation/pages/aba_anamnese.dart` · `presentation/widgets/formulario_anamnese.dart` | Anamnese: `ModeloAnamnese`, `PerguntaAnamnese`, `Anamnese`, repositório, Cubit, aba e formulário dinâmico | 5 |
+| `test/exames_test.dart` · `test/exames_cubit_test.dart` | Testes de Exames (repositório, domínio e Cubit) | 5 |
+| `test/documentos_test.dart` · `test/documentos_cubit_test.dart` | Testes de Documentos (variáveis, repositório, PDF e Cubit) | 5 |
+| `test/anamnese_test.dart` · `test/anamnese_cubit_test.dart` | Testes de Anamnese (validação, repositório, Cubit e compartilhamento por especialidade) | 5 |
+| `features/plano_tratamento/domain/plano_tratamento.dart` · `orcamento_visibilidade.dart` · `data/plano_repository.dart` · `presentation/cubit/plano_cubit.dart` · `plano_state.dart` · `presentation/pages/aba_plano_tratamento.dart` | Plano de tratamento: `PlanoTratamento`, `ItemPlano`, `Orcamento`, `GuiaProcedimentoExecutante`, `OrcamentoVisibilidadeService`, repositório, Cubit e aba | 6 |
+| `features/biomedicina/domain/biomedicina.dart` · `data/biomedicina_repository.dart` · `presentation/cubit/biomedicina_cubit.dart` · `biomedicina_state.dart` · `presentation/pages/aba_procedimentos_biomedicina.dart` | Biomedicina: `ProcedimentoEstetico`, repositório, Cubit e aba "Procedimentos" | 7 |
+| `features/exames/domain/resultado_exame.dart` · `data/resultados_lab_repository.dart` · `presentation/cubit/resultados_lab_cubit.dart` · `presentation/widgets/secao_resultados_lab.dart` | Resultados laboratoriais com alerta de valor fora do padrão | 7 |
+| `core/widgets/dialogo_lote_aplicado.dart` | `DialogoLoteAplicado` (produto, lote e validade; usado por HOF e Biomedicina) | 6/7 |
+| `features/prontuario/presentation/abas_prontuario.dart` | `abasDoPerfil`: registro das abas do prontuário por perfil | 5 |
+| `test/plano_test.dart` · `test/plano_cubit_test.dart` | Testes do plano (centavos, itens, encaminhamento, RN04: guia sem dinheiro) | 6 |
+| `test/biomedicina_test.dart` · `test/biomedicina_cubit_test.dart` · `test/resultados_lab_test.dart` · `test/abas_prontuario_test.dart` | Testes da Biomedicina, dos resultados de exames e das abas por perfil | 7 |
 | `test/agendamento_cubit_test.dart` | Testes do Cubit (`bloc_test`) | 4 |
 | `test/agenda_service_test.dart` | Testes de conflito de agenda | 4 |
 | `test/odontograma_test.dart` | Testes do odontograma e do acesso ao prontuário | 6 |
 | `test/anatomia_dente_test.dart` | Testes da numeração FDI e do espelhamento | 6 |
 | `test/caixa_dente_test.dart` | Testes do toque por face (quadrada e redonda) | 6 |
-| `test/hof_test.dart` |
-| `test/hof_cubit_test.dart` |
+| `test/hof_test.dart` · `test/hof_cubit_test.dart` | Testes de HOF (RN05/RN06, repositório e Cubit) | 6 |
 
 ### Contas de teste (REMOVER antes de uso real)
 
-Senha de todas: `123456`.
+Senha de todas: `123456`. Dr. Davi e Dra. Lúcia têm registro de conselho **fictício** (CRO-PE 12345 e 23456), só para testar documentos.
 
 | Perfil | E-mail | ID |
 |---|---|---|

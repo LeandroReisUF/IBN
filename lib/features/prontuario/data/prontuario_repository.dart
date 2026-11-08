@@ -16,6 +16,14 @@ class ProntuarioRepository extends ChangeNotifier {
   final List<Adendo> _adendos = [];
   int _contador = 0;
 
+  /// Bloqueios extras ao encerrar um atendimento (ex.: rascunho de documento).
+  /// Cada módulo registra o seu; a função devolve a mensagem de erro, ou null
+  /// se pode encerrar.
+  final List<String? Function(String atendimentoId)> _bloqueiosEncerramento = [];
+
+  void registrarBloqueioEncerramento(String? Function(String atendimentoId) bloqueio) {
+    _bloqueiosEncerramento.add(bloqueio);
+  }
   String novoId() {
     _contador++;
     return 'pr${DateTime.now().microsecondsSinceEpoch}$_contador';
@@ -104,6 +112,10 @@ class ProntuarioRepository extends ChangeNotifier {
     final pendentes = evolucoesDoAtendimento(id).where((e) => !e.assinada).length;
     if (pendentes > 0) {
       return 'Assine ou descarte os rascunhos antes de encerrar ($pendentes pendente(s)).';
+    }
+    for (final bloqueio in _bloqueiosEncerramento) {
+      final motivo = bloqueio(id);
+    if (motivo != null) return motivo;
     }
     final obs = (observacoes ?? '').trim();
     _atendimentos[i] = a.copiarCom(

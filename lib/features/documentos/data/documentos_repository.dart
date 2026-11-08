@@ -17,10 +17,10 @@ class DocumentosRepository extends ChangeNotifier {
   DocumentosRepository({
     required ProntuarioRepository prontuario,
     List<ModeloDocumento> modelosIniciais = modelosPadrao,
-  }) : _prontuario = prontuario {
+    }) : _prontuario = prontuario {
     _modelos.addAll(modelosIniciais);
+    _prontuario.registrarBloqueioEncerramento(_rascunhosPendentes);
   }
-
   final ProntuarioRepository _prontuario;
   final List<ModeloDocumento> _modelos = []; // todas as versões
   final List<DocumentoClinico> _documentos = [];
@@ -36,7 +36,13 @@ class DocumentosRepository extends ChangeNotifier {
     final h = Object.hashAll('$autor|${quando.toIso8601String()}|$texto'.codeUnits);
     return h.toUnsigned(32).toRadixString(16).padLeft(8, '0');
   }
-
+  /// Impede encerrar o atendimento com rascunho de documento pendente.
+  String? _rascunhosPendentes(String atendimentoId) {
+    final n = _documentos.where((d) => d.atendimentoId == atendimentoId && !d.assinado).length;
+    return n == 0
+        ? null
+        : 'Assine ou descarte os rascunhos de documento antes de encerrar ($n pendente(s)).';
+  }
   // ---------- modelos ----------
 
   /// Última versão de cada modelo, na ordem em que foram criados.

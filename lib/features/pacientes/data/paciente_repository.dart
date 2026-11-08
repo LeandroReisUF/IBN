@@ -55,7 +55,13 @@ class PacienteRepository extends ChangeNotifier {
   ];
 
   List<Paciente> get todos => List.unmodifiable(_lista);
+  /// Fontes extras de histórico (uma por módulo clínico), registradas em `main()`
+  /// por `registrarFontesDeHistorico`. Cada uma recebe o id do paciente.
+  final List<bool Function(String pacienteId)> _fontesHistorico = [];
 
+  void registrarFonteHistorico(bool Function(String pacienteId) fonte) {
+    _fontesHistorico.add(fonte);
+  }
   bool cpfJaCadastrado(String cpfDigitos, {String? ignorarId}) =>
       _lista.any((p) => p.cpf == cpfDigitos && p.id != ignorarId);
 
@@ -68,11 +74,13 @@ class PacienteRepository extends ChangeNotifier {
     return null;
   }
 
-  /// Tem histórico = tem profissional vinculado OU algum atendimento registrado.
-  /// (Quando existirem lançamentos financeiros e exames, entram aqui também.)
+
+  /// Tem histórico = tem profissional vinculado, atendimento ou registro em
+  /// qualquer módulo clínico (anamnese, plano, exames, documentos, HOF etc.).
   bool temHistorico(Paciente paciente) =>
       paciente.profissionaisVinculados.isNotEmpty ||
-      prontuarioRepository.temHistorico(paciente.id);
+      prontuarioRepository.temHistorico(paciente.id) ||
+      _fontesHistorico.any((fonte) => fonte(paciente.id));
   /// Inativar / reativar: o cadastro e o histórico continuam guardados.
   void definirAtivo(String id, bool ativo) {
     final i = _lista.indexWhere((p) => p.id == id);

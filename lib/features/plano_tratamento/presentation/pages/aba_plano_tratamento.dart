@@ -13,6 +13,9 @@ import 'package:ibn/features/plano_tratamento/domain/orcamento_visibilidade.dart
 import 'package:ibn/features/plano_tratamento/domain/plano_tratamento.dart';
 import 'package:ibn/features/plano_tratamento/presentation/cubit/plano_cubit.dart';
 import 'package:ibn/features/plano_tratamento/presentation/cubit/plano_state.dart';
+import 'package:ibn/features/odontograma/data/odontograma_repository.dart';
+import 'package:ibn/features/odontograma/presentation/pages/aba_odontograma.dart';
+import 'package:ibn/features/plano_tratamento/domain/odontograma_do_plano.dart';
 
 /// Plano de tratamento e orçamento (RF04.5, RN04). Esta classe só **fornece** o Cubit.
 class AbaPlanoTratamento extends StatelessWidget {
@@ -193,7 +196,48 @@ class _PlanoViewState extends State<_PlanoView> {
             ),
     );
   }
+  void _abrirOdontogramaDoPlano(PlanoTratamento plano) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          appBar: AppBar(title: Text('Odontograma desejado • ${plano.titulo}')),
+          body: AbaOdontograma(
+            paciente: widget.paciente,
+            chaveRegistros: chaveOdontogramaDoPlano(plano.id),
+            aviso: 'Este odontograma mostra como se deseja que a boca fique ao fim do '
+                'tratamento. Ele não altera o odontograma clínico do paciente.',
+          ),
+        ),
+      ),
+    );
+  }
 
+  Widget _odontogramaDoPlano(PlanoTratamento plano) {
+    final chave = chaveOdontogramaDoPlano(plano.id);
+    return ListenableBuilder(
+      listenable: odontogramas,
+      builder: (context, _) {
+        final n = odontogramas.estadoAtual(chave).length;
+        return Row(
+          children: [
+            Expanded(
+              child: Text(
+                n == 0
+                    ? 'Odontograma desejado: ainda não preenchido.'
+                    : 'Odontograma desejado: $n marcação(ões).',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ),
+            OutlinedButton.icon(
+              onPressed: () => _abrirOdontogramaDoPlano(plano),
+              icon: const Icon(Icons.grid_view_outlined),
+              label: Text(n == 0 ? 'Definir' : 'Ver / editar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
   Widget _cartaoPlano(PlanoTratamento plano) {
     final tema = Theme.of(context);
     // RN04: só o criador e o Administrador veem valores; este cartão só é
@@ -234,6 +278,8 @@ class _PlanoViewState extends State<_PlanoView> {
             style: tema.textTheme.bodyMedium,
           ),
           const SizedBox(height: 8),
+          const SizedBox(height: 8),
+          _odontogramaDoPlano(plano),
           Wrap(
             spacing: 8,
             children: [

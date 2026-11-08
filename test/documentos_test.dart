@@ -212,6 +212,22 @@ void main() {
       c.docs.assinarDocumento('d1', '3');
       expect(chamadas, 2);
     });
+        test('o atendimento não encerra com rascunho de documento pendente', () {
+      final c = montar();
+      c.docs.adicionarDocumento(doc());
+      expect(c.pr.encerrarAtendimento('a1', '3'), contains('rascunhos de documento'));
+      expect(c.pr.atendimentoPorId('a1')!.encerrado, isFalse);
+      c.docs.assinarDocumento('d1', '3');
+      expect(c.pr.encerrarAtendimento('a1', '3'), isNull);
+    });
+
+    test('descartar o rascunho também libera o encerramento', () {
+      final c = montar();
+      c.docs.adicionarDocumento(doc());
+      expect(c.pr.encerrarAtendimento('a1', '3'), isNotNull);
+      c.docs.descartarRascunho('d1', '3');
+      expect(c.pr.encerrarAtendimento('a1', '3'), isNull);
+    });
   });
 
   group('Modelos', () {
