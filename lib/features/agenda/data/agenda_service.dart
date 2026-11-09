@@ -5,13 +5,16 @@ import 'package:ibn/core/procedimento.dart';
 import 'package:ibn/features/agenda/domain/agendamento.dart';
 import 'package:ibn/features/agenda/domain/sala.dart';
 import 'package:ibn/features/auth/data/auth_service.dart';
+import 'package:ibn/features/configuracoes/data/configuracao_repository.dart';
 
 /// Regras da agenda (RF02, RN01, RN02). Dados em memória (PROVISÓRIO).
 class AgendaService extends ChangeNotifier {
-  final List<Agendamento> _lista = [];
+    final List<Agendamento> _lista = [];
+  final ConfiguracaoRepository _config;
   int _contador = 0;
 
-  AgendaService({bool comExemplos = true}) {
+  AgendaService({bool comExemplos = true, ConfiguracaoRepository? configuracao})
+      : _config = configuracao ?? configuracaoClinica {
     if (comExemplos) _lista.addAll(_exemplos());
   }
 
@@ -59,19 +62,28 @@ class AgendaService extends ChangeNotifier {
     if (!ag.fim.isAfter(ag.inicio)) {
       return 'O horário final deve ser depois do inicial.';
     }
-    final proc = buscarProcedimento(ag.procedimentoId);
+        final proc = _config.procedimentoPorId(ag.procedimentoId);
     if (proc == null) return 'Procedimento não encontrado.';
+    if (!proc.ativo) return 'O procedimento "${proc.nome}" está desativado.';
 
     final prof = auth.buscarPorId(ag.profissionalId);
-    if (prof == null || !prof.perfil.especialidades.contains(proc.especialidade)) {
+    if (prof == null || !proc.aceitaAlgumaDe(prof.perfil.especialidades)) {
       final nome = prof == null ? 'O profissional' : prof.nome;
-      return '$nome não realiza ${proc.especialidade.rotulo}.';
+      return '$nome não realiza ${proc.rotuloAreas}.';
     }
 
-    final sala = buscarSala(ag.salaNumero);
+    final sala = _config.salaPorNumero(ag.salaNumero);
     if (sala == null) return 'Sala não encontrada.';
-    if (!sala.permiteEspecialidade(proc.especialidade)) {
-      return 'A ${sala.nome} não pode ser usada para ${proc.especialidade.rotulo} (RN01).';
+    if (!sala.ativa) return 'A ${sala.nome} está desativada.';
+    if (!proc.aceitaAlgumaDe(sala.especialidadesPermitidas)) {
+      return 'A ${sala.nome} não pode ser usada para ${proc.rotuloAreas} (RN01).';
+    }
+    
+    final bloqueio = _config.bloqueioNoPeriodo(ag.salaNumero, ag.inicio, ag.fim);
+    if (bloqueio != null) {
+      return 'A ${sala.nome} está bloqueada de ${formatarData(bloqueio.inicio)} '
+          '${formatarHora(bloqueio.inicio)} a ${formatarData(bloqueio.fim)} '
+          '${formatarHora(bloqueio.fim)}: ${bloqueio.motivo}.';
     }
 
     final cSala = _primeiroConflito((a) => a.salaNumero == ag.salaNumero, ag.inicio, ag.fim, ag.id);

@@ -8,6 +8,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ibn/features/agenda/presentation/cubit/agendamento_cubit.dart';
 import 'package:ibn/features/agenda/presentation/cubit/agendamento_state.dart';
 import 'package:ibn/features/agenda/domain/sala.dart';
+import 'package:ibn/core/politica_acesso_service.dart';
+import 'package:ibn/features/agenda/presentation/widgets/tags_agendamento.dart';
+import 'package:ibn/features/pacientes/data/paciente_repository.dart';
 
 /// Painel inicial, agora alimentado pela agenda real (em memória).
 class PainelInicial extends StatelessWidget {
@@ -86,6 +89,16 @@ class PainelInicial extends StatelessWidget {
             ),
           ],
         ),
+        const SizedBox(height: 32),
+        Text('Atendimentos de hoje', style: tema.textTheme.titleMedium),
+        const SizedBox(height: 4),
+        const LegendaTiposProfissional(),
+        const SizedBox(height: 8),
+        if (deHoje.isEmpty)
+          const Text('Nenhum atendimento hoje.')
+        else
+          for (final a in ([...deHoje]..sort((x, y) => x.inicio.compareTo(y.inicio))))
+            _LinhaHoje(agendamento: a),        
         if (perfil.veClinicaInteira) ...[
           const SizedBox(height: 32),
           Text('Salas físicas (agora)', style: tema.textTheme.titleMedium),
@@ -180,6 +193,50 @@ class _CartaoSala extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+  
+}
+class _LinhaHoje extends StatelessWidget {
+  final Agendamento agendamento;
+  const _LinhaHoje({required this.agendamento});
+
+  /// RN03: o nome só aparece se o usuário puder ver aquele paciente.
+  String _nome() {
+    final p = pacientes.buscarPorId(agendamento.pacienteId);
+    if (p == null) return 'Paciente removido';
+    return politicaAcesso.podeVerPaciente(auth.usuarioLogado!, p) ? p.nome : 'Paciente sem acesso';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final prof = auth.buscarPorId(agendamento.profissionalId);
+    final cor = prof == null ? tema.colorScheme.outline : corDoTipo(prof.perfil);
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(width: 6, color: cor),
+            Expanded(
+              child: ListTile(
+                leading: Text(formatarHora(agendamento.inicio), style: tema.textTheme.titleSmall),
+                title: Text(_nome()),
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: TagsAgendamento(agendamento: agendamento),
+                ),
+                trailing: Chip(
+                  visualDensity: VisualDensity.compact,
+                  label: Text(agendamento.status.rotulo),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

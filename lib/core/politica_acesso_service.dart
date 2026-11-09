@@ -21,7 +21,9 @@ class PoliticaAcessoService {
   /// Exclusão definitiva (só sem histórico): somente Administrador.
   bool podeExcluirPaciente(Usuario usuario) =>
       usuario.perfil == Perfil.administrador;
-
+  /// Configurações da clínica (salas, bloqueios, catálogo, cores): só Administrador.
+  bool podeGerenciarConfiguracoes(Usuario usuario) =>
+      usuario.perfil == Perfil.administrador;
   /// Vincular/desvincular profissionais de um paciente: Recepção e Admin.
   bool podeVincularProfissional(Usuario usuario) =>
       usuario.perfil.veClinicaInteira;

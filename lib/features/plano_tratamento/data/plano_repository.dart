@@ -53,6 +53,9 @@ class PlanoRepository extends ChangeNotifier {
 
   bool temHistorico(String pacienteId) => _planos.any((p) => p.pacienteId == pacienteId);
 
+  /// Algum plano usa este procedimento? (impede excluir do catálogo)
+  bool usaProcedimento(String procedimentoId) =>
+      _planos.any((p) => p.itens.any((i) => i.procedimentoId == procedimentoId));
   // ---------- plano ----------
 
   /// Devolve a mensagem de erro, ou null se criou.

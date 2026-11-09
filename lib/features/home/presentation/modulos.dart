@@ -63,6 +63,12 @@ final List<Modulo> modulos = [
     icone: Icons.chat_outlined,
     perfis: {Perfil.administrador, Perfil.recepcionista},
   ),
+    const Modulo(
+    id: 'configuracoes',
+    titulo: 'Configurações',
+    icone: Icons.settings_outlined,
+    perfis: {Perfil.administrador},
+  ),
   const Modulo(
     id: 'relatorios',
     titulo: 'Relatórios',

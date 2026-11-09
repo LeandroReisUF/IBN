@@ -1,4 +1,5 @@
 import 'package:ibn/core/especialidade.dart';
+import 'package:ibn/features/configuracoes/data/configuracao_repository.dart';
 
 /// Sala física da clínica (RN01).
 class Sala {
@@ -6,16 +7,32 @@ class Sala {
   final String nome;
   final bool exclusiva;
   final Set<Especialidade> especialidadesPermitidas;
+  final bool ativa;
 
   const Sala({
     required this.numero,
     required this.nome,
     required this.exclusiva,
     required this.especialidadesPermitidas,
+    this.ativa = true,
   });
 
   bool permiteEspecialidade(Especialidade e) =>
       especialidadesPermitidas.contains(e);
+
+  Sala copiarCom({
+    String? nome,
+    bool? exclusiva,
+    Set<Especialidade>? especialidadesPermitidas,
+    bool? ativa,
+  }) =>
+      Sala(
+        numero: numero,
+        nome: nome ?? this.nome,
+        exclusiva: exclusiva ?? this.exclusiva,
+        especialidadesPermitidas: especialidadesPermitidas ?? this.especialidadesPermitidas,
+        ativa: ativa ?? this.ativa,
+      );
 }
 
 const _revezamento = {
@@ -27,7 +44,7 @@ const _revezamento = {
 };
 
 /// RN01: salas 1 e 2 em revezamento; sala 3 só Odontologia; sala 4 só Biomedicina.
-const List<Sala> salas = [
+const List<Sala> salasPadrao = [
   Sala(numero: 1, nome: 'Sala 1', exclusiva: false, especialidadesPermitidas: _revezamento),
   Sala(numero: 2, nome: 'Sala 2', exclusiva: false, especialidadesPermitidas: _revezamento),
   Sala(
@@ -44,9 +61,7 @@ const List<Sala> salas = [
   ),
 ];
 
-Sala? buscarSala(int numero) {
-  for (final s in salas) {
-    if (s.numero == numero) return s;
-  }
-  return null;
-}
+/// Salas ativas (as que aceitam agendamento novo).
+List<Sala> get salas => configuracaoClinica.salasAtivas;
+
+Sala? buscarSala(int numero) => configuracaoClinica.salaPorNumero(numero);

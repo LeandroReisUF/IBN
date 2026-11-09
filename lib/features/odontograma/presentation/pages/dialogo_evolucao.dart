@@ -49,9 +49,9 @@ class _DialogoEvolucaoState extends State<DialogoEvolucao> {
         multirradicular: _raizesDoDente.length > 1,
       );
 
-  List<Procedimento> get _procedimentosOdonto =>
-      procedimentos.where((p) => p.especialidade == Especialidade.odontologia).toList();
-
+    List<Procedimento> get _procedimentosOdonto =>
+      procedimentos.where((p) => p.especialidades.contains(Especialidade.odontologia)).toList();
+      
   @override
   void initState() {
     super.initState();

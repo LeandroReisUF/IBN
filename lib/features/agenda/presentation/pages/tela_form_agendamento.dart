@@ -11,6 +11,7 @@ import 'package:ibn/core/procedimento.dart';
 import 'package:ibn/features/agenda/domain/sala.dart';
 import 'package:ibn/features/auth/domain/usuario.dart';
 import 'package:ibn/core/politica_acesso_service.dart';
+import 'package:ibn/features/configuracoes/data/configuracao_repository.dart';
 
 
 /// Criar / editar agendamento (RF02.1) com validação de conflitos ao vivo.
@@ -63,11 +64,13 @@ class _TelaFormAgendamentoState extends State<TelaFormAgendamento> {
       .where((p) => !_restrito || p == auth.usuarioLogado!.perfil)
       .toList();
   /// Passo 2: só os procedimentos do tipo escolhido (lista curta).
-  List<Procedimento> get _procedimentosDoTipo {
+    List<Procedimento> get _procedimentosDoTipo {
     final t = _tipo;
     if (t == null) return const [];
-    return procedimentos
-        .where((p) => t.especialidades.contains(p.especialidade))
+    // O procedimento já escolhido continua na lista mesmo se foi desativado depois.
+    return configuracaoClinica.todosProcedimentos
+        .where((p) =>
+            (p.ativo || p.id == _procedimentoId) && p.aceitaAlgumaDe(t.especialidades))
         .toList();
   }
 
@@ -81,10 +84,15 @@ class _TelaFormAgendamentoState extends State<TelaFormAgendamento> {
   }
 
   /// Só aparecem salas que aceitam a especialidade (RN01).
-  List<Sala> get _salasAptas {
+    List<Sala> get _salasAptas {
     final p = _proc;
     if (p == null) return const [];
-    return salas.where((s) => s.permiteEspecialidade(p.especialidade)).toList();
+    // A sala já escolhida continua na lista mesmo se foi desativada depois.
+    return configuracaoClinica.todasAsSalas
+        .where((s) =>
+            (s.ativa || s.numero == _salaNumero) &&
+            p.aceitaAlgumaDe(s.especialidadesPermitidas))
+        .toList();
   }
 
   String _fmtHora(TimeOfDay t) =>
@@ -117,7 +125,7 @@ class _TelaFormAgendamentoState extends State<TelaFormAgendamento> {
       final proc = widget.procedimentoIdInicial == null
           ? null
           : buscarProcedimento(widget.procedimentoIdInicial!);
-      if (proc != null && (_tipo?.especialidades.contains(proc.especialidade) ?? false)) {
+      if (proc != null && _tipo != null && proc.aceitaAlgumaDe(_tipo!.especialidades)) {
         _procedimentoId = proc.id;
         _duracaoCtrl.text = proc.duracaoMinutos.toString();
         final aptas = _salasAptas;
@@ -370,7 +378,7 @@ class _TelaFormAgendamentoState extends State<TelaFormAgendamento> {
                               DropdownMenuItem(
                                 value: p.id,
                                 child: Text(multiEspecialidade
-                                    ? '${p.nome} (${p.especialidade.rotulo})'
+                                    ? '${p.nome} (${p.rotuloAreas})'
                                     : p.nome),
                               ),
                           ],
@@ -405,7 +413,6 @@ class _TelaFormAgendamentoState extends State<TelaFormAgendamento> {
                           decoration: _decoracao(
                             'Sala',
                             Icons.meeting_room_outlined,
-                            ajuda: 'Sala 3: Odontologia · Sala 4: Biomedicina',
                           ),
                           items: [
                             for (final s in salasAptas)

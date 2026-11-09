@@ -506,10 +506,10 @@ class _DialogoItemState extends State<_DialogoItem> {
     super.dispose();
   }
 
-  List<Procedimento> get _procedimentos => procedimentos
-      .where((p) => widget.usuario.perfil.especialidades.contains(p.especialidade))
+    List<Procedimento> get _procedimentos => procedimentos
+      .where((p) => p.aceitaAlgumaDe(widget.usuario.perfil.especialidades))
       .toList();
-
+      
   int? get _valor => lerCentavos(_valorCtrl.text);
   int get _desconto => _descCtrl.text.trim().isEmpty ? 0 : (lerCentavos(_descCtrl.text) ?? -1);
   int? get _dente => int.tryParse(_denteCtrl.text.trim());

@@ -30,7 +30,9 @@ class OdontogramaRepository extends ChangeNotifier {
         for (final r in _registros)
           if (r.pacienteId == pacienteId && r.retificaId != null) r.retificaId!,
       };
-
+  /// Algum registro usa este procedimento? (impede excluir do catálogo)
+  bool usaProcedimento(String procedimentoId) =>
+      _registros.any((r) => r.procedimentoId == procedimentoId);
   /// Estado do odontograma de um paciente.
   ///
   /// Vale o ÚLTIMO registro de cada chave ([RegistroDente.chaveEstado]),

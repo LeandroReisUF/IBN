@@ -8,6 +8,7 @@ import 'package:ibn/features/pacientes/presentation/pages/tela_pacientes.dart';
 import 'package:ibn/features/prontuario/presentation/pages/tela_prontuario.dart';
 import 'package:ibn/features/home/presentation/pages/painel_inicial.dart';
 import 'package:ibn/features/home/presentation/pages/tela_modulo_em_construcao.dart';
+import 'package:ibn/features/configuracoes/presentation/pages/tela_configuracoes.dart';
 
 /// Casca do sistema: menu lateral (Windows/Web) ou gaveta (celular).
 class TelaPrincipal extends StatefulWidget {
@@ -44,6 +45,7 @@ class _TelaPrincipalState extends State<TelaPrincipal> {
     if (modulo.id == 'agenda') return const TelaAgenda();
     if (modulo.id == 'pacientes') return const TelaPacientes();
     if (modulo.id == 'prontuario') return const TelaProntuario();
+    if (modulo.id == 'configuracoes') return const TelaConfiguracoes();
     return TelaModuloEmConstrucao(modulo: modulo);
   }
 

@@ -12,6 +12,7 @@ import 'package:ibn/features/agenda/presentation/cubit/agendamento_state.dart';
 import 'package:ibn/features/auth/data/auth_service.dart';
 import 'package:ibn/features/auth/domain/usuario.dart';
 import 'tela_form_agendamento.dart';
+import 'package:ibn/features/agenda/presentation/widgets/tags_agendamento.dart';
 
 enum _Periodo { dia, semana, mes }
 
@@ -139,9 +140,6 @@ class _AgendaViewState extends State<_AgendaView> {
 
   void _abrirDetalhe(Agendamento a) {
     final usuario = auth.usuarioLogado!;
-    final proc = buscarProcedimento(a.procedimentoId);
-    final prof = auth.buscarPorId(a.profissionalId);
-    final sala = buscarSala(a.salaNumero);
     final statusPermitidos = politicaAcesso.statusPermitidos(usuario, a);
     final podeAgendar = politicaAcesso.podeAgendar(usuario);
     final tema = Theme.of(context);
@@ -161,8 +159,8 @@ class _AgendaViewState extends State<_AgendaView> {
               Text(_nomePaciente(a, usuario), style: tema.textTheme.titleLarge),
               const SizedBox(height: 8),
               Text('${formatarData(a.inicio)}  •  ${formatarHora(a.inicio)} – ${formatarHora(a.fim)}'),
-              Text(proc == null ? 'Procedimento' : proc.nome),
-              Text('${prof == null ? 'Profissional' : prof.nome}  •  ${sala == null ? 'Sala' : sala.nome}'),
+                            const SizedBox(height: 8),
+              TagsAgendamento(agendamento: a),
               if (a.observacoes.isNotEmpty) Text('Obs.: ${a.observacoes}'),
               if (statusPermitidos.isNotEmpty) ...[
                 const SizedBox(height: 16),
@@ -290,49 +288,59 @@ class _AgendaViewState extends State<_AgendaView> {
             )
           else
             Text('Você vê apenas os seus atendimentos.', style: tema.textTheme.bodySmall),
+          const SizedBox(height: 8),
+          const LegendaTiposProfissional(),       
         ],
       ),
     );
   }
 
-  Widget _cartao(Agendamento a, Usuario usuario) {
-    final proc = buscarProcedimento(a.procedimentoId);
-    final prof = auth.buscarPorId(a.profissionalId);
-    final sala = buscarSala(a.salaNumero);
+    Widget _cartao(Agendamento a, Usuario usuario) {
     final tema = Theme.of(context);
+    final prof = auth.buscarPorId(a.profissionalId);
+    final corTipo = prof == null ? tema.colorScheme.outline : corDoTipo(prof.perfil);
     final cor = _corStatus(a.status);
     final desmarcado = !a.status.ocupaHorario;
-    final linhaDetalhe = [
-      proc == null ? 'Procedimento' : proc.nome,
-      prof == null ? 'Profissional' : prof.nome,
-      sala == null ? 'Sala' : sala.nome,
-    ].join('  •  ');
 
     return Card(
-      child: ListTile(
-        leading: SizedBox(
-          width: 52,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(formatarHora(a.inicio), style: tema.textTheme.titleSmall),
-              Text(formatarHora(a.fim), style: tema.textTheme.bodySmall),
-            ],
-          ),
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(width: 6, color: corTipo),
+            Expanded(
+              child: ListTile(
+                leading: SizedBox(
+                  width: 52,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(formatarHora(a.inicio), style: tema.textTheme.titleSmall),
+                      Text(formatarHora(a.fim), style: tema.textTheme.bodySmall),
+                    ],
+                  ),
+                ),
+                title: Text(
+                  _nomePaciente(a, usuario),
+                  style: desmarcado
+                      ? const TextStyle(decoration: TextDecoration.lineThrough)
+                      : null,
+                ),
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: TagsAgendamento(agendamento: a),
+                ),
+                trailing: Chip(
+                  label: Text(a.status.rotulo),
+                  backgroundColor: cor.withValues(alpha: 0.15),
+                  side: BorderSide.none,
+                ),
+                onTap: () => _abrirDetalhe(a),
+              ),
+            ),
+          ],
         ),
-        title: Text(
-          _nomePaciente(a, usuario),
-          style: desmarcado
-              ? const TextStyle(decoration: TextDecoration.lineThrough)
-              : null,
-        ),
-        subtitle: Text(linhaDetalhe),
-        trailing: Chip(
-          label: Text(a.status.rotulo),
-          backgroundColor: cor.withValues(alpha: 0.15),
-          side: BorderSide.none,
-        ),
-        onTap: () => _abrirDetalhe(a),
       ),
     );
   }
