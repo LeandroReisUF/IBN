@@ -21,12 +21,14 @@ class MenuCondicoes extends StatelessWidget {
   final FaceDente? face;
   final RaizDente? raiz;
   final List<RegistroDente> marcacoes; // todas as marcações atuais do dente
+  final bool ortodontia; // true = só condições ortodônticas (aba Ortodontia)
 
   const MenuCondicoes({
     super.key,
     required this.dente,
     required this.face,
     this.raiz,
+    this.ortodontia = false,
     required this.marcacoes,
   });
 
@@ -36,11 +38,15 @@ class MenuCondicoes extends StatelessWidget {
     final alvo = raiz != null
         ? AlvoOdonto.raiz
         : (face != null ? AlvoOdonto.face : AlvoOdonto.dente);
-    final opcoes = CondicaoOdonto.paraAlvo(
+        final opcoes = CondicaoOdonto.paraAlvo(
       alvo,
       deciduo: AnatomiaDente.ehDeciduo(dente),
       multirradicular: AnatomiaDente.raizes(dente).length > 1,
-    );
+    ).where((c) {
+      // "Nenhum" limparia também as marcas clínicas do dente: fora da ortodontia.
+      if (c == CondicaoOdonto.nenhum) return !ortodontia;
+      return (c.categoria == CategoriaCondicao.ortodontia) == ortodontia;
+    }).toList();
     final nome = AnatomiaDente.nomeCompleto(dente);
     final titulo = raiz != null
         ? '$nome • ${raiz!.rotulo}'

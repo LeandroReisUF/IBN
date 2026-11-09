@@ -11,6 +11,8 @@ import 'package:ibn/core/procedimento.dart';
 import 'package:ibn/features/odontograma/data/odontograma_repository.dart';
 import 'package:ibn/features/plano_tratamento/data/plano_repository.dart';
 import 'package:ibn/features/auth/domain/perfil.dart';
+import 'package:ibn/features/auth/data/auth_service.dart';
+import 'package:ibn/features/configuracoes/domain/area_dentista.dart';
 
 /// Configurações da clínica vistas pelo Administrador.
 /// As ações devolvem a mensagem de erro (ou null) e NÃO trocam o estado.
@@ -37,8 +39,13 @@ class ConfiguracoesCubit extends Cubit<ConfiguracoesState> {
   final PlanoRepository _planos;
   final OdontogramaRepository _odonto;
 
-    ConfiguracoesSuccess _buscar() => ConfiguracoesSuccess(
-      _repo.todasAsSalas, _repo.bloqueios, _repo.todosProcedimentos, _repo.coresPerfil);
+      ConfiguracoesSuccess _buscar() => ConfiguracoesSuccess(
+        _repo.todasAsSalas,
+        _repo.bloqueios,
+        _repo.todosProcedimentos,
+        _repo.coresPerfil,
+        _repo.areasDentistas,
+      );
 
   Future<void> carregar() async {
     emit(const ConfiguracoesLoading());
@@ -187,6 +194,19 @@ class ConfiguracoesCubit extends Cubit<ConfiguracoesState> {
     if (sem != null) return sem;
     _repo.restaurarCoresPadrao();
     _log('restaurou_cores_padrao', 'todas');
+    return null;
+  }
+    // ---------- áreas do dentista ----------
+
+  Future<String?> definirAreaDentista(String usuarioId, AreaDentista area, bool tem) async {
+    final sem = _semAcesso();
+    if (sem != null) return sem;
+    if (auth.buscarPorId(usuarioId)?.perfil != Perfil.dentista) {
+      return 'Só dentistas têm áreas de atuação.';
+    }
+    final erro = _repo.definirAreaDentista(usuarioId, area, tem);
+    if (erro != null) return erro;
+    _log(tem ? 'concedeu_area_dentista' : 'removeu_area_dentista', '$usuarioId:${area.name}');
     return null;
   }
 }

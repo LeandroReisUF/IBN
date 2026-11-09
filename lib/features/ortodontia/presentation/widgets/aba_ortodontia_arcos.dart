@@ -43,7 +43,7 @@ class SecaoArcosElasticos extends StatelessWidget {
                 if (podeEditar) ...[
                   const SizedBox(height: 16),
                   OutlinedButton.icon(
-                    onPressed: () => DefaultTabController.of(context).animateTo(0),
+                    onPressed: () => DefaultTabController.of(context).animateTo(1),
                     icon: const Icon(Icons.edit_outlined),
                     label: Text(f == null ? 'Ir para a ficha' : 'Alterar na ficha'),
                   ),

@@ -4,6 +4,7 @@ import 'package:ibn/features/configuracoes/domain/bloqueio_agenda.dart';
 import 'package:ibn/core/procedimento.dart';
 import 'package:ibn/features/auth/domain/perfil.dart';
 import 'package:ibn/features/configuracoes/domain/paleta_cores.dart';
+import 'package:ibn/features/configuracoes/domain/area_dentista.dart';
 
 /// Configurações da clínica em memória (PROVISÓRIO). Hoje: salas e bloqueios.
 /// No servidor, as mesmas regras valem por clínica.
@@ -18,6 +19,11 @@ class ConfiguracaoRepository extends ChangeNotifier {
   final List<Sala> _salas;
   final List<Procedimento> _procedimentos;
   final Map<Perfil, int> _coresPerfil;
+
+    /// Áreas de cada dentista (id do usuário). Contas de teste: Dr. Davi com as duas.
+  final Map<String, Set<AreaDentista>> _areasDentistas = {
+    '3': {AreaDentista.ortodontia, AreaDentista.hof},
+  };
 
   static const Map<Perfil, int> _coresPadrao = {
     Perfil.dentista: 0xFF1E88E5,
@@ -221,6 +227,29 @@ class ConfiguracaoRepository extends ChangeNotifier {
       ..clear()
       ..addAll(_coresPadrao);
     notifyListeners();
+  }
+    // ---------- áreas do dentista ----------
+
+  Map<String, Set<AreaDentista>> get areasDentistas =>
+      {for (final e in _areasDentistas.entries) e.key: Set.of(e.value)};
+
+  Set<AreaDentista> areasDoDentista(String usuarioId) =>
+      _areasDentistas[usuarioId] ?? const {};
+
+  bool dentistaTem(String usuarioId, AreaDentista area) =>
+      areasDoDentista(usuarioId).contains(area);
+
+  /// Concede ([tem] = true) ou remove a área. Quem chama confere que é dentista.
+  String? definirAreaDentista(String usuarioId, AreaDentista area, bool tem) {
+    final atual = Set.of(areasDoDentista(usuarioId));
+    if (tem) {
+      atual.add(area);
+    } else {
+      atual.remove(area);
+    }
+    _areasDentistas[usuarioId] = atual;
+    notifyListeners();
+    return null;
   }
 }
 

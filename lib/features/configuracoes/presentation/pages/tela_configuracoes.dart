@@ -13,6 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:ibn/core/procedimento.dart';
 import 'package:ibn/features/auth/domain/perfil.dart';
 import 'package:ibn/features/configuracoes/domain/paleta_cores.dart';
+import 'package:ibn/features/configuracoes/domain/area_dentista.dart';
 
 /// Configurações da clínica (só Administrador). Esta classe só **fornece** o Cubit.
 class TelaConfiguracoes extends StatelessWidget {
@@ -72,23 +73,30 @@ class _ConfiguracoesView extends StatelessWidget {
               ],
             ),
           ),
-        final ConfiguracoesSuccess s => DefaultTabController(
-            length: 4,
+                final ConfiguracoesSuccess s => DefaultTabController(
+            length: 5,
             child: Column(
               children: [
-                const TabBar(tabs: [
-                  Tab(text: 'Salas'), 
-                  Tab(text: 'Bloqueios'), 
-                  Tab(text: 'Procedimentos'),
-                  Tab(text: 'Cores'),                  
-                  ]),
+                const TabBar(
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  tabs: [
+                    Tab(text: 'Salas'),
+                    Tab(text: 'Bloqueios'),
+                    Tab(text: 'Procedimentos'),
+                    Tab(text: 'Cores'),
+                    Tab(text: 'Dentistas'),
+                  ],
+                ),
                 Expanded(
                   child: TabBarView(
                     children: [
                       _AbaSalas(salas: s.salas),
                       _AbaBloqueios(salas: s.salas, bloqueios: s.bloqueios),
                       _AbaProcedimentos(procedimentos: s.procedimentos),
-                      _AbaCores(cores: s.cores),                    ],
+                      _AbaCores(cores: s.cores),
+                      _AbaDentistas(areas: s.areasDentistas),
+                    ],
                   ),
                 ),
               ],
@@ -749,6 +757,63 @@ class _AbaCores extends StatelessWidget {
                                   : null,
                             ),
                           ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+// ---------- áreas do dentista ----------
+
+class _AbaDentistas extends StatelessWidget {
+  final Map<String, Set<AreaDentista>> areas;
+  const _AbaDentistas({required this.areas});
+
+  Future<void> _alterar(BuildContext context, String id, AreaDentista area, bool tem) async {
+    final cubit = context.read<ConfiguracoesCubit>();
+    final erro = await cubit.definirAreaDentista(id, area, tem);
+    if (context.mounted && erro != null) _aviso(context, erro);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = Theme.of(context);
+    final dentistas =
+        auth.profissionaisSaude.where((u) => u.perfil == Perfil.dentista).toList();
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(
+          'Ortodontia e HOF só aparecem no prontuário do dentista marcado como especialista '
+          'na área. Se a área for removida, os registros já feitos continuam guardados.',
+          style: tema.textTheme.bodySmall,
+        ),
+        const SizedBox(height: 8),
+        for (final u in dentistas)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(u.nome, style: tema.textTheme.titleSmall),
+                  Text(u.registroFormatado ?? 'Registro no conselho não cadastrado',
+                      style: tema.textTheme.bodySmall),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: [
+                      for (final a in AreaDentista.values)
+                        FilterChip(
+                          label: Text(a.rotulo),
+                          selected: areas[u.id]?.contains(a) ?? false,
+                          onSelected: (v) => _alterar(context, u.id, a, v),
                         ),
                     ],
                   ),

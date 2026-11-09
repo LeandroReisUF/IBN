@@ -16,6 +16,7 @@ class DialogoEvolucao extends StatefulWidget {
   final FaceDente? face;
   final RaizDente? raiz;
   final RegistroDente? retificando;
+  final bool ortodontia;
 
   const DialogoEvolucao({
     super.key,
@@ -23,6 +24,7 @@ class DialogoEvolucao extends StatefulWidget {
     required this.dente,
     required this.face,
     this.raiz,
+    this.ortodontia = false,
     this.retificando,
   });
 
@@ -47,11 +49,13 @@ class _DialogoEvolucaoState extends State<DialogoEvolucao> {
         _alvo,
         deciduo: AnatomiaDente.ehDeciduo(widget.dente),
         multirradicular: _raizesDoDente.length > 1,
-      );
-
-    List<Procedimento> get _procedimentosOdonto =>
-      procedimentos.where((p) => p.especialidades.contains(Especialidade.odontologia)).toList();
-      
+      ).where((c) {
+        if (c == CondicaoOdonto.nenhum) return _retificando || !widget.ortodontia;
+        return (c.categoria == CategoriaCondicao.ortodontia) == widget.ortodontia;
+      }).toList();  
+  List<Procedimento> get _procedimentosOdonto => procedimentos
+      .where((p) => p.especialidades.contains(Especialidade.odontologia))
+      .toList(); 
   @override
   void initState() {
     super.initState();
@@ -136,8 +140,8 @@ class _DialogoEvolucaoState extends State<DialogoEvolucao> {
                   'Escolha a condição correta, ou anule o registro.',
                   style: tema.textTheme.bodySmall,
                 )
-              else
-                SegmentedButton<AlvoOdonto>(
+              else 
+              if (!widget.ortodontia) SegmentedButton<AlvoOdonto>(
                   segments: const [
                     ButtonSegment(value: AlvoOdonto.dente, label: Text('Dente inteiro')),
                     ButtonSegment(value: AlvoOdonto.face, label: Text('Face')),

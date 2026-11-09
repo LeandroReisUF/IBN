@@ -45,7 +45,7 @@ class _TelaProntuarioPacienteState extends State<TelaProntuarioPaciente> {
       );
     }
 
-    final abas = abasDoPerfil(usuario.perfil);
+    final abas = abasDoUsuario(usuario);
     final titulos = abas.isEmpty ? ['Prontuário'] : [for (final a in abas) a.titulo];
     final List<Widget> corpos = abas.isEmpty
         ? [_EmBreve('O prontuário de ${usuario.perfil.rotulo} será construído na Sprint 2.')]

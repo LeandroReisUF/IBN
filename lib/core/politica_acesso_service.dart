@@ -1,7 +1,9 @@
 import 'package:ibn/features/agenda/domain/agendamento.dart';
 import 'package:ibn/features/pacientes/domain/paciente.dart';
-import '../features/auth/domain/perfil.dart';
-import '../features/auth/domain/usuario.dart';
+import 'package:ibn/features/auth/domain/perfil.dart';
+import 'package:ibn/features/auth/domain/usuario.dart';
+import 'package:ibn/features/configuracoes/data/configuracao_repository.dart';
+import 'package:ibn/features/configuracoes/domain/area_dentista.dart';
 
 /// Regras de quem pode ver/fazer o quê (RN03, RF01.3).
 ///
@@ -64,9 +66,15 @@ class PoliticaAcessoService {
   bool podeEditarOdontograma(Usuario usuario, Paciente paciente) =>
       usuario.perfil == Perfil.dentista && podeVerPaciente(usuario, paciente);
 
-  /// Harmonização orofacial: só dentistas vinculados ao paciente.
+    /// Harmonização orofacial: dentista vinculado que o Administrador marcou como especialista em HOF.
   bool podeEditarHof(Usuario usuario, Paciente paciente) =>
-      podeEditarOdontograma(usuario, paciente);
+      podeEditarOdontograma(usuario, paciente) &&
+      configuracaoClinica.dentistaTem(usuario.id, AreaDentista.hof);
+
+  /// Ortodontia: dentista vinculado que o Administrador marcou como especialista em Ortodontia.
+  bool podeEditarOrtodontia(Usuario usuario, Paciente paciente) =>
+      podeEditarOdontograma(usuario, paciente) &&
+      configuracaoClinica.dentistaTem(usuario.id, AreaDentista.ortodontia);
 
    /// Exames: dentistas e biomédicos vinculados ao paciente.
   bool podeEditarExames(Usuario usuario, Paciente paciente) =>

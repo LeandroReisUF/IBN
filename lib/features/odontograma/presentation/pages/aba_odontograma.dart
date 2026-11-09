@@ -21,6 +21,9 @@ const double _fatorDeciduo = 0.75;
 /// Idade abaixo da qual a faixa de decíduos já vem marcada (dentição mista).
 const int _idadeDeciduosAutomatico = 13;
 
+/// Qual odontograma: o clínico geral ou o da ortodontia (aba Ortodontia).
+enum ModoOdontograma { geral, ortodontia }
+
 /// Odontograma interativo (RF04.1): desenho, número e caixa dividida de cada dente.
 class AbaOdontograma extends StatefulWidget {
   final Paciente paciente;
@@ -32,8 +35,15 @@ class AbaOdontograma extends StatefulWidget {
   /// Aviso mostrado no topo (opcional).
   final String? aviso;
 
-  const AbaOdontograma({super.key, required this.paciente, this.chaveRegistros, this.aviso});
+  final ModoOdontograma modo;
 
+  const AbaOdontograma({
+    super.key,
+    required this.paciente,
+    this.chaveRegistros,
+    this.aviso,
+    this.modo = ModoOdontograma.geral,
+  });
   @override
   State<AbaOdontograma> createState() => _AbaOdontogramaState();
 }
@@ -59,8 +69,22 @@ class _AbaOdontogramaState extends State<AbaOdontograma> {
     CategoriaCondicao.indicacao,
     CategoriaCondicao.periodonto,
     CategoriaCondicao.raiz,
-    CategoriaCondicao.ortodontia,
   ];
+    bool get _orto => widget.modo == ModoOdontograma.ortodontia;
+
+  /// O odontograma geral não mostra ortodontia; o da ortodontia mostra só ela.
+  bool _doModo(RegistroDente r) =>
+      (r.condicao.categoria == CategoriaCondicao.ortodontia) == _orto;
+
+  bool _doModoHistorico(RegistroDente r, Map<String, RegistroDente> porId) {
+    if (r.condicao == CondicaoOdonto.nenhum) {
+      // Anular um registro ortodôntico fica na ortodontia; o resto, no geral.
+      final alvo = r.retificaId == null ? null : porId[r.retificaId!];
+      final ehOrto = alvo != null && alvo.condicao.categoria == CategoriaCondicao.ortodontia;
+      return ehOrto == _orto;
+    }
+    return _doModo(r);
+  }
 
   /// Com [chaveRegistros], todo `_paciente.id` do arquivo vira essa chave; as
   /// permissões (vínculos) continuam as do paciente real.
@@ -125,7 +149,7 @@ class _AbaOdontogramaState extends State<AbaOdontograma> {
     List<RegistroDente> marcacoes,
   ) async {
     final largo = MediaQuery.sizeOf(context).width >= 600;
-    final menu = MenuCondicoes(dente: dente, face: face, raiz: raiz, marcacoes: marcacoes);
+    final menu = MenuCondicoes(dente: dente, face: face, raiz: raiz, marcacoes: marcacoes, ortodontia: _orto,);
     final resultado = largo
         ? await showDialog<ResultadoMenu>(
             context: context,
@@ -166,6 +190,7 @@ class _AbaOdontogramaState extends State<AbaOdontograma> {
           dente: dente,
           face: face,
           raiz: raiz,
+          ortodontia: _orto,
         ),
       );
       if (registro != null && mounted) _gravar(registro);
@@ -181,6 +206,7 @@ class _AbaOdontogramaState extends State<AbaOdontograma> {
         face: anterior.face,
         raiz: anterior.raiz,
         retificando: anterior,
+        ortodontia: _orto,
       ),
     );
     if (registro != null && mounted) _gravar(registro);
@@ -238,6 +264,7 @@ class _AbaOdontogramaState extends State<AbaOdontograma> {
           if (i == lacunaApos) SizedBox(width: lacuna), // linha média
           _DenteWidget(
             numero: dentes[i],
+            somenteCoroa: _orto,
             superior: superior,
             marcacoes: visiveis[dentes[i]] ?? const [],
             editavel: editavel,
@@ -252,8 +279,9 @@ class _AbaOdontogramaState extends State<AbaOdontograma> {
   @override
   Widget build(BuildContext context) {
     final usuario = auth.usuarioLogado!;
-    final podeEditar = politicaAcesso.podeEditarOdontograma(usuario, _paciente);
-    final tema = Theme.of(context);
+    final podeEditar = _orto
+        ? politicaAcesso.podeEditarOrtodontia(usuario, _paciente)
+        : politicaAcesso.podeEditarOdontograma(usuario, _paciente);    final tema = Theme.of(context);
 
     return ListenableBuilder(
       listenable: odontogramas,
@@ -262,17 +290,19 @@ class _AbaOdontogramaState extends State<AbaOdontograma> {
             ? DateTime(_dataVisao.year, _dataVisao.month, _dataVisao.day, 23, 59, 59)
             : null;
         final estadoCompleto = odontogramas.estadoAtual(_paciente.id, visao: _visao, ate: ate);
-        final visiveis = estadoCompleto.values
-            .where((r) => !_ocultas.contains(r.condicao.categoria))
-            .toList();
-        final historico = odontogramas.historicoDoPaciente(_paciente.id);
+                final doModo = estadoCompleto.values.where(_doModo).toList();
+        final visiveis =
+            doModo.where((r) => !_ocultas.contains(r.condicao.categoria)).toList();
+        final todosHistorico = odontogramas.historicoDoPaciente(_paciente.id);
+        final porId = {for (final r in todosHistorico) r.id: r};
+        final historico =
+            todosHistorico.where((r) => _doModoHistorico(r, porId)).toList();
         final retificados = odontogramas.retificados(_paciente.id);
         final editavel = podeEditar && _visao == VisaoOdontograma.atual;
         final porDenteVisivel = _agrupar(visiveis);
-        final porDenteCompleto = _agrupar(estadoCompleto.values);
-        final temDeciduos =
-            estadoCompleto.values.any((r) => AnatomiaDente.ehDeciduo(r.numeroDente));
-
+        final porDenteCompleto = _agrupar(doModo);
+        final temDeciduos = doModo.any((r) => AnatomiaDente.ehDeciduo(r.numeroDente));
+        
         return FutureBuilder<void>(
           future: desenhosDentes.carregar(),
           builder: (context, carregamento) => ListView(
@@ -347,14 +377,14 @@ class _AbaOdontogramaState extends State<AbaOdontograma> {
                 ],
               ),
               // ---- Marcas de arcada ortodôntica (Fase E) ----
-              if (editavel) ...[
+              if (_orto) ...[
                 const SizedBox(height: 8),
                 _MarcasArcadaOrto(
                   marcasAtivas: _marcasArcadaAtivas,
-                  aoAlterar: _alternarMarcaArcada,
+                  aoAlterar: editavel ? _alternarMarcaArcada : null,
                 ),
               ],
-              Wrap(
+              if (!_orto) Wrap(
                 spacing: 8,
                 runSpacing: 4,
                 children: [
@@ -375,14 +405,15 @@ class _AbaOdontogramaState extends State<AbaOdontograma> {
               const SizedBox(height: 8),
               Text(
                 editavel
-                    ? 'Toque em um setor da caixa para marcar uma face, na raiz do desenho para marcar uma raiz, '
-                        'ou na coroa/número para marcar o dente inteiro.'
+                    ? (_orto
+                        ? 'Toque na coroa ou no número do dente para marcar braquete, banda, tubo e outros acessórios.'
+                        : 'Toque em um setor da caixa para marcar uma face, na raiz do desenho para marcar uma raiz, '
+                            'ou na coroa/número para marcar o dente inteiro.')
                     : (podeEditar
                         ? 'Visão de consulta: volte para "Atual" para registrar.'
                         : 'Somente leitura.'),
                 style: tema.textTheme.bodySmall,
-              ),
-              const SizedBox(height: 12),
+              ),              const SizedBox(height: 12),
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -414,6 +445,7 @@ class _AbaOdontogramaState extends State<AbaOdontograma> {
                 emUso: {for (final r in visiveis) r.condicao},
                 completa: _legendaCompleta,
                 aoAlternar: () => setState(() => _legendaCompleta = !_legendaCompleta),
+                ortodontia: _orto,
               ),
               const SizedBox(height: 24),
               Text('Histórico de registros', style: tema.textTheme.titleMedium),
@@ -483,14 +515,19 @@ class _Legenda extends StatelessWidget {
   final Set<CondicaoOdonto> emUso;
   final bool completa;
   final VoidCallback aoAlternar;
+  final bool ortodontia;
 
-  const _Legenda({required this.emUso, required this.completa, required this.aoAlternar});
+  const _Legenda({required this.emUso, required this.completa, required this.aoAlternar, required this.ortodontia});
 
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
     final lista = (completa
-            ? CondicaoOdonto.values.where((c) => c != CondicaoOdonto.nenhum).toSet()
+            ? CondicaoOdonto.values
+                .where((c) =>
+                    c != CondicaoOdonto.nenhum &&
+                    (c.categoria == CategoriaCondicao.ortodontia) == ortodontia)
+                .toSet()
             : emUso)
         .toList()
       ..sort((a, b) => a.prioridade.compareTo(b.prioridade));
@@ -542,6 +579,7 @@ class _DenteWidget extends StatelessWidget {
   final List<RegistroDente> marcacoes; // marcações visíveis deste dente
   final bool editavel;
   final void Function(int dente, FaceDente? face, RaizDente? raiz) aoToque;
+  final bool somenteCoroa;
 
   const _DenteWidget({
     required this.numero,
@@ -549,6 +587,7 @@ class _DenteWidget extends StatelessWidget {
     required this.marcacoes,
     required this.editavel,
     required this.aoToque,
+    required this.somenteCoroa,
   });
 
   // Vestibular sempre para fora da boca: no desenho, fica em cima nos dentes
@@ -632,7 +671,7 @@ class _DenteWidget extends StatelessWidget {
       marcasRaiz: marcasRaiz,
       marcasOrto: marcasOrto,
       aoToqueCoroa: editavel ? () => aoToque(numero, null, null) : null,
-      aoToqueRaiz: editavel && !ausente
+      aoToqueRaiz: editavel && !ausente && !somenteCoroa
           ? (indice) => aoToque(numero, null, raizes[indice])
           : null,
     );
@@ -645,8 +684,9 @@ class _DenteWidget extends StatelessWidget {
       direita: _faceDireita,
       marcas: marcasFaces,
       ausente: ausente,
-      aoToqueFace: editavel && !ausente ? (face) => aoToque(numero, face, null) : null,
-    );
+      aoToqueFace: editavel && !ausente && !somenteCoroa
+          ? (face) => aoToque(numero, face, null)
+          : null,    );
 
     final rotulo = InkWell(
       onTap: editavel ? () => aoToque(numero, null, null) : null,
@@ -665,15 +705,13 @@ class _DenteWidget extends StatelessWidget {
   }
 }
 
-/// Widget para mostrar e alternar marcas de arcada ortodôntica (Fase E).
+/// Marcas de arcada ortodôntica (Fase E): Superior e Inferior em linhas separadas.
+/// Com [aoAlterar] nulo, só mostra (visão de consulta ou sem permissão).
 class _MarcasArcadaOrto extends StatelessWidget {
   final Map<ArcadaOdonto, List<TipoMarcaArcada>> marcasAtivas;
-  final void Function(ArcadaOdonto, TipoMarcaArcada) aoAlterar;
+  final void Function(ArcadaOdonto, TipoMarcaArcada)? aoAlterar;
 
-  const _MarcasArcadaOrto({
-    required this.marcasAtivas,
-    required this.aoAlterar,
-  });
+  const _MarcasArcadaOrto({required this.marcasAtivas, required this.aoAlterar});
 
   @override
   Widget build(BuildContext context) {
@@ -681,24 +719,30 @@ class _MarcasArcadaOrto extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Ortodontia (arcada):', style: tema.textTheme.labelLarge),
+        Text('Ortodontia (arcada)', style: tema.textTheme.labelLarge),
         const SizedBox(height: 4),
-        Wrap(
-          spacing: 8,
-          runSpacing: 6,
-          children: [
-            for (final arcada in ArcadaOdonto.values) ...[
-              Text('${arcada.rotulo}:', style: tema.textTheme.labelMedium),
-              for (final tipo in TipoMarcaArcada.values)
-                FilterChip(
-                  label: Text(tipo.rotulo),
-                  selected: marcasAtivas[arcada]!.contains(tipo),
-                  onSelected: (_) => aoAlterar(arcada, tipo),
-                  visualDensity: VisualDensity.compact,
+        for (final arcada in ArcadaOdonto.values)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                SizedBox(
+                  width: 72,
+                  child: Text('${arcada.rotulo}:', style: tema.textTheme.labelMedium),
                 ),
-            ],
-          ],
-        ),
+                for (final tipo in TipoMarcaArcada.values)
+                  FilterChip(
+                    label: Text(tipo.rotulo),
+                    selected: marcasAtivas[arcada]!.contains(tipo),
+                    onSelected: aoAlterar == null ? null : (_) => aoAlterar!(arcada, tipo),
+                    visualDensity: VisualDensity.compact,
+                  ),
+              ],
+            ),
+          ),
       ],
     );
   }

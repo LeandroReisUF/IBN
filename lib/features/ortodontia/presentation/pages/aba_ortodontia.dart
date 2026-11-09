@@ -7,6 +7,7 @@ import 'package:ibn/features/ortodontia/presentation/widgets/aba_ortodontia_arco
 import 'package:ibn/features/ortodontia/presentation/widgets/aba_ortodontia_ficha.dart';
 import 'package:ibn/features/ortodontia/presentation/widgets/aba_ortodontia_fotos.dart';
 import 'package:ibn/features/ortodontia/presentation/widgets/aba_ortodontia_manutencoes.dart';
+import 'package:ibn/features/odontograma/presentation/pages/aba_odontograma.dart';
 
 /// Ortodontia (Fase F): ficha, arcos/elásticos, fotos e manutenções.
 /// Escuta o repositório: qualquer inclusão atualiza as quatro sub-abas na hora.
@@ -15,22 +16,24 @@ class AbaOrtodontia extends StatelessWidget {
   const AbaOrtodontia({super.key, required this.paciente});
 
   @override
+    @override
   Widget build(BuildContext context) {
     final usuario = auth.usuarioLogado!;
-    final podeEditar = politicaAcesso.podeEditarOdontograma(usuario, paciente);
+    final podeEditar = politicaAcesso.podeEditarOrtodontia(usuario, paciente);
 
     return ListenableBuilder(
       listenable: ortodontiaRepository,
       builder: (context, _) {
         final ficha = ortodontiaRepository.fichaDoPaciente(paciente.id);
         return DefaultTabController(
-          length: 4,
+          length: 5,
           child: Column(
             children: [
               const TabBar(
                 isScrollable: true,
                 tabAlignment: TabAlignment.start,
                 tabs: [
+                  Tab(text: 'Odontograma'),
                   Tab(text: 'Ficha'),
                   Tab(text: 'Arcos/Elásticos'),
                   Tab(text: 'Fotos'),
@@ -42,6 +45,7 @@ class AbaOrtodontia extends StatelessWidget {
                   // Sem deslizar: evita brigar com as abas de fora do prontuário.
                   physics: const NeverScrollableScrollPhysics(),
                   children: [
+                    AbaOdontograma(paciente: paciente, modo: ModoOdontograma.ortodontia),
                     SecaoFichaOrtodontica(
                       paciente: paciente,
                       usuario: usuario,

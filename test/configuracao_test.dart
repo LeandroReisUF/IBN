@@ -10,6 +10,9 @@ import 'package:ibn/features/configuracoes/domain/bloqueio_agenda.dart';
 import 'package:ibn/features/configuracoes/presentation/cubit/configuracoes_cubit.dart';
 import 'package:ibn/core/procedimento.dart';
 import 'package:ibn/features/configuracoes/domain/paleta_cores.dart';
+import 'package:ibn/core/politica_acesso_service.dart';
+import 'package:ibn/features/configuracoes/domain/area_dentista.dart';
+import 'package:ibn/features/pacientes/domain/paciente.dart';
 
 const admin = Usuario(id: '1', nome: 'Ana', email: 'a@x', perfil: Perfil.administrador);
 const recepcao = Usuario(id: '2', nome: 'Rita', email: 'r@x', perfil: Perfil.recepcionista);
@@ -293,6 +296,63 @@ void main() {
       expect(await r.definirCorPerfil(Perfil.medico, livre), contains('Administrador'));
       expect(await r.restaurarCores(), contains('Administrador'));
       await r.close();
+    });
+  });
+    group('Áreas do dentista', () {
+    const davi = Usuario(id: '3', nome: 'Dr. Davi', email: 'd@x', perfil: Perfil.dentista);
+    const lucia = Usuario(id: '10', nome: 'Dra. Lúcia', email: 'l@x', perfil: Perfil.dentista);
+    Paciente maria() => Paciente(
+          id: 'p1',
+          nome: 'Maria',
+          cpf: '52998224725',
+          dataNascimento: DateTime(1985, 3, 12),
+          telefone: '81987654321',
+          termoLgpd: TermoLGPD(aceitoEm: DateTime(2026, 9, 2), versao: versaoTermoLgpd),
+          profissionaisVinculados: {'3', '10'},
+        );
+
+    test('padrão: Dr. Davi com as duas áreas; Dra. Lúcia sem nenhuma', () {
+      final r = ConfiguracaoRepository();
+      expect(r.areasDoDentista('3'), {AreaDentista.ortodontia, AreaDentista.hof});
+      expect(r.areasDoDentista('10'), isEmpty);
+    });
+
+    test('conceder e remover uma área não mexe na outra', () {
+      final r = ConfiguracaoRepository();
+      r.definirAreaDentista('10', AreaDentista.hof, true);
+      expect(r.dentistaTem('10', AreaDentista.hof), isTrue);
+      expect(r.dentistaTem('10', AreaDentista.ortodontia), isFalse);
+      r.definirAreaDentista('10', AreaDentista.hof, false);
+      expect(r.areasDoDentista('10'), isEmpty);
+    });
+
+    test('Cubit: só o Administrador, e só para dentista', () async {
+      final cfg = ConfiguracaoRepository();
+      final svc = AgendaService(comExemplos: false, configuracao: cfg);
+      final a = ConfiguracoesCubit(repositorio: cfg, agendaService: svc, usuario: admin);
+      expect(await a.definirAreaDentista('10', AreaDentista.ortodontia, true), isNull);
+      expect(cfg.dentistaTem('10', AreaDentista.ortodontia), isTrue);
+      expect(await a.definirAreaDentista('5', AreaDentista.hof, true), contains('dentistas'));
+      await a.close();
+
+      final r = ConfiguracoesCubit(repositorio: cfg, agendaService: svc, usuario: recepcao);
+      expect(await r.definirAreaDentista('10', AreaDentista.hof, true), contains('Administrador'));
+      await r.close();
+    });
+
+    test('política: HOF e ortodontia exigem a área, além do vínculo', () {
+      addTearDown(() {
+        configuracaoClinica.definirAreaDentista('10', AreaDentista.hof, false);
+        configuracaoClinica.definirAreaDentista('10', AreaDentista.ortodontia, false);
+      });
+      expect(politicaAcesso.podeEditarHof(davi, maria()), isTrue);
+      expect(politicaAcesso.podeEditarOrtodontia(davi, maria()), isTrue);
+      expect(politicaAcesso.podeEditarHof(lucia, maria()), isFalse);
+      expect(politicaAcesso.podeEditarOrtodontia(lucia, maria()), isFalse);
+
+      configuracaoClinica.definirAreaDentista('10', AreaDentista.hof, true);
+      expect(politicaAcesso.podeEditarHof(lucia, maria()), isTrue);
+      expect(politicaAcesso.podeEditarOrtodontia(lucia, maria()), isFalse);
     });
   });
 }

@@ -10,6 +10,9 @@ import 'package:ibn/features/ortodontia/presentation/pages/aba_ortodontia.dart';
 import 'package:ibn/features/pacientes/domain/paciente.dart';
 import 'package:ibn/features/plano_tratamento/presentation/pages/aba_plano_tratamento.dart';
 import 'package:ibn/features/prontuario/presentation/pages/aba_prontuario.dart';
+import 'package:ibn/features/auth/domain/usuario.dart';
+import 'package:ibn/features/configuracoes/data/configuracao_repository.dart';
+import 'package:ibn/features/configuracoes/domain/area_dentista.dart';
 
 /// Uma aba do prontuário: título e como construir a tela para o paciente.
 class AbaProntuarioDef {
@@ -22,14 +25,19 @@ class AbaProntuarioDef {
 /// tem prontuário (Sprint 2); a tela mostra o aviso "em breve".
 ///
 /// Para ligar uma aba nova, acrescente-a aqui: a tela não precisa mudar.
-List<AbaProntuarioDef> abasDoPerfil(Perfil perfil) => switch (perfil) {
+/// Abas do prontuário de cada usuário (RF03.2). Lista vazia = o perfil ainda não
+/// tem prontuário (Sprint 2). No dentista, Ortodontia e HOF só aparecem se o
+/// Administrador o marcou como especialista na área.
+List<AbaProntuarioDef> abasDoUsuario(Usuario usuario) => switch (usuario.perfil) {
       Perfil.dentista => [
           AbaProntuarioDef('Odontograma', (p) => AbaOdontograma(paciente: p)),
-          AbaProntuarioDef('Ortodontia', (p) => AbaOrtodontia(paciente: p)),
+          if (configuracaoClinica.dentistaTem(usuario.id, AreaDentista.ortodontia))
+            AbaProntuarioDef('Ortodontia', (p) => AbaOrtodontia(paciente: p)),
           AbaProntuarioDef('Atendimentos', (p) => AbaProntuario(paciente: p)),
           AbaProntuarioDef('Anamnese', (p) => AbaAnamnese(paciente: p)),
           AbaProntuarioDef('Plano de tratamento', (p) => AbaPlanoTratamento(paciente: p)),
-          AbaProntuarioDef('Harmonização (HOF)', (p) => AbaHof(paciente: p)),
+          if (configuracaoClinica.dentistaTem(usuario.id, AreaDentista.hof))
+            AbaProntuarioDef('Harmonização (HOF)', (p) => AbaHof(paciente: p)),
           AbaProntuarioDef('Exames', (p) => AbaExames(paciente: p)),
           AbaProntuarioDef('Documentos', (p) => AbaDocumentos(paciente: p)),
         ],
