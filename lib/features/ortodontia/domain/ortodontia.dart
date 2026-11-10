@@ -82,6 +82,62 @@ class FichaOrtodontica {
     required this.atualizadoEm,
     required this.profissionalId,
   });
+    /// Nova versão só com arcos e elásticos; o resto da ficha é mantido.
+  /// Os quatro valores substituem os anteriores (nulo = limpar).
+  FichaOrtodontica comArcos({
+    ArcoOrtodontico? arcoSuperior,
+    ArcoOrtodontico? arcoInferior,
+    ElasticosOrtodonticos? elasticosSuperior,
+    ElasticosOrtodonticos? elasticosInferior,
+    required DateTime agora,
+    required String profissionalId,
+  }) =>
+      FichaOrtodontica(
+        id: id,
+        pacienteId: pacienteId,
+        tipoAparelho: tipoAparelho,
+        dataInstalacao: dataInstalacao,
+        previsaoTermino: previsaoTermino,
+        queixaPrincipal: queixaPrincipal,
+        objetivos: objetivos,
+        observacoesGerais: observacoesGerais,
+        arcoSuperior: arcoSuperior,
+        arcoInferior: arcoInferior,
+        elasticosSuperior: elasticosSuperior,
+        elasticosInferior: elasticosInferior,
+        criadoEm: criadoEm,
+        atualizadoEm: agora,
+        profissionalId: profissionalId,
+      );
+
+  /// Nova versão só com os dados da ficha; arcos e elásticos são mantidos.
+  FichaOrtodontica comDados({
+    required TipoAparelhoOrto tipoAparelho,
+    required DateTime dataInstalacao,
+    DateTime? previsaoTermino,
+    required String queixaPrincipal,
+    required String objetivos,
+    String? observacoesGerais,
+    required DateTime agora,
+    required String profissionalId,
+  }) =>
+      FichaOrtodontica(
+        id: id,
+        pacienteId: pacienteId,
+        tipoAparelho: tipoAparelho,
+        dataInstalacao: dataInstalacao,
+        previsaoTermino: previsaoTermino,
+        queixaPrincipal: queixaPrincipal,
+        objetivos: objetivos,
+        observacoesGerais: observacoesGerais,
+        arcoSuperior: arcoSuperior,
+        arcoInferior: arcoInferior,
+        elasticosSuperior: elasticosSuperior,
+        elasticosInferior: elasticosInferior,
+        criadoEm: criadoEm,
+        atualizadoEm: agora,
+        profissionalId: profissionalId,
+      );
 }
 
 /// Uma manutenção ortodôntica. Só inclusão: para corrigir, cria-se outra

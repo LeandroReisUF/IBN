@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:ibn/core/formadores.dart';
 import 'package:ibn/core/log_acesso.dart';
+import 'package:ibn/features/auth/domain/usuario.dart';
 import 'package:ibn/features/ortodontia/domain/ortodontia.dart';
 import 'package:ibn/features/pacientes/domain/paciente.dart';
-import 'package:ibn/features/auth/domain/usuario.dart';
 
-/// Seção **Ficha Ortodôntica**: visualização e edição (cada salvar = nova versão).
+/// Aba **Ficha**: dois painéis compactos, sem janela. "Ficha" e "Arcos e
+/// elásticos" gravam cada um só o que é seu; cada clique é uma nova versão (RN05).
 class SecaoFichaOrtodontica extends StatefulWidget {
   final Paciente paciente;
   final Usuario usuario;
@@ -25,8 +26,7 @@ class SecaoFichaOrtodontica extends StatefulWidget {
 }
 
 class _SecaoFichaOrtodonticaState extends State<SecaoFichaOrtodontica> {
-  final _formKey = GlobalKey<FormState>();
-  bool _editando = false;
+  final _fichaKey = GlobalKey<FormState>();
 
   final _queixaCtrl = TextEditingController();
   final _objetivosCtrl = TextEditingController();
@@ -51,17 +51,8 @@ class _SecaoFichaOrtodonticaState extends State<SecaoFichaOrtodontica> {
       ];
 
   @override
-  void dispose() {
-    for (final c in _controladores) {
-      c.dispose();
-    }
-    super.dispose();
-  }
-
-  // ---------- edição ----------
-
-  /// Carrega a ficha atual (ou campos vazios) nos controladores e abre o formulário.
-  void _iniciarEdicao() {
+  void initState() {
+    super.initState();
     final f = widget.ficha;
     _tipo = f?.tipoAparelho;
     _instalacao = f?.dataInstalacao;
@@ -77,8 +68,17 @@ class _SecaoFichaOrtodonticaState extends State<SecaoFichaOrtodontica> {
     _arcoInfCalibreCtrl.text = f?.arcoInferior?.calibre ?? '';
     _elastSupCtrl.text = f?.elasticosSuperior?.descricao ?? '';
     _elastInfCtrl.text = f?.elasticosInferior?.descricao ?? '';
-    setState(() => _editando = true);
   }
+
+  @override
+  void dispose() {
+    for (final c in _controladores) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  // ---------- ações ----------
 
   Future<void> _escolherData({required bool instalacao}) async {
     final atual = instalacao ? _instalacao : _previsao;
@@ -112,30 +112,7 @@ class _SecaoFichaOrtodonticaState extends State<SecaoFichaOrtodontica> {
     return t.isEmpty ? null : ElasticosOrtodonticos(t);
   }
 
-  void _salvar() {
-    if (!_formKey.currentState!.validate()) return;
-    final anterior = widget.ficha;
-    final agora = DateTime.now();
-    final obs = _obsCtrl.text.trim();
-
-    final nova = FichaOrtodontica(
-      id: anterior?.id ?? ortodontiaRepository.novoId(),
-      pacienteId: widget.paciente.id,
-      tipoAparelho: _tipo!,
-      dataInstalacao: _instalacao!,
-      previsaoTermino: _previsao,
-      queixaPrincipal: _queixaCtrl.text.trim(),
-      objetivos: _objetivosCtrl.text.trim(),
-      observacoesGerais: obs.isEmpty ? null : obs,
-      arcoSuperior: _arco(_arcoSupFioCtrl, _arcoSupCalibreCtrl),
-      arcoInferior: _arco(_arcoInfFioCtrl, _arcoInfCalibreCtrl),
-      elasticosSuperior: _elasticos(_elastSupCtrl),
-      elasticosInferior: _elasticos(_elastInfCtrl),
-      criadoEm: anterior?.criadoEm ?? agora,
-      atualizadoEm: agora,
-      profissionalId: widget.usuario.id,
-    );
-
+  void _gravar(FichaOrtodontica nova, String acaoLog, String sucesso) {
     final mensagem = ScaffoldMessenger.of(context);
     final erro = ortodontiaRepository.salvarFicha(nova);
     if (erro != null) {
@@ -145,12 +122,72 @@ class _SecaoFichaOrtodonticaState extends State<SecaoFichaOrtodontica> {
     // RNF03: toda alteração no prontuário gera registro de acesso.
     logsAcesso.registrar(
       usuarioId: widget.usuario.id,
-      acao: anterior == null ? 'criou_ficha_orto' : 'atualizou_ficha_orto',
+      acao: acaoLog,
       entidade: 'paciente',
       entidadeId: widget.paciente.id,
     );
-    setState(() => _editando = false);
-    mensagem.showSnackBar(const SnackBar(content: Text('Ficha ortodôntica salva.')));
+    mensagem.showSnackBar(SnackBar(content: Text(sucesso)));
+  }
+
+  void _salvarFicha() {
+    if (!_fichaKey.currentState!.validate()) return;
+    final anterior = widget.ficha;
+    final agora = DateTime.now();
+    final obs = _obsCtrl.text.trim();
+    final queixa = _queixaCtrl.text.trim();
+    final objetivos = _objetivosCtrl.text.trim();
+
+    if (anterior == null) {
+      _gravar(
+        FichaOrtodontica(
+          id: ortodontiaRepository.novoId(),
+          pacienteId: widget.paciente.id,
+          tipoAparelho: _tipo!,
+          dataInstalacao: _instalacao!,
+          previsaoTermino: _previsao,
+          queixaPrincipal: queixa,
+          objetivos: objetivos,
+          observacoesGerais: obs.isEmpty ? null : obs,
+          criadoEm: agora,
+          atualizadoEm: agora,
+          profissionalId: widget.usuario.id,
+        ),
+        'criou_ficha_orto',
+        'Ficha criada.',
+      );
+      return;
+    }
+    _gravar(
+      anterior.comDados(
+        tipoAparelho: _tipo!,
+        dataInstalacao: _instalacao!,
+        previsaoTermino: _previsao,
+        queixaPrincipal: queixa,
+        objetivos: objetivos,
+        observacoesGerais: obs.isEmpty ? null : obs,
+        agora: agora,
+        profissionalId: widget.usuario.id,
+      ),
+      'atualizou_ficha_orto',
+      'Ficha salva (nova versão).',
+    );
+  }
+
+  void _salvarArcos() {
+    final f = widget.ficha;
+    if (f == null) return;
+    _gravar(
+      f.comArcos(
+        arcoSuperior: _arco(_arcoSupFioCtrl, _arcoSupCalibreCtrl),
+        arcoInferior: _arco(_arcoInfFioCtrl, _arcoInfCalibreCtrl),
+        elasticosSuperior: _elasticos(_elastSupCtrl),
+        elasticosInferior: _elasticos(_elastInfCtrl),
+        agora: DateTime.now(),
+        profissionalId: widget.usuario.id,
+      ),
+      'atualizou_arcos_orto',
+      'Arcos e elásticos salvos (nova versão).',
+    );
   }
 
   // ---------- visual ----------
@@ -161,189 +198,176 @@ class _SecaoFichaOrtodonticaState extends State<SecaoFichaOrtodontica> {
         border: const OutlineInputBorder(),
       );
 
-  String? _obrigatorio(String? v, String msg) =>
-      (v == null || v.trim().isEmpty) ? msg : null;
+  String? _obrigatorio(String? v, String msg) => (v == null || v.trim().isEmpty) ? msg : null;
 
-  Widget _formulario() {
-    return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          DropdownButtonFormField<TipoAparelhoOrto>(
-            initialValue: _tipo,
-            isExpanded: true,
-            decoration: _decoracao('Tipo de aparelho *'),
-            items: [
-              for (final t in TipoAparelhoOrto.values)
-                DropdownMenuItem(value: t, child: Text(t.rotulo)),
-            ],
-            onChanged: (v) => setState(() => _tipo = v),
-            validator: (v) => v == null ? 'Selecione o tipo de aparelho' : null,
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            children: [
-              SizedBox(
-                width: 260,
-                child: TextFormField(
-                  controller: _instalacaoCtrl,
-                  readOnly: true,
-                  onTap: () => _escolherData(instalacao: true),
-                  decoration: _decoracao('Data de instalação *', icone: Icons.event_outlined),
-                  validator: (v) => _obrigatorio(v, 'Escolha a data de instalação'),
-                ),
-              ),
-              SizedBox(
-                width: 260,
-                child: TextFormField(
-                  controller: _previsaoCtrl,
-                  readOnly: true,
-                  onTap: () => _escolherData(instalacao: false),
-                  decoration: _decoracao('Previsão de término', icone: Icons.event_available_outlined),
-                  validator: (v) {
-                    if (_previsao != null &&
-                        _instalacao != null &&
-                        _previsao!.isBefore(_instalacao!)) {
-                      return 'Deve ser depois da instalação';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _queixaCtrl,
-            maxLines: 2,
-            decoration: _decoracao('Queixa principal *'),
-            validator: (v) => _obrigatorio(v, 'Informe a queixa principal'),
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _objetivosCtrl,
-            maxLines: 3,
-            decoration: _decoracao('Objetivos do tratamento *'),
-            validator: (v) => _obrigatorio(v, 'Informe os objetivos'),
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _obsCtrl,
-            maxLines: 2,
-            decoration: _decoracao('Observações gerais'),
-          ),
-          const SizedBox(height: 24),
-          Text('Arcos e elásticos', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            children: [
-              SizedBox(width: 200, child: TextFormField(controller: _arcoSupFioCtrl, decoration: _decoracao('Arco superior — fio'))),
-              SizedBox(width: 200, child: TextFormField(controller: _arcoSupCalibreCtrl, decoration: _decoracao('Arco superior — calibre'))),
-              SizedBox(width: 200, child: TextFormField(controller: _arcoInfFioCtrl, decoration: _decoracao('Arco inferior — fio'))),
-              SizedBox(width: 200, child: TextFormField(controller: _arcoInfCalibreCtrl, decoration: _decoracao('Arco inferior — calibre'))),
-              SizedBox(width: 416, child: TextFormField(controller: _elastSupCtrl, decoration: _decoracao('Elásticos superiores'))),
-              SizedBox(width: 416, child: TextFormField(controller: _elastInfCtrl, decoration: _decoracao('Elásticos inferiores'))),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Wrap(
-            spacing: 12,
-            children: [
-              FilledButton.icon(
-                onPressed: _salvar,
-                icon: const Icon(Icons.save_outlined),
-                label: const Text('Salvar ficha'),
-              ),
-              OutlinedButton(
-                onPressed: () => setState(() => _editando = false),
-                child: const Text('Cancelar'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  /// Painel compacto e centralizado (a "calculadora").
+  Widget _painel(Widget filho) => Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: Card(child: Padding(padding: const EdgeInsets.all(16), child: filho)),
+        ),
+      );
 
-  Widget _linha(String rotulo, String valor) {
+  Widget _campo(TextEditingController c, String rotulo, {int linhas = 1, bool obrigatorio = false}) =>
+      TextFormField(
+        controller: c,
+        enabled: widget.podeEditar,
+        maxLines: linhas,
+        decoration: _decoracao(rotulo),
+        validator: obrigatorio ? (v) => _obrigatorio(v, 'Campo obrigatório') : null,
+      );
+
+  Widget _painelFicha() {
     final tema = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(width: 160, child: Text(rotulo, style: tema.textTheme.labelLarge)),
-          Expanded(child: Text(valor)),
-        ],
+    final f = widget.ficha;
+    final pode = widget.podeEditar;
+    return _painel(
+      Form(
+        key: _fichaKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Ficha ortodôntica', style: tema.textTheme.titleMedium),
+            Text(
+              f == null
+                  ? 'Nenhuma ficha criada para este paciente.'
+                  : 'Atualizada em ${formatarData(f.atualizadoEm)} ${formatarHora(f.atualizadoEm)}',
+              style: tema.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<TipoAparelhoOrto>(
+              initialValue: _tipo,
+              isExpanded: true,
+              decoration: _decoracao('Tipo de aparelho *'),
+              items: [
+                for (final t in TipoAparelhoOrto.values)
+                  DropdownMenuItem(value: t, child: Text(t.rotulo)),
+              ],
+              onChanged: pode ? (v) => setState(() => _tipo = v) : null,
+              validator: (v) => v == null ? 'Selecione o tipo de aparelho' : null,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _instalacaoCtrl,
+                    readOnly: true,
+                    enabled: pode,
+                    onTap: () => _escolherData(instalacao: true),
+                    decoration: _decoracao('Instalação *', icone: Icons.event_outlined),
+                    validator: (v) => _obrigatorio(v, 'Escolha a data'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: _previsaoCtrl,
+                    readOnly: true,
+                    enabled: pode,
+                    onTap: () => _escolherData(instalacao: false),
+                    decoration: _decoracao('Término previsto', icone: Icons.event_available_outlined),
+                    validator: (v) {
+                      if (_previsao != null && _instalacao != null && _previsao!.isBefore(_instalacao!)) {
+                        return 'Depois da instalação';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _campo(_queixaCtrl, 'Queixa principal *', linhas: 2, obrigatorio: true),
+            const SizedBox(height: 12),
+            _campo(_objetivosCtrl, 'Objetivos do tratamento *', linhas: 3, obrigatorio: true),
+            const SizedBox(height: 12),
+            _campo(_obsCtrl, 'Observações gerais', linhas: 2),
+            if (pode) ...[
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _salvarFicha,
+                  icon: const Icon(Icons.save_outlined),
+                  label: Text(f == null ? 'Criar ficha' : 'Salvar ficha'),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _visualizacao(FichaOrtodontica f) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _linha('Tipo de aparelho', f.tipoAparelho.rotulo),
-        _linha('Instalação', formatarData(f.dataInstalacao)),
-        _linha('Previsão de término',
-            f.previsaoTermino == null ? '—' : formatarData(f.previsaoTermino!)),
-        _linha('Queixa principal', f.queixaPrincipal),
-        _linha('Objetivos', f.objetivos),
-        if ((f.observacoesGerais ?? '').isNotEmpty) _linha('Observações', f.observacoesGerais!),
-        _linha('Criada em', formatarData(f.criadoEm)),
-        _linha('Última atualização', formatarData(f.atualizadoEm)),
-      ],
+  Widget _painelArcos() {
+    final tema = Theme.of(context);
+    final pode = widget.podeEditar;
+    final temFicha = widget.ficha != null;
+
+    Widget linha(String titulo, TextEditingController fio, TextEditingController calibre,
+            TextEditingController elasticos) =>
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(titulo, style: tema.textTheme.labelLarge),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(child: _campo(fio, 'Fio')),
+                const SizedBox(width: 12),
+                Expanded(child: _campo(calibre, 'Calibre')),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _campo(elasticos, 'Elásticos'),
+          ],
+        );
+
+    return _painel(
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Arcos e elásticos', style: tema.textTheme.titleMedium),
+          if (pode && !temFicha)
+            Text('Crie a ficha antes de registrar arcos e elásticos.', style: tema.textTheme.bodySmall),
+          const SizedBox(height: 12),
+          linha('Superior', _arcoSupFioCtrl, _arcoSupCalibreCtrl, _elastSupCtrl),
+          const SizedBox(height: 16),
+          linha('Inferior', _arcoInfFioCtrl, _arcoInfCalibreCtrl, _elastInfCtrl),
+          if (pode) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: temFicha ? _salvarArcos : null,
+                icon: const Icon(Icons.save_outlined),
+                label: const Text('Salvar arcos'),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final tema = Theme.of(context);
-    final ficha = widget.ficha;
-
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(child: Text('Ficha ortodôntica', style: tema.textTheme.titleLarge)),
-                    if (widget.podeEditar && !_editando)
-                      FilledButton.tonalIcon(
-                        onPressed: _iniciarEdicao,
-                        icon: Icon(ficha == null ? Icons.add : Icons.edit_outlined),
-                        label: Text(ficha == null ? 'Criar ficha' : 'Editar'),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                if (_editando)
-                  _formulario()
-                else if (ficha == null)
-                  const Text('Nenhuma ficha ortodôntica criada para este paciente.')
-                else
-                  _visualizacao(ficha),
-              ],
-            ),
+        _painelFicha(),
+        const SizedBox(height: 8),
+        _painelArcos(),
+        const SizedBox(height: 8),
+        Center(
+          child: Text(
+            'Cada alteração salva gera uma nova versão; as anteriores são mantidas (RN05).',
+            style: Theme.of(context).textTheme.bodySmall,
+            textAlign: TextAlign.center,
           ),
         ),
-        if (!_editando && ficha != null) ...[
-          const SizedBox(height: 4),
-          Text(
-            'Cada alteração salva gera uma nova versão; as anteriores são mantidas (RN05).',
-            style: tema.textTheme.bodySmall,
-          ),
-        ],
       ],
     );
   }

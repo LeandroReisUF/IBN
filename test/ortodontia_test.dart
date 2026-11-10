@@ -75,6 +75,58 @@ void main() {
       expect(repo.fichaDoPaciente('p1')!.objetivos, 'Segundo');
       expect(repo.historicoFicha('p1').length, 2);
     });
+    test('comArcos mantém a ficha e comDados mantém os arcos', () {
+      final base = ficha();
+      final comArco = base.comArcos(
+        arcoSuperior: const ArcoOrtodontico(fio: 'NiTi', calibre: '0.014'),
+        elasticosInferior: const ElasticosOrtodonticos('Classe II'),
+        agora: DateTime(2026, 10, 20),
+        profissionalId: '3',
+      );
+      expect(comArco.queixaPrincipal, base.queixaPrincipal);
+      expect(comArco.arcoSuperior, const ArcoOrtodontico(fio: 'NiTi', calibre: '0.014'));
+      expect(comArco.arcoInferior, isNull);
+      expect(comArco.criadoEm, base.criadoEm);
+      expect(comArco.atualizadoEm, DateTime(2026, 10, 20));
+
+      final comDados = comArco.comDados(
+        tipoAparelho: TipoAparelhoOrto.alinhadores,
+        dataInstalacao: base.dataInstalacao,
+        queixaPrincipal: 'Nova queixa',
+        objetivos: 'Novo objetivo',
+        agora: DateTime(2026, 10, 21),
+        profissionalId: '3',
+      );
+      expect(comDados.tipoAparelho, TipoAparelhoOrto.alinhadores);
+      expect(comDados.arcoSuperior, comArco.arcoSuperior);
+      expect(comDados.elasticosInferior, comArco.elasticosInferior);
+    });
+
+    test('salvar ficha, arcos e ficha de novo gera 3 versões, cada uma completa', () {
+      final repo = OrtodontiaRepository();
+      final v1 = ficha();
+      expect(repo.salvarFicha(v1), isNull);
+      final v2 = v1.comArcos(
+        arcoSuperior: const ArcoOrtodontico(fio: 'NiTi', calibre: '0.014'),
+        agora: DateTime(2026, 10, 20),
+        profissionalId: '3',
+      );
+      expect(repo.salvarFicha(v2), isNull);
+      final v3 = v2.comDados(
+        tipoAparelho: TipoAparelhoOrto.fixoMetalico,
+        dataInstalacao: v2.dataInstalacao,
+        queixaPrincipal: 'Outra queixa',
+        objetivos: 'Alinhar',
+        agora: DateTime(2026, 10, 21),
+        profissionalId: '3',
+      );
+      expect(repo.salvarFicha(v3), isNull);
+
+      expect(repo.historicoFicha('p1').length, 3);
+      final atual = repo.fichaDoPaciente('p1')!;
+      expect(atual.queixaPrincipal, 'Outra queixa');
+      expect(atual.arcoSuperior!.fio, 'NiTi');
+    });
   });
 
   group('Manutenções', () {

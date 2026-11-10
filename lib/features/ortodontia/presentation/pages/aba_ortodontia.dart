@@ -3,7 +3,6 @@ import 'package:ibn/features/auth/data/auth_service.dart';
 import 'package:ibn/features/ortodontia/domain/ortodontia.dart';
 import 'package:ibn/features/pacientes/domain/paciente.dart';
 import 'package:ibn/core/politica_acesso_service.dart';
-import 'package:ibn/features/ortodontia/presentation/widgets/aba_ortodontia_arcos.dart';
 import 'package:ibn/features/ortodontia/presentation/widgets/aba_ortodontia_ficha.dart';
 import 'package:ibn/features/ortodontia/presentation/widgets/aba_ortodontia_fotos.dart';
 import 'package:ibn/features/ortodontia/presentation/widgets/aba_ortodontia_manutencoes.dart';
@@ -26,7 +25,7 @@ class AbaOrtodontia extends StatelessWidget {
       builder: (context, _) {
         final ficha = ortodontiaRepository.fichaDoPaciente(paciente.id);
         return DefaultTabController(
-          length: 5,
+          length: 4,
           child: Column(
             children: [
               const TabBar(
@@ -35,7 +34,6 @@ class AbaOrtodontia extends StatelessWidget {
                 tabs: [
                   Tab(text: 'Odontograma'),
                   Tab(text: 'Ficha'),
-                  Tab(text: 'Arcos/Elásticos'),
                   Tab(text: 'Fotos'),
                   Tab(text: 'Manutenções'),
                 ],
@@ -52,7 +50,6 @@ class AbaOrtodontia extends StatelessWidget {
                       ficha: ficha,
                       podeEditar: podeEditar,
                     ),
-                    SecaoArcosElasticos(ficha: ficha, podeEditar: podeEditar),
                     SecaoFotos(
                       paciente: paciente,
                       usuario: usuario,
@@ -71,8 +68,8 @@ class AbaOrtodontia extends StatelessWidget {
               ),
             ],
           ),
-        );
-      },
+        );      
+        },
     );
   }
 }

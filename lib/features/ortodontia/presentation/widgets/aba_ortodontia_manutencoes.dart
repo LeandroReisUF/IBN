@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ibn/features/agenda/data/agenda_service.dart';
-import 'package:ibn/features/agenda/presentation/cubit/agendamento_cubit.dart';
 import 'package:ibn/core/formadores.dart';
 import 'package:ibn/core/log_acesso.dart';
+import 'package:ibn/features/agenda/data/agenda_service.dart';
+import 'package:ibn/features/agenda/presentation/cubit/agendamento_cubit.dart';
+import 'package:ibn/features/agenda/presentation/pages/tela_form_agendamento.dart';
+import 'package:ibn/features/auth/domain/usuario.dart';
 import 'package:ibn/features/ortodontia/domain/ortodontia.dart';
 import 'package:ibn/features/pacientes/domain/paciente.dart';
-import 'package:ibn/features/auth/domain/usuario.dart';
-import 'package:ibn/features/agenda/presentation/pages/tela_form_agendamento.dart';
 
-/// Seção **Manutenções Ortodônticas**. Só inclusão: "Retificar" cria um novo
-/// registro e deixa o anterior riscado (RN05). Não existe excluir.
+/// Aba **Manutenções**: painel compacto no topo (sem janela) e a lista abaixo.
+/// Só inclusão: "Retificar" carrega o registro no painel e cria um novo,
+/// deixando o anterior riscado (RN05). Não existe excluir.
 class SecaoManutencoes extends StatefulWidget {
   final Paciente paciente;
   final Usuario usuario;
@@ -32,36 +33,114 @@ class SecaoManutencoes extends StatefulWidget {
 }
 
 class _SecaoManutencoesState extends State<SecaoManutencoes> {
-  Future<void> _abrirDialogo({ManutencaoOrtodontica? retificando}) async {
-    final resultado = await showDialog<ManutencaoOrtodontica>(
-      context: context,
-      builder: (_) => _DialogoManutencao(
-        pacienteId: widget.paciente.id,
-        profissionalId: widget.usuario.id,
-        retificando: retificando,
-      ),
-    );
-    if (resultado == null || !mounted) return;
+  final _ativacaoCtrl = TextEditingController();
+  final _obsCtrl = TextEditingController();
+  final _justCtrl = TextEditingController();
+  DateTime _data = soData(DateTime.now());
+  DateTime? _proxima;
+  ManutencaoOrtodontica? _retificando;
 
+  @override
+  void initState() {
+    super.initState();
+    for (final c in [_ativacaoCtrl, _justCtrl]) {
+      c.addListener(() => setState(() {}));
+    }
+  }
+
+  @override
+  void dispose() {
+    _ativacaoCtrl.dispose();
+    _obsCtrl.dispose();
+    _justCtrl.dispose();
+    super.dispose();
+  }
+
+  // ---------- painel ----------
+
+  String? get _erroProxima =>
+      (_proxima != null && _proxima!.isBefore(_data)) ? 'Deve ser depois da data da manutenção' : null;
+
+  bool get _podeSalvar =>
+      _ativacaoCtrl.text.trim().isNotEmpty &&
+      _erroProxima == null &&
+      (_retificando == null || _justCtrl.text.trim().length >= 3);
+
+  void _limpar() {
+    setState(() {
+      _retificando = null;
+      _data = soData(DateTime.now());
+      _proxima = null;
+      _ativacaoCtrl.clear();
+      _obsCtrl.clear();
+      _justCtrl.clear();
+    });
+  }
+
+  void _carregarParaRetificar(ManutencaoOrtodontica m) {
+    setState(() {
+      _retificando = m;
+      _data = m.data;
+      _proxima = m.proximaManutencao;
+      _ativacaoCtrl.text = m.ativacaoRealizada;
+      _obsCtrl.text = m.observacoes ?? '';
+      _justCtrl.clear();
+    });
+  }
+
+  Future<void> _escolherData({required bool proxima}) async {
+    final atual = proxima ? (_proxima ?? _data) : _data;
+    final nova = await showDatePicker(
+      context: context,
+      initialDate: atual,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (nova == null || !mounted) return;
+    setState(() {
+      if (proxima) {
+        _proxima = soData(nova);
+      } else {
+        _data = soData(nova);
+      }
+    });
+  }
+
+  void _salvar() {
+    final obs = _obsCtrl.text.trim();
+    final r = _retificando;
+    final nova = ManutencaoOrtodontica(
+      id: ortodontiaRepository.novoId(),
+      pacienteId: widget.paciente.id,
+      data: _data,
+      ativacaoRealizada: _ativacaoCtrl.text.trim(),
+      observacoes: obs.isEmpty ? null : obs,
+      proximaManutencao: _proxima,
+      profissionalId: widget.usuario.id,
+      agendamentoId: r?.agendamentoId,
+      retificaId: r?.id,
+      justificativa: r == null ? null : _justCtrl.text.trim(),
+    );
     final mensagem = ScaffoldMessenger.of(context);
-    final erro = ortodontiaRepository.adicionarManutencao(resultado);
+    final erro = ortodontiaRepository.adicionarManutencao(nova);
     if (erro != null) {
       mensagem.showSnackBar(SnackBar(content: Text(erro)));
       return;
     }
     logsAcesso.registrar(
       usuarioId: widget.usuario.id,
-      acao: resultado.retificaId == null ? 'registrou_manutencao_orto' : 'retificou_manutencao_orto',
+      acao: r == null ? 'registrou_manutencao_orto' : 'retificou_manutencao_orto',
       entidade: 'paciente',
       entidadeId: widget.paciente.id,
     );
-    mensagem.showSnackBar(SnackBar(
-      content: Text(resultado.retificaId == null ? 'Manutenção registrada.' : 'Manutenção retificada.'),
-    ));
+    _limpar();
+    mensagem.showSnackBar(
+      SnackBar(content: Text(r == null ? 'Manutenção registrada.' : 'Manutenção retificada.')),
+    );
   }
 
   /// Abre o agendamento já com paciente, procedimento e profissional.
-    void _agendar() {
+  void _agendar() {
     final usuario = widget.usuario;
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -78,54 +157,104 @@ class _SecaoManutencoesState extends State<SecaoManutencoes> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
+  // ---------- visual ----------
+
+  Widget _painel(Widget filho) => Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: Card(child: Padding(padding: const EdgeInsets.all(16), child: filho)),
+        ),
+      );
+
+  Widget _painelNovo() {
     final tema = Theme.of(context);
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Manutenções ortodônticas', style: tema.textTheme.titleLarge),
-                if (widget.podeEditar) ...[
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      FilledButton.icon(
-                        onPressed: () => _abrirDialogo(),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Nova manutenção'),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: _agendar,
-                        icon: const Icon(Icons.calendar_today_outlined),
-                        label: const Text('Agendar manutenção'),
-                      ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 12),
-                if (widget.manutencoes.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text('Nenhuma manutenção registrada.'),
-                  )
-                else
-                  for (final m in widget.manutencoes) ...[
-                    const Divider(height: 1),
-                    _linha(m),
-                  ],
-              ],
+    final retificando = _retificando != null;
+    return _painel(
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(retificando ? 'Retificar manutenção' : 'Nova manutenção',
+              style: tema.textTheme.titleMedium),
+          if (retificando)
+            Text('O registro anterior ficará riscado no histórico (nada é apagado).',
+                style: tema.textTheme.bodySmall),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _ativacaoCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Ativação realizada *',
+              border: OutlineInputBorder(),
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () => _escolherData(proxima: false),
+                icon: const Icon(Icons.event_outlined),
+                label: Text('Data: ${formatarData(_data)}'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => _escolherData(proxima: true),
+                icon: const Icon(Icons.event_available_outlined),
+                label: Text(_proxima == null
+                    ? 'Próxima (opcional)'
+                    : 'Próxima: ${formatarData(_proxima!)}'),
+              ),
+              if (_proxima != null)
+                IconButton(
+                  tooltip: 'Limpar a próxima',
+                  onPressed: () => setState(() => _proxima = null),
+                  icon: const Icon(Icons.close),
+                ),
+            ],
+          ),
+          if (_erroProxima != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(_erroProxima!, style: TextStyle(color: tema.colorScheme.error)),
+            ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _obsCtrl,
+            maxLines: 2,
+            decoration: const InputDecoration(labelText: 'Observações', border: OutlineInputBorder()),
+          ),
+          if (retificando) ...[
+            const SizedBox(height: 12),
+            TextField(
+              controller: _justCtrl,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Justificativa da retificação *',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilledButton.icon(
+                onPressed: _podeSalvar ? _salvar : null,
+                icon: const Icon(Icons.save_outlined),
+                label: Text(retificando ? 'Retificar' : 'Registrar manutenção'),
+              ),
+              if (retificando) TextButton(onPressed: _limpar, child: const Text('Cancelar')),
+              OutlinedButton.icon(
+                onPressed: _agendar,
+                icon: const Icon(Icons.calendar_today_outlined),
+                label: const Text('Agendar manutenção'),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -149,190 +278,36 @@ class _SecaoManutencoesState extends State<SecaoManutencoes> {
       trailing: retificada
           ? const Chip(label: Text('Retificada'))
           : (widget.podeEditar
-              ? TextButton(onPressed: () => _abrirDialogo(retificando: m), child: const Text('Retificar'))
+              ? TextButton(onPressed: () => _carregarParaRetificar(m), child: const Text('Retificar'))
               : null),
-    );
-  }
-}
-
-/// Diálogo de nova manutenção ou retificação. É um widget com estado próprio:
-/// assim a data escolhida aparece na hora (o diálogo antigo não atualizava).
-class _DialogoManutencao extends StatefulWidget {
-  final String pacienteId;
-  final String profissionalId;
-  final ManutencaoOrtodontica? retificando;
-
-  const _DialogoManutencao({
-    required this.pacienteId,
-    required this.profissionalId,
-    this.retificando,
-  });
-
-  @override
-  State<_DialogoManutencao> createState() => _DialogoManutencaoState();
-}
-
-class _DialogoManutencaoState extends State<_DialogoManutencao> {
-  final _ativacaoCtrl = TextEditingController();
-  final _obsCtrl = TextEditingController();
-  final _justCtrl = TextEditingController();
-  late DateTime _data;
-  DateTime? _proxima;
-
-  bool get _retificando => widget.retificando != null;
-
-  @override
-  void initState() {
-    super.initState();
-    final r = widget.retificando;
-    _data = r?.data ?? soData(DateTime.now());
-    _proxima = r?.proximaManutencao;
-    _ativacaoCtrl.text = r?.ativacaoRealizada ?? '';
-    _obsCtrl.text = r?.observacoes ?? '';
-    for (final c in [_ativacaoCtrl, _justCtrl]) {
-      c.addListener(() => setState(() {}));
-    }
-  }
-
-  @override
-  void dispose() {
-    _ativacaoCtrl.dispose();
-    _obsCtrl.dispose();
-    _justCtrl.dispose();
-    super.dispose();
-  }
-
-  String? get _erroProxima =>
-      (_proxima != null && _proxima!.isBefore(_data)) ? 'Deve ser depois da data da manutenção' : null;
-
-  bool get _podeSalvar =>
-      _ativacaoCtrl.text.trim().isNotEmpty &&
-      _erroProxima == null &&
-      (!_retificando || _justCtrl.text.trim().length >= 3);
-
-  Future<void> _escolherData({required bool proxima}) async {
-    final atual = proxima ? (_proxima ?? _data) : _data;
-    final nova = await showDatePicker(
-      context: context,
-      initialDate: atual,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
-    if (nova == null) return;
-    setState(() {
-      if (proxima) {
-        _proxima = soData(nova);
-      } else {
-        _data = soData(nova);
-      }
-    });
-  }
-
-  void _salvar() {
-    final obs = _obsCtrl.text.trim();
-    Navigator.of(context).pop(
-      ManutencaoOrtodontica(
-        id: ortodontiaRepository.novoId(),
-        pacienteId: widget.pacienteId,
-        data: _data,
-        ativacaoRealizada: _ativacaoCtrl.text.trim(),
-        observacoes: obs.isEmpty ? null : obs,
-        proximaManutencao: _proxima,
-        profissionalId: widget.profissionalId,
-        agendamentoId: widget.retificando?.agendamentoId,
-        retificaId: widget.retificando?.id,
-        justificativa: _retificando ? _justCtrl.text.trim() : null,
-      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
-    return AlertDialog(
-      title: Text(_retificando ? 'Retificar manutenção' : 'Nova manutenção'),
-      content: SizedBox(
-        width: 420,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        if (widget.podeEditar) ...[
+          _painelNovo(),
+          const SizedBox(height: 8),
+        ],
+        _painel(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (_retificando)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(
-                    'O registro anterior ficará riscado no histórico (nada é apagado).',
-                    style: tema.textTheme.bodySmall,
-                  ),
-                ),
-              TextField(
-                controller: _ativacaoCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Ativação realizada *',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () => _escolherData(proxima: false),
-                icon: const Icon(Icons.event_outlined),
-                label: Text('Data da manutenção: ${formatarData(_data)}'),
-              ),
+              Text('Histórico de manutenções', style: tema.textTheme.titleMedium),
               const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _escolherData(proxima: true),
-                      icon: const Icon(Icons.event_available_outlined),
-                      label: Text(_proxima == null
-                          ? 'Próxima manutenção (opcional)'
-                          : 'Próxima: ${formatarData(_proxima!)}'),
-                    ),
-                  ),
-                  if (_proxima != null)
-                    IconButton(
-                      tooltip: 'Limpar',
-                      onPressed: () => setState(() => _proxima = null),
-                      icon: const Icon(Icons.close),
-                    ),
+              if (widget.manutencoes.isEmpty)
+                const Text('Nenhuma manutenção registrada.')
+              else
+                for (final m in widget.manutencoes) ...[
+                  const Divider(height: 1),
+                  _linha(m),
                 ],
-              ),
-              if (_erroProxima != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(_erroProxima!, style: TextStyle(color: tema.colorScheme.error)),
-                ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _obsCtrl,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Observações',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              if (_retificando) ...[
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _justCtrl,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    labelText: 'Justificativa da retificação (obrigatória)',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ],
             ],
           ),
-        ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
-        FilledButton(
-          onPressed: _podeSalvar ? _salvar : null,
-          child: Text(_retificando ? 'Retificar' : 'Salvar'),
         ),
       ],
     );
