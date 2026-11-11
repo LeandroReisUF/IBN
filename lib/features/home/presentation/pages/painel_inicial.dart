@@ -11,6 +11,7 @@ import 'package:ibn/features/agenda/domain/sala.dart';
 import 'package:ibn/core/politica_acesso_service.dart';
 import 'package:ibn/features/agenda/presentation/widgets/tags_agendamento.dart';
 import 'package:ibn/features/pacientes/data/paciente_repository.dart';
+import 'package:ibn/features/prontuario/presentation/pages/tela_prontuario_paciente.dart';
 
 /// Painel inicial, agora alimentado pela agenda real (em memória).
 class PainelInicial extends StatelessWidget {
@@ -203,18 +204,23 @@ class _LinhaHoje extends StatelessWidget {
   final Agendamento agendamento;
   const _LinhaHoje({required this.agendamento});
 
-  /// RN03: o nome só aparece se o usuário puder ver aquele paciente.
-  String _nome() {
-    final p = pacientes.buscarPorId(agendamento.pacienteId);
-    if (p == null) return 'Paciente removido';
-    return politicaAcesso.podeVerPaciente(auth.usuarioLogado!, p) ? p.nome : 'Paciente sem acesso';
-  }
-
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
+    final usuario = auth.usuarioLogado!;
+    final paciente = pacientes.buscarPorId(agendamento.pacienteId);
+    // RN03: o nome só aparece, e o prontuário só abre, para quem pode ver o paciente.
+    final nome = paciente == null
+        ? 'Paciente removido'
+        : (politicaAcesso.podeVerPaciente(usuario, paciente)
+            ? paciente.nome
+            : 'Paciente sem acesso');
+    final alvo = (paciente != null && politicaAcesso.podeAcessarProntuario(usuario, paciente))
+        ? paciente
+        : null;
     final prof = auth.buscarPorId(agendamento.profissionalId);
     final cor = prof == null ? tema.colorScheme.outline : corDoTipo(prof.perfil);
+
     return Card(
       clipBehavior: Clip.antiAlias,
       child: IntrinsicHeight(
@@ -224,15 +230,28 @@ class _LinhaHoje extends StatelessWidget {
             Container(width: 6, color: cor),
             Expanded(
               child: ListTile(
+                onTap: alvo == null
+                    ? null
+                    : () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => TelaProntuarioPaciente(paciente: alvo),
+                          ),
+                        ),
                 leading: Text(formatarHora(agendamento.inicio), style: tema.textTheme.titleSmall),
-                title: Text(_nome()),
+                title: Text(nome),
                 subtitle: Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: TagsAgendamento(agendamento: agendamento),
                 ),
-                trailing: Chip(
-                  visualDensity: VisualDensity.compact,
-                  label: Text(agendamento.status.rotulo),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Chip(
+                      visualDensity: VisualDensity.compact,
+                      label: Text(agendamento.status.rotulo),
+                    ),
+                    if (alvo != null) const Icon(Icons.chevron_right),
+                  ],
                 ),
               ),
             ),

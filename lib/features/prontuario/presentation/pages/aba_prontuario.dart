@@ -10,7 +10,7 @@ import 'package:ibn/features/prontuario/data/prontuario_repository.dart';
 import 'package:ibn/features/prontuario/domain/prontuario.dart';
 import 'package:ibn/features/prontuario/presentation/cubit/atendimentos_cubit.dart';
 import 'package:ibn/features/prontuario/presentation/cubit/atendimentos_state.dart';
-
+import 'package:ibn/core/procedimento.dart';
 
 /// Atendimentos do paciente: cada profissional vê só os que ele mesmo registrou.
 /// Fluxo: iniciar → evoluções (rascunho) → assinar → encerrar. Depois de
@@ -48,6 +48,21 @@ class _AtendimentosViewState extends State<_AtendimentosView> {
   bool get _podeEditar => politicaAcesso.podeAcessarProntuario(_usuario, _paciente);
   AtendimentosCubit get _cubit => context.read<AtendimentosCubit>();
 
+  final _textoCtrl = TextEditingController();
+  TipoEvolucao _tipoNovo = TipoEvolucao.livre;
+
+  @override
+  void initState() {
+    super.initState();
+    _textoCtrl.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _textoCtrl.dispose();
+    super.dispose();
+  }
+
   void _aviso(String texto) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(texto)));
   }
@@ -59,34 +74,11 @@ class _AtendimentosViewState extends State<_AtendimentosView> {
 
   // ---------- ações ----------
 
+  /// Sem escolher: liga ao primeiro agendamento de hoje ainda não atendido, se houver.
   Future<void> _iniciar() async {
     final cubit = _cubit;
     final candidatos = cubit.agendamentosIniciaveisHoje();
-
-    String? agendamentoId;
-    if (candidatos.isNotEmpty) {
-      // '' = atendimento sem agendamento; null = fechou o diálogo (cancela).
-      final escolha = await showDialog<String>(
-        context: context,
-        builder: (ctx) => SimpleDialog(
-          title: const Text('Vincular a um agendamento de hoje?'),
-          children: [
-            for (final c in candidatos)
-              SimpleDialogOption(
-                onPressed: () => Navigator.of(ctx).pop(c.id),
-                child: Text('${formatarHora(c.inicio)} – ${formatarHora(c.fim)}  •  ${c.status.rotulo}'),
-              ),
-            SimpleDialogOption(
-              onPressed: () => Navigator.of(ctx).pop(''),
-              child: const Text('Sem agendamento'),
-            ),
-          ],
-        ),
-      );
-      if (escolha == null || !mounted) return;
-      agendamentoId = escolha.isEmpty ? null : escolha;
-    }
-    _mostrarErro(await cubit.iniciar(agendamentoId: agendamentoId));
+    _mostrarErro(await cubit.iniciar(agendamentoId: candidatos.firstOrNull?.id));
   }
 
   Future<void> _encerrar(Atendimento a) async {
@@ -105,14 +97,15 @@ class _AtendimentosViewState extends State<_AtendimentosView> {
     _mostrarErro(await cubit.encerrar(a.id, observacoes: obs));
   }
 
-  Future<void> _novaEvolucao(Atendimento a) async {
-    final cubit = _cubit;
-    final r = await showDialog<({TipoEvolucao tipo, String texto})>(
-      context: context,
-      builder: (_) => const _DialogoEvolucao(),
-    );
-    if (r == null || !mounted) return;
-    _mostrarErro(await cubit.adicionarEvolucao(a.id, r.tipo, r.texto));
+  Future<void> _adicionarEvolucao(Atendimento a) async {
+    final erro = await _cubit.adicionarEvolucao(a.id, _tipoNovo, _textoCtrl.text.trim());
+    if (!mounted) return;
+    if (erro != null) {
+      _aviso(erro);
+      return;
+    }
+    _textoCtrl.clear();
+    setState(() => _tipoNovo = TipoEvolucao.livre);
   }
 
   Future<void> _editar(Evolucao e) async {
@@ -229,29 +222,12 @@ class _AtendimentosViewState extends State<_AtendimentosView> {
     final fim = a.fim == null ? '' : ' – ${formatarHora(a.fim!)}';
     return Card(
       child: ExpansionTile(
-        initiallyExpanded: !a.encerrado,
+        initiallyExpanded: false,
         title: Text('${formatarData(a.inicio)} • ${formatarHora(a.inicio)}$fim'),
         subtitle: Text(a.status.rotulo),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         expandedCrossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_podeEditar && !a.encerrado)
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                FilledButton.icon(
-                  onPressed: () => _novaEvolucao(a),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Nova evolução'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () => _encerrar(a),
-                  icon: const Icon(Icons.lock_outline),
-                  label: const Text('Encerrar atendimento'),
-                ),
-              ],
-            ),
           if (d.evolucoes.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
@@ -271,35 +247,121 @@ class _AtendimentosViewState extends State<_AtendimentosView> {
     );
   }
 
-  Widget _cabecalho(bool temAtivo) {
+  /// Atendimento do dia: já aberto na tela, sem diálogos para começar.
+  Widget _painelHoje(AtendimentosSuccess s) {
+    final aberto = s.atendimentos.where((d) => !d.atendimento.encerrado).firstOrNull;
+    if (aberto != null) return _atendimentoAberto(aberto);
+
     final tema = Theme.of(context);
+    final hoje = _cubit.agendamentosIniciaveisHoje();
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Atendimentos', style: tema.textTheme.titleLarge),
-            const SizedBox(height: 4),
-            Text(
-              'Você vê apenas os atendimentos registrados por você. '
-              'Evolução assinada não pode ser alterada: use adendo (RN05).',
-              style: tema.textTheme.bodySmall,
-            ),
+            Text('Atendimento de hoje', style: tema.textTheme.titleLarge),
+            const SizedBox(height: 8),
+            if (hoje.isEmpty)
+              Text(
+                'Nenhum agendamento pendente hoje para este paciente com você.',
+                style: tema.textTheme.bodySmall,
+              )
+            else
+              for (var i = 0; i < hoje.length; i++)
+                Text(
+                  '${formatarHora(hoje[i].inicio)} – ${formatarHora(hoje[i].fim)} • '
+                  '${buscarProcedimento(hoje[i].procedimentoId)?.nome ?? 'Procedimento'} • '
+                  '${hoje[i].status.rotulo}${i == 0 ? ' • será vinculado ao iniciar' : ''}',
+                ),
             if (_podeEditar) ...[
               const SizedBox(height: 12),
-              if (!temAtivo)
-                FilledButton.icon(
-                  onPressed: _iniciar,
-                  icon: const Icon(Icons.play_arrow),
-                  label: const Text('Iniciar atendimento'),
-                )
-              else
-                const Text('Há um atendimento em aberto abaixo.'),
+              FilledButton.icon(
+                onPressed: _iniciar,
+                icon: const Icon(Icons.play_arrow),
+                label: const Text('Iniciar atendimento'),
+              ),
             ],
           ],
         ),
       ),
+    );
+  }
+
+  Widget _atendimentoAberto(AtendimentoDetalhe d) {
+    final tema = Theme.of(context);
+    final a = d.atendimento;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(child: Text('Atendimento de hoje', style: tema.textTheme.titleLarge)),
+                Chip(label: Text(a.status.rotulo)),
+              ],
+            ),
+            Text('Iniciado às ${formatarHora(a.inicio)}', style: tema.textTheme.bodySmall),
+            const SizedBox(height: 12),
+            if (_podeEditar) _compositor(a),
+            for (final item in d.evolucoes) ...[
+              const Divider(),
+              _linhaEvolucao(item, false),
+            ],
+            if (_podeEditar) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => _encerrar(a),
+                icon: const Icon(Icons.lock_outline),
+                label: const Text('Encerrar atendimento'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Nova evolução inline (tipo, texto e um botão), sem janela.
+  Widget _compositor(Atendimento a) {
+    final tema = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Nova evolução', style: tema.textTheme.titleSmall),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: [
+            for (final t in TipoEvolucao.values)
+              ChoiceChip(
+                label: Text(t.rotulo),
+                selected: _tipoNovo == t,
+                onSelected: (_) => setState(() => _tipoNovo = t),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _textoCtrl,
+          minLines: 2,
+          maxLines: 5,
+          decoration: const InputDecoration(
+            labelText: 'Texto da evolução',
+            alignLabelWithHint: true,
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 8),
+        FilledButton.icon(
+          onPressed: _textoCtrl.text.trim().isEmpty ? null : () => _adicionarEvolucao(a),
+          icon: const Icon(Icons.add),
+          label: const Text('Adicionar evolução'),
+        ),
+      ],
     );
   }
 
@@ -324,20 +386,30 @@ class _AtendimentosViewState extends State<_AtendimentosView> {
               ],
             ),
           ),
-        AtendimentosSuccess(:final atendimentos, :final temAtivo) => ListView(
+        final AtendimentosSuccess s => ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              _cabecalho(temAtivo),
-              if (atendimentos.isEmpty)
+              Text(
+                'Você vê apenas os atendimentos registrados por você. Evolução assinada não '
+                'pode ser alterada: use adendo (RN05).',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 8),
+              _painelHoje(s),
+              const SizedBox(height: 16),
+              Text('Atendimentos anteriores', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              if (s.atendimentos.every((d) => !d.atendimento.encerrado))
                 const Padding(
                   padding: EdgeInsets.all(24),
-                  child: Center(child: Text('Nenhum atendimento registrado.')),
+                  child: Center(child: Text('Nenhum atendimento encerrado.')),
                 )
               else
-                for (final d in atendimentos) _cartaoAtendimento(d),
+                for (final d in s.atendimentos.where((d) => d.atendimento.encerrado))
+                  _cartaoAtendimento(d),
             ],
           ),
-      },
+       },
     );
   }
 }
