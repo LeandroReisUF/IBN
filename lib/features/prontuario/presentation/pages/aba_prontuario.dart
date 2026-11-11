@@ -11,6 +11,7 @@ import 'package:ibn/features/prontuario/domain/prontuario.dart';
 import 'package:ibn/features/prontuario/presentation/cubit/atendimentos_cubit.dart';
 import 'package:ibn/features/prontuario/presentation/cubit/atendimentos_state.dart';
 
+
 /// Atendimentos do paciente: cada profissional vê só os que ele mesmo registrou.
 /// Fluxo: iniciar → evoluções (rascunho) → assinar → encerrar. Depois de
 /// assinada, a evolução só se corrige por adendo (RN05).

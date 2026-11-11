@@ -7,6 +7,7 @@ import 'package:ibn/features/ortodontia/presentation/widgets/aba_ortodontia_fich
 import 'package:ibn/features/ortodontia/presentation/widgets/aba_ortodontia_fotos.dart';
 import 'package:ibn/features/ortodontia/presentation/widgets/aba_ortodontia_manutencoes.dart';
 import 'package:ibn/features/odontograma/presentation/pages/aba_odontograma.dart';
+import 'package:ibn/core/widgets/manter_vivo.dart';
 
 /// Ortodontia (Fase F): ficha, arcos/elásticos, fotos e manutenções.
 /// Escuta o repositório: qualquer inclusão atualiza as quatro sub-abas na hora.
@@ -44,11 +45,13 @@ class AbaOrtodontia extends StatelessWidget {
                   physics: const NeverScrollableScrollPhysics(),
                   children: [
                     AbaOdontograma(paciente: paciente, modo: ModoOdontograma.ortodontia),
-                    SecaoFichaOrtodontica(
+                     ManterVivo(child: 
+                      SecaoFichaOrtodontica(
                       paciente: paciente,
                       usuario: usuario,
                       ficha: ficha,
                       podeEditar: podeEditar,
+                    ),
                     ),
                     SecaoFotos(
                       paciente: paciente,
@@ -56,12 +59,14 @@ class AbaOrtodontia extends StatelessWidget {
                       fotos: ortodontiaRepository.fotosDoPaciente(paciente.id),
                       podeEditar: podeEditar,
                     ),
-                    SecaoManutencoes(
+                    ManterVivo(child: 
+                     SecaoManutencoes(
                       paciente: paciente,
                       usuario: usuario,
                       manutencoes: ortodontiaRepository.manutencoesDoPaciente(paciente.id),
                       retificadas: ortodontiaRepository.retificadas(paciente.id),
                       podeEditar: podeEditar,
+                    ),
                     ),
                   ],
                 ),

@@ -24,6 +24,7 @@ const int _idadeDeciduosAutomatico = 13;
 /// Qual odontograma: o clínico geral ou o da ortodontia (aba Ortodontia).
 enum ModoOdontograma { geral, ortodontia }
 
+
 /// Odontograma interativo (RF04.1): desenho, número e caixa dividida de cada dente.
 class AbaOdontograma extends StatefulWidget {
   final Paciente paciente;
@@ -37,12 +38,16 @@ class AbaOdontograma extends StatefulWidget {
 
   final ModoOdontograma modo;
 
+/// true = dentro de outra lista rolável (não rola sozinho).
+final bool embutido;
+
   const AbaOdontograma({
     super.key,
     required this.paciente,
     this.chaveRegistros,
     this.aviso,
     this.modo = ModoOdontograma.geral,
+    this.embutido = false,
   });
   @override
   State<AbaOdontograma> createState() => _AbaOdontogramaState();
@@ -306,6 +311,8 @@ class _AbaOdontogramaState extends State<AbaOdontograma> {
         return FutureBuilder<void>(
           future: desenhosDentes.carregar(),
           builder: (context, carregamento) => ListView(
+            shrinkWrap: widget.embutido,
+            physics: widget.embutido ? const NeverScrollableScrollPhysics() : null,
             padding: const EdgeInsets.all(16),
             children: [
                             if (widget.aviso != null)

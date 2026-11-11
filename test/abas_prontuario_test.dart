@@ -10,12 +10,11 @@ Usuario u(String id, Perfil p) => Usuario(id: id, nome: 'U$id', email: 'u$id@x',
 List<String> titulos(Usuario x) => [for (final a in abasDoUsuario(x)) a.titulo];
 
 void main() {
-  test('dentista com Ortodontia e HOF (Dr. Davi) tem as 8 abas, na ordem', () {
+    test('dentista com Ortodontia e HOF (Dr. Davi) tem as 7 abas, na ordem', () {
     expect(titulos(u('3', Perfil.dentista)), [
-      'Odontograma',
+      'Anamnese e odontograma',
       'Ortodontia',
       'Atendimentos',
-      'Anamnese',
       'Plano de tratamento',
       'Harmonização (HOF)',
       'Exames',
@@ -25,7 +24,7 @@ void main() {
 
   test('dentista sem área (Dra. Lúcia) não vê Ortodontia nem HOF', () {
     expect(titulos(u('10', Perfil.dentista)),
-        ['Odontograma', 'Atendimentos', 'Anamnese', 'Plano de tratamento', 'Exames', 'Documentos']);
+        ['Anamnese e odontograma', 'Atendimentos', 'Plano de tratamento', 'Exames', 'Documentos']);
   });
 
   test('cada área liberada pelo Administrador aparece sozinha', () {
@@ -39,6 +38,10 @@ void main() {
     expect(titulos(lucia), isNot(contains('Harmonização (HOF)')));
     configuracaoClinica.definirAreaDentista('10', AreaDentista.hof, true);
     expect(titulos(lucia), contains('Harmonização (HOF)'));
+  });
+
+  test('a anamnese do dentista fica dentro da primeira aba, não solta', () {
+    expect(titulos(u('3', Perfil.dentista)), isNot(contains('Anamnese')));
   });
 
   test('biomédico tem as 4 abas da Sala 4', () {

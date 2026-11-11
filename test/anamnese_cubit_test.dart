@@ -160,7 +160,7 @@ void main() {
 
     test('assinar sem as obrigatórias é recusado e não cria rascunho', () async {
       final c = cubit(davi);
-      final erro = await c.salvar(odonto(), {'queixa': 'Dor'}, assinar: true);
+      final erro = await c.salvar(repo.modeloPorId('anamnese-geral')!, {'queixa': 'Dor'}, assinar: true);
       expect(erro, contains('Responda'));
       expect(repo.anamnesesDoPaciente('p1'), isEmpty);
       await c.close();
@@ -198,8 +198,6 @@ void main() {
 
       expect(await c.atualizarRascunho(rascunho, {'queixa': 'Dor', 'dor': '99'}),
           contains('Intensidade da dor'));
-      expect(await c.atualizarRascunho(rascunho, {'queixa': 'Dor'}, assinar: true), contains('Responda'));
-      expect(repo.porId(rascunho.id)!.assinada, isFalse);
 
       expect(await c.atualizarRascunho(rascunho, completas(), assinar: true), isNull);
       final assinada = repo.porId(rascunho.id)!;
@@ -214,6 +212,22 @@ void main() {
       expect(await c2.descartarRascunho(outro), isNull);
       expect(repo.porId(outro.id), isNull);
       await c2.close();
+    });
+        test('ficha odontológica parcial salva e assina; salvar de novo cria nova versão', () async {
+      final c = cubit(davi);
+      expect(await c.salvar(odonto(), {'queixa': 'Dor'}, assinar: true), isNull);
+      final primeira = repo.anamnesesDoPaciente('p1').single;
+      expect(primeira.assinada, isTrue);
+
+      expect(
+        await c.salvar(odonto(), {'queixa': 'Dor', 'historia': 'Há 2 dias'},
+            anterior: primeira, assinar: true),
+        isNull,
+      );
+      expect(repo.anamnesesDoPaciente('p1').length, 2);
+      expect(repo.substituidas('p1'), {primeira.id});
+      expect(repo.porId(primeira.id)!.respostas, {'queixa': 'Dor'}); // a anterior não muda
+      await c.close();
     });
   });
     group('compartilhamento por especialidade', () {

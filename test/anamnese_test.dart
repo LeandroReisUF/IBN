@@ -109,7 +109,9 @@ void main() {
       for (final m in modelosAnamnesePadrao) {
         final ids = m.perguntas.map((p) => p.id).toList();
         expect(ids.toSet().length, ids.length, reason: m.nome);
-        expect(m.perguntas.any((p) => p.obrigatoria), isTrue, reason: m.nome);
+        if (m.id != 'anamnese-odontologica') {
+          expect(m.perguntas.any((p) => p.obrigatoria), isTrue, reason: m.nome);
+        }
         for (final p in m.perguntas) {
           final comOpcoes =
               p.tipo == TipoResposta.escolhaUnica || p.tipo == TipoResposta.multiplaEscolha;
@@ -227,6 +229,57 @@ void main() {
       c.repo.adicionarAnamnese(anamnese()); // duplicada: não notifica
       c.repo.assinarAnamnese('an1', '3');
       expect(chamadas, 2);
+    });
+  });
+
+    group('Perguntas condicionais e seções', () {
+    const mae = PerguntaAnamnese(id: 'm', enunciado: 'M', tipo: TipoResposta.simNao);
+    const filha = PerguntaAnamnese(
+        id: 'f', enunciado: 'F', tipo: TipoResposta.texto, obrigatoria: true, dependeDe: 'm');
+    const porOpcao = PerguntaAnamnese(
+        id: 'x', enunciado: 'X', tipo: TipoResposta.texto, dependeDe: 'a', dependeValor: 'B|C');
+
+    test('sem dependência a pergunta sempre aparece', () {
+      expect(perguntaVisivel(mae, {}), isTrue);
+    });
+
+    test('a filha só aparece quando a mãe é "sim" (padrão)', () {
+      expect(perguntaVisivel(filha, {}), isFalse);
+      expect(perguntaVisivel(filha, {'m': 'nao'}), isFalse);
+      expect(perguntaVisivel(filha, {'m': 'sim'}), isTrue);
+    });
+
+    test('dependeValor aceita várias opções, também em múltipla escolha', () {
+      expect(perguntaVisivel(porOpcao, {'a': 'B'}), isTrue);
+      expect(perguntaVisivel(porOpcao, {'a': 'D|C'}), isTrue);
+      expect(perguntaVisivel(porOpcao, {'a': 'D'}), isFalse);
+      expect(perguntaVisivel(porOpcao, {}), isFalse);
+    });
+
+    test('obrigatória oculta não trava a assinatura', () {
+      expect(faltandoObrigatorias([mae, filha], {'m': 'nao'}), isEmpty);
+      expect(faltandoObrigatorias([mae, filha], {'m': 'sim'}), ['F']);
+      expect(faltandoObrigatorias([mae, filha], {'m': 'sim', 'f': 'ok'}), isEmpty);
+    });
+
+    test('modelo odontológico: dois níveis, dependências coerentes e nada obrigatório', () {
+      final m = modelosAnamnesePadrao.firstWhere((x) => x.id == 'anamnese-odontologica');
+      final ids = <String>{};
+      for (final p in m.perguntas) {
+        if (p.dependeDe != null) {
+          expect(ids.contains(p.dependeDe), isTrue, reason: '${p.id} depende de ${p.dependeDe}');
+        }
+        ids.add(p.id);
+      }
+      expect(m.perguntas.every((p) => (p.secao ?? '').contains('|')), isTrue);
+      expect(m.perguntas.map((p) => p.secao!.split('|').first).toSet(), {'Anamnese', 'Exame físico'});
+      expect(m.perguntas.where((p) => p.obrigatoria), isEmpty);
+    });
+
+    test('a ficha odontológica vazia ou parcial já pode ser salva', () {
+      final m = modelosAnamnesePadrao.firstWhere((x) => x.id == 'anamnese-odontologica');
+      expect(faltandoObrigatorias(m.perguntas, {}), isEmpty);
+      expect(validarRespostas(m.perguntas, {'queixa': 'Dor no 26', 'tratamento_medico': 'sim'}), isNull);
     });
   });
 }

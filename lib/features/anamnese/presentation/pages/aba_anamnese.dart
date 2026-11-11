@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ibn/core/formadores.dart';
@@ -11,10 +12,33 @@ import 'package:ibn/features/auth/data/auth_service.dart';
 import 'package:ibn/features/pacientes/domain/paciente.dart';
 import 'package:ibn/features/prontuario/data/prontuario_repository.dart';
 
-/// Anamnese configurável (RF03.3). Esta classe só **fornece** o Cubit.
+/// Anamnese como aba própria (usada pela Biomedicina): só envolve o conteúdo
+/// em uma área rolável. O conteúdo está em [AnamneseInline].
 class AbaAnamnese extends StatelessWidget {
   final Paciente paciente;
   const AbaAnamnese({super.key, required this.paciente});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 820),
+          child: AnamneseInline(paciente: paciente),
+        ),
+      ),
+    );
+  }
+}
+
+/// Anamnese sempre aberta para preencher, com um único botão "Salvar anamnese"
+/// (RF03.3). Não rola sozinha: quem a usa fornece a rolagem. Esta classe só
+/// **fornece** o Cubit.
+class AnamneseInline extends StatelessWidget {
+  final Paciente paciente;
+  const AnamneseInline({super.key, required this.paciente});
 
   @override
   Widget build(BuildContext context) {
@@ -30,13 +54,6 @@ class AbaAnamnese extends StatelessWidget {
   }
 }
 
-/// O que o formulário devolve: as respostas e se é para assinar.
-class _ResultadoForm {
-  final Map<String, String> respostas;
-  final bool assinar;
-  const _ResultadoForm(this.respostas, this.assinar);
-}
-
 class _AnamneseView extends StatefulWidget {
   final Paciente paciente;
   const _AnamneseView({required this.paciente});
@@ -46,6 +63,9 @@ class _AnamneseView extends StatefulWidget {
 }
 
 class _AnamneseViewState extends State<_AnamneseView> {
+  final Key _chaveForm = UniqueKey();
+  Map<String, String>? _respostas; // null = ainda não mexeu no formulário
+
   bool get _podeEditar =>
       politicaAcesso.podeEditarAnamnese(auth.usuarioLogado!, widget.paciente);
 
@@ -53,209 +73,189 @@ class _AnamneseViewState extends State<_AnamneseView> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(texto)));
   }
 
-  Future<_ResultadoForm?> _abrirFormulario({
-    required String titulo,
-    required List<PerguntaAnamnese> perguntas,
-    Map<String, String> respostas = const {},
-  }) {
-    return Navigator.of(context).push<_ResultadoForm>(
-      MaterialPageRoute(
-        builder: (_) => _PaginaFormulario(
-          titulo: titulo,
-          perguntas: perguntas,
-          respostasIniciais: respostas,
+  String _dataHora(DateTime d) => '${formatarData(d)} ${formatarHora(d)}';
+
+  /// O modelo da especialidade do usuário (o geral não aparece nesta tela).
+  ModeloAnamnese? _modelo(AnamneseSuccess s) {
+    if (s.modelos.isEmpty) return null;
+    return s.modelos.firstWhere((m) => m.especialidade != null, orElse: () => s.modelos.first);
+  }
+
+  /// Minha versão mais recente deste modelo (a que ainda não foi substituída).
+  Anamnese? _ultima(AnamneseSuccess s, ModeloAnamnese m) {
+    final uid = auth.usuarioLogado!.id;
+    return s.anamneses
+        .where((a) =>
+            a.profissionalId == uid && a.modeloId == m.id && !s.substituidas.contains(a.id))
+        .firstOrNull;
+  }
+
+  /// Cada salvamento é uma nova versão assinada; a anterior fica no histórico (RN05).
+  Future<void> _salvar(ModeloAnamnese m, Anamnese? ultima) async {
+    final r = _respostas;
+    if (r == null) return;
+    final cubit = context.read<AnamneseCubit>();
+    final String? erro;
+    if (ultima != null && !ultima.assinada) {
+      erro = await cubit.atualizarRascunho(ultima, r, assinar: true);
+    } else {
+      erro = await cubit.salvar(m, r, anterior: ultima, assinar: true);
+    }
+    if (!mounted) return;
+    _aviso(erro ?? 'Anamnese salva.');
+  }
+
+  // ---------- visual ----------
+
+  Widget _barra(ModeloAnamnese m, Anamnese? ultima, Map<String, String> atuais) {
+    final tema = Theme.of(context);
+    final mudou = _respostas != null &&
+        !mapEquals(_respostas, ultima?.respostas ?? const <String, String>{});
+    final faltando = faltandoObrigatorias(m.perguntas, atuais);
+    final String status;
+    if (faltando.isNotEmpty) {
+      status = 'Para salvar, responda: ${faltando.join('; ')}.';
+    } else if (mudou) {
+      status = 'Alterações ainda não salvas.';
+    } else if (ultima == null) {
+      status = 'Nenhuma anamnese salva ainda.';
+    } else {
+      status = 'Salva em ${_dataHora(ultima.assinadaEm ?? ultima.criadaEm)}. Sem alterações desde então.';
+    }
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                FilledButton.icon(
+                  onPressed: mudou && faltando.isEmpty ? () => _salvar(m, ultima) : null,
+                  icon: const Icon(Icons.save_outlined),
+                  label: const Text('Salvar anamnese'),
+                ),
+                Text(
+                  status,
+                  style: tema.textTheme.bodySmall?.copyWith(
+                    color: faltando.isNotEmpty ? tema.colorScheme.error : null,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Cada vez que você salva, uma nova versão é gravada; as anteriores ficam no '
+              'histórico (RN05).',
+              style: tema.textTheme.bodySmall,
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // ---------- ações ----------
-
-  Future<void> _nova(List<ModeloAnamnese> modelos) async {
-    final cubit = context.read<AnamneseCubit>();
-    final modelo = modelos.length == 1
-        ? modelos.first
-        : await showDialog<ModeloAnamnese>(
-            context: context,
-            builder: (ctx) => SimpleDialog(
-              title: const Text('Escolha o modelo'),
-              children: [
-                for (final m in modelos)
-                  SimpleDialogOption(
-                    onPressed: () => Navigator.of(ctx).pop(m),
-                    child: Text(m.nome),
-                  ),
-              ],
-            ),
-          );
-    if (modelo == null || !mounted) return;
-    final r = await _abrirFormulario(titulo: modelo.nome, perguntas: modelo.perguntas);
-    if (r == null || !mounted) return;
-    final erro = await cubit.salvar(modelo, r.respostas, assinar: r.assinar);
-    if (!mounted) return;
-    _aviso(erro ?? (r.assinar ? 'Anamnese assinada.' : 'Rascunho salvo.'));
-  }
-
-  /// Nova versão de uma anamnese assinada, já com as respostas anteriores.
-  Future<void> _atualizar(Anamnese anterior, List<ModeloAnamnese> modelos) async {
-    final cubit = context.read<AnamneseCubit>();
-    ModeloAnamnese? modelo;
-    for (final m in modelos) {
-      if (m.id == anterior.modeloId) modelo = m;
-    }
-    if (modelo == null) {
-      _aviso('O modelo desta anamnese não está mais disponível.');
-      return;
-    }
-    final r = await _abrirFormulario(
-      titulo: '${modelo.nome} (nova versão)',
-      perguntas: modelo.perguntas,
-      respostas: anterior.respostas,
-    );
-    if (r == null || !mounted) return;
-    final erro = await cubit.salvar(modelo, r.respostas, anterior: anterior, assinar: r.assinar);
-    if (!mounted) return;
-    _aviso(erro ?? (r.assinar ? 'Nova versão assinada.' : 'Rascunho da nova versão salvo.'));
-  }
-
-  Future<void> _continuar(Anamnese a) async {
-    final cubit = context.read<AnamneseCubit>();
-    final r = await _abrirFormulario(
-      titulo: a.titulo,
-      perguntas: a.perguntas,
-      respostas: a.respostas,
-    );
-    if (r == null || !mounted) return;
-    final erro = await cubit.atualizarRascunho(a, r.respostas, assinar: r.assinar);
-    if (!mounted) return;
-    _aviso(erro ?? (r.assinar ? 'Anamnese assinada.' : 'Rascunho salvo.'));
-  }
-
-  Future<void> _descartar(Anamnese a) async {
-    final cubit = context.read<AnamneseCubit>();
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Descartar rascunho?'),
-        content: const Text('Só rascunhos podem ser descartados. Anamneses assinadas nunca são apagadas.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Descartar')),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) return;
-    final erro = await cubit.descartarRascunho(a);
-    if (!mounted) return;
-    if (erro != null) _aviso(erro);
-  }
-
-  // ---------- visual ----------
-
-  String _dataHora(DateTime d) => '${formatarData(d)} ${formatarHora(d)}';
-
-  Widget _cartao(Anamnese a, bool substituida, List<ModeloAnamnese> modelos) {
+  Widget _versao(Anamnese a, bool substituida) {
     final tema = Theme.of(context);
     final minha = a.profissionalId == auth.usuarioLogado!.id;
     final autor = auth.buscarPorId(a.profissionalId)?.nome ?? 'profissional';
     final respondidas = [
       for (final p in a.perguntas)
-        if (respostaLegivel(p, a.respostas[p.id]) != null) (p, respostaLegivel(p, a.respostas[p.id])!),
+        if (respostaLegivel(p, a.respostas[p.id]) != null)
+          (p, respostaLegivel(p, a.respostas[p.id])!),
     ];
     final riscado = substituida ? const TextStyle(decoration: TextDecoration.lineThrough) : null;
+    return ExpansionTile(
+      key: ValueKey('versao-${a.id}'),
+      title: Text('${_dataHora(a.criadaEm)}${minha ? '' : ' • por $autor'}', style: riscado),
+      subtitle: Text(
+        '${a.assinada ? 'assinada • selo ${a.selo}' : 'rascunho'} • modelo v${a.modeloVersao}'
+        '${a.anteriorId == null ? '' : ' • atualiza uma versão anterior'}',
+      ),
+      trailing: substituida ? const Chip(label: Text('Substituída')) : null,
+      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      expandedCrossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (respondidas.isEmpty)
+          const Text('Nenhuma pergunta respondida.')
+        else
+          for (final (p, resposta) in respondidas)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Text.rich(
+                TextSpan(children: [
+                  TextSpan(
+                      text: '${p.enunciado}: ',
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  TextSpan(text: resposta, style: riscado),
+                ]),
+                style: tema.textTheme.bodyMedium,
+              ),
+            ),
+      ],
+    );
+  }
 
+  Widget _historico(AnamneseSuccess s) {
+    if (s.anamneses.isEmpty) return const SizedBox.shrink();
     return Card(
       child: ExpansionTile(
-        initiallyExpanded: !a.assinada,
-        title: Text('${a.titulo} • modelo v${a.modeloVersao}', style: riscado),
+        key: const ValueKey('historico-anamnese'),
+        title: const Text('Histórico de versões'),
         subtitle: Text(
-          '${_dataHora(a.criadaEm)}'
-          '${a.assinada ? ' • assinada • selo ${a.selo}' : ' • rascunho'}'
-          '${a.anteriorId == null ? '' : ' • atualiza uma versão anterior'}'
-          '${minha ? '' : ' • por $autor'}',
+          '${s.anamneses.length} registro(s); inclui as assinadas de colegas da mesma '
+          'especialidade (somente leitura)',
         ),
-        trailing: substituida ? const Chip(label: Text('Substituída')) : null,
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        expandedCrossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (respondidas.isEmpty)
-            const Text('Nenhuma pergunta respondida ainda.')
-          else
-            for (final (p, resposta) in respondidas)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 3),
-                child: Text.rich(
-                  TextSpan(children: [
-                    TextSpan(text: '${p.enunciado}: ', style: const TextStyle(fontWeight: FontWeight.w600)),
-                    TextSpan(text: resposta, style: riscado),
-                  ]),
-                  style: tema.textTheme.bodyMedium,
-                ),
-              ),
-                if (_podeEditar && minha) ...[
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: [
-                if (!a.assinada) ...[
-                  FilledButton.tonal(onPressed: () => _continuar(a), child: const Text('Continuar editando')),
-                  TextButton(onPressed: () => _descartar(a), child: const Text('Descartar')),
-                ],
-                if (a.assinada && !substituida)
-                  OutlinedButton.icon(
-                    onPressed: () => _atualizar(a, modelos),
-                    icon: const Icon(Icons.update),
-                    label: const Text('Atualizar (nova versão)'),
-                  ),
-              ],
-            ),
-          ],
-        ],
+        childrenPadding: const EdgeInsets.only(left: 8),
+        children: [for (final a in s.anamneses) _versao(a, s.substituidas.contains(a.id))],
       ),
     );
   }
 
   Widget _conteudo(AnamneseSuccess s) {
-    final tema = Theme.of(context);
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Anamnese', style: tema.textTheme.titleLarge),
-                const SizedBox(height: 4),
-                Text(
-                  'Você vê as suas anamneses e as ASSINADAS de colegas da mesma especialidade '
-                  '(rascunhos e o modelo geral não são compartilhados). '
-                  'só assina com as perguntas obrigatórias (*) respondidas. Depois de assinada '
-                  'não muda (RN05): use Atualizar para criar uma nova versão e manter o histórico. '
-                  'As perguntas dos modelos devem ser validadas pelos profissionais da clínica.',
-                  style: tema.textTheme.bodySmall,
-                ),
-                if (_podeEditar && s.modelos.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  FilledButton.icon(
-                    onPressed: () => _nova(s.modelos),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Nova anamnese'),
-                  ),
-                ],
-              ],
-            ),
+    final m = _modelo(s);
+    if (m == null) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Text('Nenhum modelo de anamnese disponível para o seu perfil.'),
+      );
+    }
+    final ultima = _ultima(s, m);
+    final atuais = _respostas ?? ultima?.respostas ?? const <String, String>{};
+
+    Widget form = FormularioAnamnese(
+      key: _chaveForm,
+      perguntas: m.perguntas,
+      respostasIniciais: ultima?.respostas ?? const {},
+      aoAlterar: (r) => setState(() => _respostas = r),
+    );
+    // Modelo sem seções (ex.: estética): o formulário vai dentro de um cartão.
+    if (!m.perguntas.any((p) => p.secao != null)) {
+      form = Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(m.nome, style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              form,
+            ],
           ),
         ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AbsorbPointer(absorbing: !_podeEditar, child: form),
+        if (_podeEditar) ...[const SizedBox(height: 8), _barra(m, ultima, atuais)],
         const SizedBox(height: 8),
-        if (s.anamneses.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(24),
-            child: Center(child: Text('Nenhuma anamnese registrada.')),
-          )
-        else
-          for (final a in s.anamneses) _cartao(a, s.substituidas.contains(a.id), s.modelos),
+        _historico(s),
       ],
     );
   }
@@ -264,7 +264,10 @@ class _AnamneseViewState extends State<_AnamneseView> {
   Widget build(BuildContext context) {
     return BlocBuilder<AnamneseCubit, AnamneseState>(
       builder: (context, state) => switch (state) {
-        AnamneseInitial() || AnamneseLoading() => const Center(child: CircularProgressIndicator()),
+        AnamneseInitial() || AnamneseLoading() => const Padding(
+            padding: EdgeInsets.all(24),
+            child: Center(child: CircularProgressIndicator()),
+          ),
         AnamneseError(:final mensagem) => Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -280,80 +283,6 @@ class _AnamneseViewState extends State<_AnamneseView> {
           ),
         final AnamneseSuccess s => _conteudo(s),
       },
-    );
-  }
-}
-
-/// Página do formulário (rola bem em celular). Devolve null se cancelar.
-class _PaginaFormulario extends StatefulWidget {
-  final String titulo;
-  final List<PerguntaAnamnese> perguntas;
-  final Map<String, String> respostasIniciais;
-
-  const _PaginaFormulario({
-    required this.titulo,
-    required this.perguntas,
-    required this.respostasIniciais,
-  });
-
-  @override
-  State<_PaginaFormulario> createState() => _PaginaFormularioState();
-}
-
-class _PaginaFormularioState extends State<_PaginaFormulario> {
-  late Map<String, String> _respostas = Map.of(widget.respostasIniciais);
-
-  List<String> get _faltando => faltandoObrigatorias(widget.perguntas, _respostas);
-
-  @override
-  Widget build(BuildContext context) {
-    final tema = Theme.of(context);
-    final faltando = _faltando;
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.titulo)),
-      body: Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              FormularioAnamnese(
-                perguntas: widget.perguntas,
-                respostasIniciais: widget.respostasIniciais,
-                aoAlterar: (r) => setState(() => _respostas = r),
-              ),
-              if (faltando.isNotEmpty)
-                Text(
-                  'Para assinar, responda: ${faltando.join('; ')}.',
-                  style: tema.textTheme.bodySmall?.copyWith(color: tema.colorScheme.error),
-                ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 12,
-                runSpacing: 8,
-                children: [
-                  OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(_ResultadoForm(_respostas, false)),
-                    child: const Text('Salvar rascunho'),
-                  ),
-                  FilledButton(
-                    onPressed: faltando.isEmpty
-                        ? () => Navigator.of(context).pop(_ResultadoForm(_respostas, true))
-                        : null,
-                    child: const Text('Salvar e assinar'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancelar'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
