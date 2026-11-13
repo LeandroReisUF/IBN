@@ -248,82 +248,122 @@ class _AtendimentosViewState extends State<_AtendimentosView> {
   }
 
   /// Atendimento do dia: já aberto na tela, sem diálogos para começar.
+  static const Color _corAguardando = Color(0xFFF9A825);
+  static const Color _corEmAtendimento = Color(0xFF2E7D32);
+  static const Color _corEncerrado = Color(0xFF616161);
+
+  /// Moldura do bloco do dia: a cor muda com o estado (aguardando, em atendimento, encerrado).
+  Widget _moldura(Color cor, Widget filho) => AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: cor.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: cor, width: 1.5),
+        ),
+        child: filho,
+      );
+
+  Widget _cabecalhoBloco(IconData icone, String titulo, String estado, Color cor, String? detalhe) {
+    final tema = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icone, color: cor),
+            const SizedBox(width: 8),
+            Expanded(child: Text(titulo, style: tema.textTheme.titleLarge)),
+            Chip(
+              label: Text(estado),
+              backgroundColor: cor.withValues(alpha: 0.2),
+              side: BorderSide(color: cor),
+            ),
+          ],
+        ),
+        if (detalhe != null) Text(detalhe, style: tema.textTheme.bodySmall),
+      ],
+    );
+  }
+
+  /// Bloco do dia: amarelo (aguardando), verde (em atendimento) ou cinza (encerrado).
   Widget _painelHoje(AtendimentosSuccess s) {
     final aberto = s.atendimentos.where((d) => !d.atendimento.encerrado).firstOrNull;
     if (aberto != null) return _atendimentoAberto(aberto);
 
-    final tema = Theme.of(context);
+    final agora = DateTime.now();
+    final encerrado = s.atendimentos
+        .where((d) =>
+            d.atendimento.encerrado &&
+            d.atendimento.fim != null &&
+            mesmoDia(d.atendimento.fim!, agora))
+        .firstOrNull;
     final hoje = _cubit.agendamentosIniciaveisHoje();
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Atendimento de hoje', style: tema.textTheme.titleLarge),
-            const SizedBox(height: 8),
-            if (hoje.isEmpty)
+    final tema = Theme.of(context);
+    final cor = encerrado != null ? _corEncerrado : _corAguardando;
+
+    return _moldura(
+      cor,
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (encerrado != null)
+            _cabecalhoBloco(Icons.check_circle_outline, 'Atendimento encerrado', 'Encerrado', cor,
+                'Encerrado às ${formatarHora(encerrado.atendimento.fim!)}')
+          else
+            _cabecalhoBloco(Icons.hourglass_empty, 'Atendimento de hoje', 'Aguardando início', cor, null),
+          const SizedBox(height: 8),
+          if (hoje.isEmpty)
+            Text('Nenhum agendamento pendente hoje para este paciente com você.',
+                style: tema.textTheme.bodySmall)
+          else
+            for (var i = 0; i < hoje.length; i++)
               Text(
-                'Nenhum agendamento pendente hoje para este paciente com você.',
-                style: tema.textTheme.bodySmall,
-              )
-            else
-              for (var i = 0; i < hoje.length; i++)
-                Text(
-                  '${formatarHora(hoje[i].inicio)} – ${formatarHora(hoje[i].fim)} • '
-                  '${buscarProcedimento(hoje[i].procedimentoId)?.nome ?? 'Procedimento'} • '
-                  '${hoje[i].status.rotulo}${i == 0 ? ' • será vinculado ao iniciar' : ''}',
-                ),
-            if (_podeEditar) ...[
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: _iniciar,
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Iniciar atendimento'),
+                '${formatarHora(hoje[i].inicio)} – ${formatarHora(hoje[i].fim)} • '
+                '${buscarProcedimento(hoje[i].procedimentoId)?.nome ?? 'Procedimento'} • '
+                '${hoje[i].status.rotulo}${i == 0 ? ' • será vinculado ao iniciar' : ''}',
               ),
-            ],
+          if (_podeEditar) ...[
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: _iniciar,
+              icon: const Icon(Icons.play_arrow),
+              label: Text(encerrado != null ? 'Iniciar novo atendimento' : 'Iniciar atendimento'),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
 
   Widget _atendimentoAberto(AtendimentoDetalhe d) {
-    final tema = Theme.of(context);
     final a = d.atendimento;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(child: Text('Atendimento de hoje', style: tema.textTheme.titleLarge)),
-                Chip(label: Text(a.status.rotulo)),
-              ],
-            ),
-            Text('Iniciado às ${formatarHora(a.inicio)}', style: tema.textTheme.bodySmall),
-            const SizedBox(height: 12),
-            if (_podeEditar) _compositor(a),
-            for (final item in d.evolucoes) ...[
-              const Divider(),
-              _linhaEvolucao(item, false),
-            ],
-            if (_podeEditar) ...[
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () => _encerrar(a),
-                icon: const Icon(Icons.lock_outline),
-                label: const Text('Encerrar atendimento'),
-              ),
-            ],
+    return _moldura(
+      _corEmAtendimento,
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _cabecalhoBloco(Icons.medical_services_outlined, 'Atendimento de hoje', 'Em atendimento',
+              _corEmAtendimento, 'Iniciado às ${formatarHora(a.inicio)}'),
+          const SizedBox(height: 12),
+          if (_podeEditar) _compositor(a),
+          for (final item in d.evolucoes) ...[
+            const Divider(),
+            _linhaEvolucao(item, false),
           ],
-        ),
+          if (_podeEditar) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => _encerrar(a),
+              icon: const Icon(Icons.lock_outline),
+              label: const Text('Encerrar atendimento'),
+            ),
+          ],
+        ],
       ),
     );
   }
-
+  
   /// Nova evolução inline (tipo, texto e um botão), sem janela.
   Widget _compositor(Atendimento a) {
     final tema = Theme.of(context);
