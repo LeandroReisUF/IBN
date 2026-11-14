@@ -6,18 +6,19 @@ import 'package:ibn/core/politica_acesso_service.dart';
 import 'package:ibn/core/procedimento.dart';
 import 'package:ibn/features/auth/data/auth_service.dart';
 import 'package:ibn/features/auth/domain/usuario.dart';
+import 'package:ibn/features/odontograma/data/odontograma_repository.dart';
+import 'package:ibn/features/odontograma/presentation/pages/aba_odontograma.dart';
 import 'package:ibn/features/pacientes/data/paciente_repository.dart';
 import 'package:ibn/features/pacientes/domain/paciente.dart';
 import 'package:ibn/features/plano_tratamento/data/plano_repository.dart';
+import 'package:ibn/features/plano_tratamento/domain/odontograma_do_plano.dart';
 import 'package:ibn/features/plano_tratamento/domain/orcamento_visibilidade.dart';
 import 'package:ibn/features/plano_tratamento/domain/plano_tratamento.dart';
 import 'package:ibn/features/plano_tratamento/presentation/cubit/plano_cubit.dart';
 import 'package:ibn/features/plano_tratamento/presentation/cubit/plano_state.dart';
-import 'package:ibn/features/odontograma/data/odontograma_repository.dart';
-import 'package:ibn/features/odontograma/presentation/pages/aba_odontograma.dart';
-import 'package:ibn/features/plano_tratamento/domain/odontograma_do_plano.dart';
 
-/// Plano de tratamento e orçamento (RF04.5, RN04). Esta classe só **fornece** o Cubit.
+/// Plano de tratamento e orçamento (RF04.5, RN04), tudo inline.
+/// Esta classe só **fornece** o Cubit.
 class AbaPlanoTratamento extends StatelessWidget {
   final Paciente paciente;
   const AbaPlanoTratamento({super.key, required this.paciente});
@@ -48,6 +49,9 @@ class _PlanoViewState extends State<_PlanoView> {
   Usuario get _usuario => auth.usuarioLogado!;
   bool get _podePlanejar => politicaAcesso.podePlanejarTratamento(_usuario, widget.paciente);
 
+  /// Item cujo painel de encaminhamento está aberto (um por vez).
+  String? _encaminhandoItemId;
+
   void _aviso(String texto) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(texto)));
   }
@@ -56,67 +60,46 @@ class _PlanoViewState extends State<_PlanoView> {
 
   // ---------- ações ----------
 
-  Future<void> _novoPlano() async {
-    final cubit = context.read<PlanoCubit>();
-    final titulo = await showDialog<String>(
-      context: context,
-      builder: (_) => const _DialogoTitulo(),
-    );
-    if (titulo == null || !mounted) return;
-    final erro = await cubit.criarPlano(titulo);
-    if (!mounted) return;
-    _aviso(erro ?? 'Plano criado. Adicione os procedimentos.');
+  Future<String?> _criarPlano(String titulo) async {
+    final erro = await context.read<PlanoCubit>().criarPlano(titulo);
+    if (mounted) _aviso(erro ?? 'Plano criado. Adicione os procedimentos.');
+    return erro;
   }
 
-  Future<void> _novoItem(PlanoTratamento plano) async {
-    final cubit = context.read<PlanoCubit>();
-    final r = await showDialog<_DadosItem>(
-      context: context,
-      builder: (_) => _DialogoItem(usuario: _usuario),
-    );
-    if (r == null || !mounted) return;
-    final erro = await cubit.adicionarItem(
-      plano,
-      procedimentoId: r.procedimentoId,
-      dente: r.dente,
-      instrucoes: r.instrucoes,
-      valorCentavos: r.valorCentavos,
-      descontoCentavos: r.descontoCentavos,
-    );
-    if (!mounted) return;
-    _aviso(erro ?? 'Procedimento adicionado ao plano.');
+  Future<String?> _adicionarItem(PlanoTratamento plano, _DadosItem r) async {
+    final erro = await context.read<PlanoCubit>().adicionarItem(
+          plano,
+          procedimentoId: r.procedimentoId,
+          dente: r.dente,
+          instrucoes: r.instrucoes,
+          valorCentavos: r.valorCentavos,
+          descontoCentavos: r.descontoCentavos,
+        );
+    if (mounted) _aviso(erro ?? 'Procedimento adicionado ao plano.');
+    return erro;
   }
 
-  Future<void> _pagamento(PlanoTratamento plano) async {
-    final cubit = context.read<PlanoCubit>();
-    final r = await showDialog<Orcamento>(
-      context: context,
-      builder: (_) => _DialogoPagamento(inicial: plano.orcamento),
-    );
-    if (r == null || !mounted) return;
-    final erro = await cubit.definirOrcamento(plano, r.forma, r.parcelas);
-    if (!mounted) return;
-    _aviso(erro ?? 'Forma de pagamento definida.');
+  Future<String?> _definirPagamento(
+      PlanoTratamento plano, FormaPagamento forma, int parcelas) async {
+    final erro = await context.read<PlanoCubit>().definirOrcamento(plano, forma, parcelas);
+    if (mounted) _aviso(erro ?? 'Forma de pagamento definida.');
+    return erro;
   }
 
-  Future<void> _encaminhar(PlanoTratamento plano, ItemPlano item) async {
-    final cubit = context.read<PlanoCubit>();
-    final r = await showDialog<({String executanteId, String instrucoes})>(
-      context: context,
-      builder: (_) => _DialogoEncaminhar(
-        executantes: cubit.executantesPossiveis,
-        instrucoesIniciais: item.instrucoes,
-      ),
-    );
-    if (r == null || !mounted) return;
-    final erro = await cubit.encaminhar(plano, item, r.executanteId, instrucoes: r.instrucoes);
-    if (!mounted) return;
-    _aviso(erro ?? 'Procedimento encaminhado. O executante vê só as instruções clínicas, sem valores.');
+  Future<String?> _encaminhar(
+      PlanoTratamento plano, ItemPlano item, String executanteId, String instrucoes) async {
+    final erro = await context
+        .read<PlanoCubit>()
+        .encaminhar(plano, item, executanteId, instrucoes: instrucoes);
+    if (!mounted) return erro;
+    _aviso(erro ??
+        'Procedimento encaminhado. O executante vê só as instruções clínicas, sem valores.');
+    if (erro == null) setState(() => _encaminhandoItemId = null);
+    return erro;
   }
 
   Future<void> _realizar(PlanoTratamento plano, ItemPlano item) async {
-    final cubit = context.read<PlanoCubit>();
-    final erro = await cubit.realizarMeuItem(plano, item);
+    final erro = await context.read<PlanoCubit>().realizarMeuItem(plano, item);
     if (!mounted) return;
     _aviso(erro ?? 'Procedimento marcado como realizado.');
   }
@@ -130,7 +113,9 @@ class _PlanoViewState extends State<_PlanoView> {
         content: const Text('Ele continua no plano como "Cancelado" e sai do total.'),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Voltar')),
-          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Cancelar procedimento')),
+          FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Cancelar procedimento')),
         ],
       ),
     );
@@ -141,15 +126,15 @@ class _PlanoViewState extends State<_PlanoView> {
   }
 
   Future<void> _executar(GuiaProcedimentoExecutante guia) async {
-    final cubit = context.read<PlanoCubit>();
-    final erro = await cubit.executarGuia(guia);
+    final erro = await context.read<PlanoCubit>().executarGuia(guia);
     if (!mounted) return;
     _aviso(erro ?? 'Procedimento marcado como realizado.');
   }
 
   // ---------- visual ----------
 
-  String _executante(String? id) => id == null ? 'você' : (auth.buscarPorId(id)?.nome ?? 'profissional');
+  String _executante(String? id) =>
+      id == null ? 'você' : (auth.buscarPorId(id)?.nome ?? 'profissional');
 
   Widget _linhaItem(PlanoTratamento plano, ItemPlano i) {
     final tema = Theme.of(context);
@@ -159,9 +144,9 @@ class _PlanoViewState extends State<_PlanoView> {
     final valores = 'Valor ${formatarReais(i.valorCentavos)}'
         '${i.descontoCentavos > 0 ? ' • desconto ${formatarReais(i.descontoCentavos)}' : ''}'
         ' • líquido ${formatarReais(i.liquidoCentavos)}';
-    final situacao = '${i.status.rotulo}'
-        '${i.executanteId == null ? '' : ' • executante: ${_executante(i.executanteId)}'}'
-        '${i.realizadoEm == null ? '' : ' • realizado em ${formatarData(i.realizadoEm!)}'}';
+    final situacao = i.status.rotulo +
+        (i.executanteId == null ? '' : ' • executante: ${_executante(i.executanteId)}') +
+        (i.realizadoEm == null ? '' : ' • realizado em ${formatarData(i.realizadoEm!)}');
 
     final acoes = <PopupMenuEntry<String>>[
       if (i.status == StatusItem.planejado) ...[
@@ -172,30 +157,50 @@ class _PlanoViewState extends State<_PlanoView> {
         const PopupMenuItem(value: 'cancelar', child: Text('Cancelar procedimento')),
     ];
 
-    return ListTile(
-      dense: true,
-      contentPadding: EdgeInsets.zero,
-      title: Text('${_nomeProcedimento(i.procedimentoId)}$dente', style: riscado),
-      subtitle: Text(
-        '$valores\n$situacao${i.instrucoes.isEmpty ? '' : '\nInstruções: ${i.instrucoes}'}',
-        style: tema.textTheme.bodySmall?.copyWith(
-          decoration: cancelado ? TextDecoration.lineThrough : null,
-        ),
-      ),
-      isThreeLine: true,
-      trailing: acoes.isEmpty
-          ? null
-          : PopupMenuButton<String>(
-              tooltip: 'Ações',
-              itemBuilder: (_) => acoes,
-              onSelected: (a) => switch (a) {
-                'encaminhar' => _encaminhar(plano, i),
-                'realizar' => _realizar(plano, i),
-                _ => _cancelar(plano, i),
-              },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          title: Text('${_nomeProcedimento(i.procedimentoId)}$dente', style: riscado),
+          subtitle: Text(
+            '$valores\n$situacao${i.instrucoes.isEmpty ? '' : '\nInstruções: ${i.instrucoes}'}',
+            style: tema.textTheme.bodySmall?.copyWith(
+              decoration: cancelado ? TextDecoration.lineThrough : null,
             ),
+          ),
+          isThreeLine: true,
+          trailing: acoes.isEmpty
+              ? null
+              : PopupMenuButton<String>(
+                  tooltip: 'Ações',
+                  itemBuilder: (_) => acoes,
+                  onSelected: (a) {
+                    switch (a) {
+                      case 'encaminhar':
+                        setState(() => _encaminhandoItemId = i.id);
+                      case 'realizar':
+                        _realizar(plano, i);
+                      default:
+                        _cancelar(plano, i);
+                    }
+                  },
+                ),
+        ),
+        if (_encaminhandoItemId == i.id && i.status == StatusItem.planejado)
+          _PainelEncaminhar(
+            key: ValueKey('enc-${i.id}'),
+            executantes: context.read<PlanoCubit>().executantesPossiveis,
+            instrucoesIniciais: i.instrucoes,
+            aoEncaminhar: (executanteId, instrucoes) =>
+                _encaminhar(plano, i, executanteId, instrucoes),
+            aoCancelar: () => setState(() => _encaminhandoItemId = null),
+          ),
+      ],
     );
   }
+
   void _abrirOdontogramaDoPlano(PlanoTratamento plano) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -238,6 +243,7 @@ class _PlanoViewState extends State<_PlanoView> {
       },
     );
   }
+
   Widget _cartaoPlano(PlanoTratamento plano) {
     final tema = Theme.of(context);
     // RN04: só o criador e o Administrador veem valores; este cartão só é
@@ -248,6 +254,7 @@ class _PlanoViewState extends State<_PlanoView> {
 
     return Card(
       child: ExpansionTile(
+        key: ValueKey('plano-${plano.id}'),
         initiallyExpanded: true,
         title: Text(plano.titulo),
         subtitle: Text(
@@ -265,8 +272,10 @@ class _PlanoViewState extends State<_PlanoView> {
           else
             for (final i in plano.itens) _linhaItem(plano, i),
           const Divider(),
-          Text('Valor bruto: ${formatarReais(plano.totalBrutoCentavos)}', style: tema.textTheme.bodyMedium),
-          Text('Descontos: ${formatarReais(plano.descontoTotalCentavos)}', style: tema.textTheme.bodyMedium),
+          Text('Valor bruto: ${formatarReais(plano.totalBrutoCentavos)}',
+              style: tema.textTheme.bodyMedium),
+          Text('Descontos: ${formatarReais(plano.descontoTotalCentavos)}',
+              style: tema.textTheme.bodyMedium),
           Text('Total negociado: ${formatarReais(plano.totalNegociadoCentavos)}',
               style: tema.textTheme.titleSmall),
           const SizedBox(height: 4),
@@ -278,22 +287,18 @@ class _PlanoViewState extends State<_PlanoView> {
             style: tema.textTheme.bodyMedium,
           ),
           const SizedBox(height: 8),
-          const SizedBox(height: 8),
           _odontogramaDoPlano(plano),
-          Wrap(
-            spacing: 8,
-            children: [
-              FilledButton.tonalIcon(
-                onPressed: () => _novoItem(plano),
-                icon: const Icon(Icons.add),
-                label: const Text('Adicionar procedimento'),
-              ),
-              OutlinedButton.icon(
-                onPressed: () => _pagamento(plano),
-                icon: const Icon(Icons.payments_outlined),
-                label: const Text('Forma de pagamento'),
-              ),
-            ],
+          const Divider(height: 24),
+          _CompositorItem(
+            key: ValueKey('item-${plano.id}'),
+            usuario: _usuario,
+            aoAdicionar: (r) => _adicionarItem(plano, r),
+          ),
+          const Divider(height: 24),
+          _PainelPagamento(
+            key: ValueKey('pag-${plano.id}-${o?.forma.name}-${o?.parcelas}'),
+            inicial: o,
+            aoSalvar: (forma, parcelas) => _definirPagamento(plano, forma, parcelas),
           ),
         ],
       ),
@@ -320,9 +325,11 @@ class _PlanoViewState extends State<_PlanoView> {
                 Chip(label: Text(g.status.rotulo)),
               ],
             ),
-            if (paciente != null) Text('Paciente: ${paciente.nome}', style: tema.textTheme.bodySmall),
+            if (paciente != null)
+              Text('Paciente: ${paciente.nome}', style: tema.textTheme.bodySmall),
             if (g.encaminhadoEm != null)
-              Text('Encaminhado em ${formatarData(g.encaminhadoEm!)}', style: tema.textTheme.bodySmall),
+              Text('Encaminhado em ${formatarData(g.encaminhadoEm!)}',
+                  style: tema.textTheme.bodySmall),
             const SizedBox(height: 6),
             Text(g.instrucoes.isEmpty ? 'Sem instruções clínicas.' : g.instrucoes),
             if (g.status == StatusItem.encaminhado) ...[
@@ -334,7 +341,8 @@ class _PlanoViewState extends State<_PlanoView> {
               ),
             ],
             if (g.realizadoEm != null)
-              Text('Realizado em ${formatarData(g.realizadoEm!)}', style: tema.textTheme.bodySmall),
+              Text('Realizado em ${formatarData(g.realizadoEm!)}',
+                  style: tema.textTheme.bodySmall),
           ],
         ),
       ),
@@ -364,11 +372,7 @@ class _PlanoViewState extends State<_PlanoView> {
                     style: tema.textTheme.bodySmall,
                   ),
                   const SizedBox(height: 12),
-                  FilledButton.icon(
-                    onPressed: _novoPlano,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Novo plano'),
-                  ),
+                  _NovoPlano(aoCriar: _criarPlano),
                 ],
               ),
             ),
@@ -416,16 +420,18 @@ class _PlanoViewState extends State<_PlanoView> {
   }
 }
 
-// ---------- diálogos ----------
+// ---------- painéis inline ----------
 
-class _DialogoTitulo extends StatefulWidget {
-  const _DialogoTitulo();
+/// Linha "título + Criar plano".
+class _NovoPlano extends StatefulWidget {
+  final Future<String?> Function(String titulo) aoCriar;
+  const _NovoPlano({required this.aoCriar});
 
   @override
-  State<_DialogoTitulo> createState() => _DialogoTituloState();
+  State<_NovoPlano> createState() => _NovoPlanoState();
 }
 
-class _DialogoTituloState extends State<_DialogoTitulo> {
+class _NovoPlanoState extends State<_NovoPlano> {
   final _ctrl = TextEditingController();
 
   @override
@@ -440,25 +446,33 @@ class _DialogoTituloState extends State<_DialogoTitulo> {
     super.dispose();
   }
 
+  Future<void> _criar() async {
+    final erro = await widget.aoCriar(_ctrl.text.trim());
+    if (erro == null && mounted) _ctrl.clear();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Novo plano de tratamento'),
-      content: SizedBox(
-        width: 400,
-        child: TextField(
-          controller: _ctrl,
-          decoration: const InputDecoration(
-            labelText: 'Título (ex.: Reabilitação superior) *',
-            border: OutlineInputBorder(),
+    return Wrap(
+      spacing: 12,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        SizedBox(
+          width: 360,
+          child: TextField(
+            controller: _ctrl,
+            decoration: const InputDecoration(
+              labelText: 'Título do novo plano (ex.: Reabilitação superior) *',
+              isDense: true,
+              border: OutlineInputBorder(),
+            ),
           ),
         ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
-        FilledButton(
-          onPressed: _ctrl.text.trim().isEmpty ? null : () => Navigator.of(context).pop(_ctrl.text.trim()),
-          child: const Text('Criar'),
+        FilledButton.icon(
+          onPressed: _ctrl.text.trim().isEmpty ? null : _criar,
+          icon: const Icon(Icons.add),
+          label: const Text('Criar plano'),
         ),
       ],
     );
@@ -471,18 +485,22 @@ class _DadosItem {
   final String instrucoes;
   final int valorCentavos;
   final int descontoCentavos;
-  const _DadosItem(this.procedimentoId, this.dente, this.instrucoes, this.valorCentavos, this.descontoCentavos);
+  const _DadosItem(
+      this.procedimentoId, this.dente, this.instrucoes, this.valorCentavos, this.descontoCentavos);
 }
 
-class _DialogoItem extends StatefulWidget {
+/// Adicionar procedimento ao plano, sem janela.
+class _CompositorItem extends StatefulWidget {
   final Usuario usuario;
-  const _DialogoItem({required this.usuario});
+  final Future<String?> Function(_DadosItem) aoAdicionar;
+
+  const _CompositorItem({super.key, required this.usuario, required this.aoAdicionar});
 
   @override
-  State<_DialogoItem> createState() => _DialogoItemState();
+  State<_CompositorItem> createState() => _CompositorItemState();
 }
 
-class _DialogoItemState extends State<_DialogoItem> {
+class _CompositorItemState extends State<_CompositorItem> {
   String? _procedimentoId;
   final _denteCtrl = TextEditingController();
   final _instrCtrl = TextEditingController();
@@ -506,10 +524,10 @@ class _DialogoItemState extends State<_DialogoItem> {
     super.dispose();
   }
 
-    List<Procedimento> get _procedimentos => procedimentos
+  List<Procedimento> get _procedimentos => procedimentos
       .where((p) => p.aceitaAlgumaDe(widget.usuario.perfil.especialidades))
       .toList();
-      
+
   int? get _valor => lerCentavos(_valorCtrl.text);
   int get _desconto => _descCtrl.text.trim().isEmpty ? 0 : (lerCentavos(_descCtrl.text) ?? -1);
   int? get _dente => int.tryParse(_denteCtrl.text.trim());
@@ -524,124 +542,120 @@ class _DialogoItemState extends State<_DialogoItem> {
 
   bool get _ok => _procedimentoId != null && _valor != null && _erro == null;
 
+  Future<void> _adicionar() async {
+    final erro = await widget.aoAdicionar(_DadosItem(
+      _procedimentoId!,
+      _dente,
+      _instrCtrl.text.trim(),
+      _valor!,
+      _desconto,
+    ));
+    if (erro == null && mounted) {
+      setState(() {
+        _procedimentoId = null;
+        _denteCtrl.clear();
+        _instrCtrl.clear();
+        _valorCtrl.clear();
+        _descCtrl.clear();
+      });
+    }
+  }
+
+  Widget _campoNumero(TextEditingController c, String rotulo, double largura,
+          {bool inteiro = false}) =>
+      SizedBox(
+        width: largura,
+        child: TextField(
+          controller: c,
+          keyboardType: TextInputType.numberWithOptions(decimal: !inteiro),
+          inputFormatters: [
+            inteiro
+                ? FilteringTextInputFormatter.digitsOnly
+                : FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+          ],
+          decoration: InputDecoration(
+            labelText: rotulo,
+            isDense: true,
+            border: const OutlineInputBorder(),
+          ),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
     final erro = _erro;
-    return AlertDialog(
-      title: const Text('Adicionar procedimento'),
-      content: SizedBox(
-        width: 440,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Adicionar procedimento', style: tema.textTheme.titleSmall),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            SizedBox(
+              width: 300,
+              child: DropdownButtonFormField<String>(
+                key: ValueKey('proc-$_procedimentoId'),
                 initialValue: _procedimentoId,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Procedimento *', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                    labelText: 'Procedimento *', isDense: true, border: OutlineInputBorder()),
                 items: [
-                  for (final p in _procedimentos) DropdownMenuItem(value: p.id, child: Text(p.nome)),
+                  for (final p in _procedimentos)
+                    DropdownMenuItem(value: p.id, child: Text(p.nome)),
                 ],
                 onChanged: (v) => setState(() => _procedimentoId = v),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _denteCtrl,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(
-                  labelText: 'Dente (número FDI, opcional)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _instrCtrl,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Instruções clínicas (o executante verá)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _valorCtrl,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
-                      decoration: const InputDecoration(
-                        labelText: 'Valor (R\$) *',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: _descCtrl,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
-                      decoration: const InputDecoration(
-                        labelText: 'Desconto (R\$)',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Valor e desconto ficam ocultos para quem executar o procedimento.',
-                    style: tema.textTheme.bodySmall,
-                  ),
-                ),
-              ),
-              if (erro != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(erro, style: TextStyle(color: tema.colorScheme.error)),
-                  ),
-                ),
-            ],
+            ),
+            _campoNumero(_denteCtrl, 'Dente (FDI)', 110, inteiro: true),
+            _campoNumero(_valorCtrl, 'Valor (R\$) *', 130),
+            _campoNumero(_descCtrl, 'Desconto (R\$)', 130),
+          ],
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _instrCtrl,
+          maxLines: 2,
+          decoration: const InputDecoration(
+            labelText: 'Instruções clínicas (o executante verá)',
+            border: OutlineInputBorder(),
           ),
         ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
-        FilledButton(
-          onPressed: _ok
-              ? () => Navigator.of(context).pop(_DadosItem(
-                    _procedimentoId!,
-                    _dente,
-                    _instrCtrl.text.trim(),
-                    _valor!,
-                    _desconto,
-                  ))
-              : null,
-          child: const Text('Adicionar'),
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text('Valor e desconto ficam ocultos para quem executar o procedimento.',
+              style: tema.textTheme.bodySmall),
+        ),
+        if (erro != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(erro, style: TextStyle(color: tema.colorScheme.error)),
+          ),
+        const SizedBox(height: 8),
+        FilledButton.icon(
+          onPressed: _ok ? _adicionar : null,
+          icon: const Icon(Icons.add),
+          label: const Text('Adicionar procedimento'),
         ),
       ],
     );
   }
 }
 
-class _DialogoPagamento extends StatefulWidget {
+/// Forma de pagamento: chips e, se parcelável, o número de parcelas.
+class _PainelPagamento extends StatefulWidget {
   final Orcamento? inicial;
-  const _DialogoPagamento({this.inicial});
+  final Future<String?> Function(FormaPagamento forma, int parcelas) aoSalvar;
+
+  const _PainelPagamento({super.key, required this.inicial, required this.aoSalvar});
 
   @override
-  State<_DialogoPagamento> createState() => _DialogoPagamentoState();
+  State<_PainelPagamento> createState() => _PainelPagamentoState();
 }
 
-class _DialogoPagamentoState extends State<_DialogoPagamento> {
+class _PainelPagamentoState extends State<_PainelPagamento> {
   late FormaPagamento _forma = widget.inicial?.forma ?? FormaPagamento.pix;
   late int _parcelas = widget.inicial?.parcelas ?? 1;
 
@@ -649,58 +663,72 @@ class _DialogoPagamentoState extends State<_DialogoPagamento> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Forma de pagamento'),
-      content: SizedBox(
-        width: 360,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+    final tema = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Forma de pagamento', style: tema.textTheme.titleSmall),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
           children: [
-            DropdownButtonFormField<FormaPagamento>(
-              initialValue: _forma,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Forma', border: OutlineInputBorder()),
-              items: [
-                for (final f in FormaPagamento.values) DropdownMenuItem(value: f, child: Text(f.rotulo)),
-              ],
-              onChanged: (v) => setState(() {
-                _forma = v ?? _forma;
-                if (!_parcela) _parcelas = 1;
-              }),
-            ),
-            if (_parcela) ...[
-              const SizedBox(height: 12),
-              DropdownButtonFormField<int>(
-                initialValue: _parcelas,
-                decoration: const InputDecoration(labelText: 'Parcelas', border: OutlineInputBorder()),
-                items: [for (var n = 1; n <= 12; n++) DropdownMenuItem(value: n, child: Text('${n}x'))],
-                onChanged: (v) => setState(() => _parcelas = v ?? 1),
+            for (final f in FormaPagamento.values)
+              ChoiceChip(
+                label: Text(f.rotulo),
+                selected: _forma == f,
+                onSelected: (_) => setState(() {
+                  _forma = f;
+                  if (!_parcela) _parcelas = 1;
+                }),
               ),
-            ],
           ],
         ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(Orcamento(forma: _forma, parcelas: _parcelas)),
-          child: const Text('Salvar'),
+        if (_parcela) ...[
+          const SizedBox(height: 12),
+          SizedBox(
+            width: 140,
+            child: DropdownButtonFormField<int>(
+              key: ValueKey('parcelas-$_parcelas'),
+              initialValue: _parcelas,
+              decoration: const InputDecoration(
+                  labelText: 'Parcelas', isDense: true, border: OutlineInputBorder()),
+              items: [for (var n = 1; n <= 12; n++) DropdownMenuItem(value: n, child: Text('${n}x'))],
+              onChanged: (v) => setState(() => _parcelas = v ?? 1),
+            ),
+          ),
+        ],
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          onPressed: () => widget.aoSalvar(_forma, _parcelas),
+          icon: const Icon(Icons.payments_outlined),
+          label: const Text('Salvar pagamento'),
         ),
       ],
     );
   }
 }
 
-class _DialogoEncaminhar extends StatefulWidget {
+/// Encaminhar um item a outro dentista, dentro do próprio item (RN04).
+class _PainelEncaminhar extends StatefulWidget {
   final List<Usuario> executantes;
   final String instrucoesIniciais;
-  const _DialogoEncaminhar({required this.executantes, required this.instrucoesIniciais});
+  final Future<String?> Function(String executanteId, String instrucoes) aoEncaminhar;
+  final VoidCallback aoCancelar;
+
+  const _PainelEncaminhar({
+    super.key,
+    required this.executantes,
+    required this.instrucoesIniciais,
+    required this.aoEncaminhar,
+    required this.aoCancelar,
+  });
 
   @override
-  State<_DialogoEncaminhar> createState() => _DialogoEncaminharState();
+  State<_PainelEncaminhar> createState() => _PainelEncaminharState();
 }
 
-class _DialogoEncaminharState extends State<_DialogoEncaminhar> {
+class _PainelEncaminharState extends State<_PainelEncaminhar> {
   String? _executanteId;
   late final TextEditingController _instrCtrl =
       TextEditingController(text: widget.instrucoesIniciais);
@@ -714,55 +742,62 @@ class _DialogoEncaminharState extends State<_DialogoEncaminhar> {
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
-    return AlertDialog(
-      title: const Text('Encaminhar procedimento'),
-      content: SizedBox(
-        width: 440,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: tema.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Encaminhar procedimento', style: tema.textTheme.titleSmall),
+          Text(
+            'O dentista escolhido recebe só o procedimento, o dente e as instruções abaixo, '
+            'sem nenhum valor, e passa a ter o paciente vinculado.',
+            style: tema.textTheme.bodySmall,
+          ),
+          const SizedBox(height: 8),
+          if (widget.executantes.isEmpty)
+            const Text('Nenhum outro dentista disponível.')
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                for (final u in widget.executantes)
+                  ChoiceChip(
+                    label: Text(u.nome),
+                    selected: _executanteId == u.id,
+                    onSelected: (_) => setState(() => _executanteId = u.id),
+                  ),
+              ],
+            ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _instrCtrl,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              labelText: 'Instruções clínicas',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
             children: [
-              Text(
-                'O dentista escolhido recebe só o procedimento, o dente e as instruções abaixo, '
-                'sem nenhum valor, e passa a ter o paciente vinculado.',
-                style: tema.textTheme.bodySmall,
+              FilledButton(
+                onPressed: _executanteId == null
+                    ? null
+                    : () => widget.aoEncaminhar(_executanteId!, _instrCtrl.text.trim()),
+                child: const Text('Encaminhar'),
               ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _executanteId,
-                isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Dentista *', border: OutlineInputBorder()),
-                items: [
-                  for (final u in widget.executantes) DropdownMenuItem(value: u.id, child: Text(u.nome)),
-                ],
-                onChanged: (v) => setState(() => _executanteId = v),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _instrCtrl,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Instruções clínicas',
-                  border: OutlineInputBorder(),
-                ),
-              ),
+              TextButton(onPressed: widget.aoCancelar, child: const Text('Cancelar')),
             ],
           ),
-        ),
+        ],
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
-        FilledButton(
-          onPressed: _executanteId == null
-              ? null
-              : () => Navigator.of(context).pop((
-                    executanteId: _executanteId!,
-                    instrucoes: _instrCtrl.text.trim(),
-                  )),
-          child: const Text('Encaminhar'),
-        ),
-      ],
     );
   }
 }

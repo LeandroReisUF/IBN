@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -13,14 +12,13 @@ import 'package:ibn/features/hof/presentation/cubit/hof_cubit.dart';
 import 'package:ibn/features/hof/presentation/cubit/hof_state.dart';
 import 'package:ibn/features/pacientes/domain/paciente.dart';
 import 'package:ibn/features/prontuario/data/prontuario_repository.dart';
-import 'package:ibn/core/widgets/dialogo_lote_aplicado.dart';
 
 String _num(double v) =>
     v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString().replaceAll('.', ',');
 
 double? _lerNumero(String t) => double.tryParse(t.trim().replaceAll(',', '.'));
 
-/// Harmonização Orofacial (RF04.2, RN06). Esta classe só **fornece** o Cubit.
+/// Harmonização Orofacial (RF04.2, RN06), tudo inline. Esta classe só **fornece** o Cubit.
 class AbaHof extends StatelessWidget {
   final Paciente paciente;
   const AbaHof({super.key, required this.paciente});
@@ -48,8 +46,26 @@ class _HofView extends StatefulWidget {
 }
 
 class _HofViewState extends State<_HofView> {
+  final _scroll = ScrollController();
+  final _justAnularCtrl = TextEditingController();
+  ProcedimentoHOF? _retificando; // carregado no painel do topo
+  String? _anulandoId; // justificativa aberta dentro do cartão
+
   bool get _podeEditar =>
       politicaAcesso.podeEditarHof(auth.usuarioLogado!, widget.paciente);
+
+  @override
+  void initState() {
+    super.initState();
+    _justAnularCtrl.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    _justAnularCtrl.dispose();
+    super.dispose();
+  }
 
   void _aviso(String texto) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(texto)));
@@ -57,77 +73,69 @@ class _HofViewState extends State<_HofView> {
 
   // ---------- ações ----------
 
-  Future<void> _novo() async {
+  /// Registra um procedimento novo ou, com [_retificando], a correção dele.
+  Future<String?> _registrar(_DadosProcedimento r) async {
     final cubit = context.read<HofCubit>();
-    if (!cubit.temAtendimentoAberto) {
-      _aviso('Inicie um atendimento na aba Atendimentos antes de registrar o procedimento.');
-      return;
+    final base = _retificando;
+    final String? erro;
+    if (base == null) {
+      erro = await cubit.registrar(
+        tipo: r.tipo,
+        tipoOutro: r.tipoOutro,
+        pontos: r.pontos,
+        insumos: r.insumos,
+        tecnica: r.tecnica,
+        observacoes: r.observacoes,
+      );
+    } else {
+      erro = await cubit.retificar(
+        base,
+        tipo: r.tipo,
+        tipoOutro: r.tipoOutro,
+        pontos: r.pontos,
+        insumos: r.insumos,
+        tecnica: r.tecnica,
+        observacoes: r.observacoes,
+        justificativa: r.justificativa ?? '',
+      );
     }
-    final r = await showDialog<_DadosProcedimento>(
-      context: context,
-      builder: (_) => const _DialogoProcedimento(),
-    );
-    if (r == null || !mounted) return;
-    final erro = await cubit.registrar(
-      tipo: r.tipo,
-      tipoOutro: r.tipoOutro,
-      pontos: r.pontos,
-      insumos: r.insumos,
-      tecnica: r.tecnica,
-      observacoes: r.observacoes,
-    );
-    if (!mounted) return;
-    _aviso(erro ?? 'Procedimento registrado.');
+    if (!mounted) return erro;
+    _aviso(erro ?? (base == null ? 'Procedimento registrado.' : 'Registro retificado.'));
+    if (erro == null && base != null) setState(() => _retificando = null);
+    return erro;
   }
 
-  Future<void> _retificar(ProcedimentoHOF anterior) async {
-    final cubit = context.read<HofCubit>();
-    final r = await showDialog<_DadosProcedimento>(
-      context: context,
-      builder: (_) => _DialogoProcedimento(base: anterior),
-    );
-    if (r == null || !mounted) return;
-    final erro = await cubit.retificar(
-      anterior,
-      tipo: r.tipo,
-      tipoOutro: r.tipoOutro,
-      pontos: r.pontos,
-      insumos: r.insumos,
-      tecnica: r.tecnica,
-      observacoes: r.observacoes,
-      justificativa: r.justificativa ?? '',
-    );
-    if (!mounted) return;
-    _aviso(erro ?? 'Registro retificado.');
+  void _carregarRetificar(ProcedimentoHOF p) {
+    setState(() {
+      _retificando = p;
+      _anulandoId = null;
+    });
+    if (_scroll.hasClients) {
+      _scroll.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+    }
   }
 
-  Future<void> _anular(ProcedimentoHOF anterior) async {
-    final cubit = context.read<HofCubit>();
-    final just = await showDialog<String>(
-      context: context,
-      builder: (_) => const _DialogoJustificativa(),
-    );
-    if (just == null || !mounted) return;
-    final erro = await cubit.anular(anterior, just);
+  Future<void> _anular(ProcedimentoHOF p) async {
+    final erro = await context.read<HofCubit>().anular(p, _justAnularCtrl.text.trim());
     if (!mounted) return;
     _aviso(erro ?? 'Registro anulado.');
+    if (erro == null) {
+      setState(() {
+        _anulandoId = null;
+        _justAnularCtrl.clear();
+      });
+    }
   }
 
-  Future<void> _novaFoto() async {
-    final cubit = context.read<HofCubit>();
-    final r = await showDialog<_NovaFoto>(
-      context: context,
-      builder: (_) => const _DialogoFoto(),
-    );
-    if (r == null || !mounted) return;
-    final erro = await cubit.adicionarFoto(
-      descricao: r.descricao,
-      isAntes: r.isAntes,
-      nomeArquivo: r.nome,
-      bytes: r.bytes,
-    );
-    if (!mounted) return;
-    _aviso(erro ?? 'Foto adicionada.');
+  Future<String?> _adicionarFoto(String descricao, bool isAntes, ArquivoSelecionado a) async {
+    final erro = await context.read<HofCubit>().adicionarFoto(
+          descricao: descricao,
+          isAntes: isAntes,
+          nomeArquivo: a.nome,
+          bytes: a.bytes,
+        );
+    if (mounted) _aviso(erro ?? 'Foto adicionada.');
+    return erro;
   }
 
   void _ampliar(FotoComparativaHOF f) {
@@ -165,6 +173,7 @@ class _HofViewState extends State<_HofView> {
   Widget _cartaoProcedimento(ProcedimentoHOF p, bool retificado) {
     final tema = Theme.of(context);
     final riscado = retificado ? const TextStyle(decoration: TextDecoration.lineThrough) : null;
+    final anulando = _anulandoId == p.id;
     final linhas = <String>[
       if (p.anulacao) 'Anulou um registro anterior.',
       if (p.retificaId != null && !p.anulacao) 'Retifica um registro anterior.',
@@ -205,9 +214,44 @@ class _HofViewState extends State<_HofView> {
               Wrap(
                 spacing: 8,
                 children: [
-                  TextButton(onPressed: () => _retificar(p), child: const Text('Retificar')),
-                  TextButton(onPressed: () => _anular(p), child: const Text('Anular')),
+                  TextButton(
+                    onPressed: () => _carregarRetificar(p),
+                    child: const Text('Retificar'),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() {
+                      _anulandoId = anulando ? null : p.id;
+                      _justAnularCtrl.clear();
+                    }),
+                    child: Text(anulando ? 'Fechar' : 'Anular'),
+                  ),
                 ],
+              ),
+            if (anulando)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('O registro ficará riscado no histórico; nada é apagado (RN05).',
+                        style: tema.textTheme.bodySmall),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: _justAnularCtrl,
+                      maxLines: 2,
+                      decoration: const InputDecoration(
+                        labelText: 'Justificativa (obrigatória)',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    FilledButton(
+                      onPressed:
+                          _justAnularCtrl.text.trim().length >= 3 ? () => _anular(p) : null,
+                      child: const Text('Confirmar anulação'),
+                    ),
+                  ],
+                ),
               ),
           ],
         ),
@@ -264,10 +308,12 @@ class _HofViewState extends State<_HofView> {
 
   Widget _conteudo(HofSuccess s) {
     final tema = Theme.of(context);
+    final cubit = context.read<HofCubit>();
     final antes = s.fotos.where((f) => f.isAntes).toList();
     final depois = s.fotos.where((f) => !f.isAntes).toList();
 
     return ListView(
+      controller: _scroll,
       padding: const EdgeInsets.all(16),
       children: [
         Card(
@@ -286,22 +332,14 @@ class _HofViewState extends State<_HofView> {
                   style: tema.textTheme.bodySmall,
                 ),
                 if (_podeEditar) ...[
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      FilledButton.icon(
-                        onPressed: _novo,
-                        icon: const Icon(Icons.add),
-                        label: const Text('Novo procedimento'),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: _novaFoto,
-                        icon: const Icon(Icons.add_a_photo_outlined),
-                        label: const Text('Adicionar foto'),
-                      ),
-                    ],
+                  const Divider(height: 24),
+                  _CompositorHof(
+                    key: ValueKey(_retificando?.id ?? 'novo'),
+                    temAtendimento: cubit.temAtendimentoAberto,
+                    base: _retificando,
+                    aoRegistrar: _registrar,
+                    aoCancelar:
+                        _retificando == null ? null : () => setState(() => _retificando = null),
                   ),
                 ],
               ],
@@ -320,6 +358,15 @@ class _HofViewState extends State<_HofView> {
           for (final p in s.procedimentos) _cartaoProcedimento(p, s.retificados.contains(p.id)),
         const SizedBox(height: 16),
         Text('Fotos antes e depois', style: tema.textTheme.titleMedium),
+        if (_podeEditar) ...[
+          const SizedBox(height: 8),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: _CompositorFoto(aoAdicionar: _adicionarFoto),
+            ),
+          ),
+        ],
         _grupoFotos('Antes', antes),
         _grupoFotos('Depois / acompanhamento', depois),
       ],
@@ -350,7 +397,7 @@ class _HofViewState extends State<_HofView> {
   }
 }
 
-// ---------- diálogos ----------
+// ---------- painéis inline ----------
 
 class _DadosProcedimento {
   final TipoHOF tipo;
@@ -372,16 +419,26 @@ class _DadosProcedimento {
   });
 }
 
-/// Procedimento novo, ou retificação quando [base] é informado.
-class _DialogoProcedimento extends StatefulWidget {
+/// Procedimento novo ou retificação (quando [base] é informado), em um painel só.
+class _CompositorHof extends StatefulWidget {
+  final bool temAtendimento;
   final ProcedimentoHOF? base;
-  const _DialogoProcedimento({this.base});
+  final Future<String?> Function(_DadosProcedimento) aoRegistrar;
+  final VoidCallback? aoCancelar;
+
+  const _CompositorHof({
+    super.key,
+    required this.temAtendimento,
+    required this.base,
+    required this.aoRegistrar,
+    this.aoCancelar,
+  });
 
   @override
-  State<_DialogoProcedimento> createState() => _DialogoProcedimentoState();
+  State<_CompositorHof> createState() => _CompositorHofState();
 }
 
-class _DialogoProcedimentoState extends State<_DialogoProcedimento> {
+class _CompositorHofState extends State<_CompositorHof> {
   late TipoHOF _tipo;
   final _outroCtrl = TextEditingController();
   final _tecnicaCtrl = TextEditingController();
@@ -390,7 +447,28 @@ class _DialogoProcedimentoState extends State<_DialogoProcedimento> {
   final List<PontoAplicacao> _pontos = [];
   final List<LoteAplicado> _insumos = [];
 
+  // ponto em preparo
+  AreaFace _area = AreaFace.testa;
+  LadoFace _lado = LadoFace.bilateral;
+  final _qtdPontoCtrl = TextEditingController();
+  final _profCtrl = TextEditingController();
+  final _tecPontoCtrl = TextEditingController();
+
+  // produto em preparo
+  final _produtoCtrl = TextEditingController();
+  final _marcaCtrl = TextEditingController();
+  final _loteCtrl = TextEditingController();
+  final _qtdInsumoCtrl = TextEditingController();
+  UnidadeInsumo _unidade = UnidadeInsumo.unidades;
+  DateTime? _validade;
+  String? _erroInsumo;
+
   bool get _retificando => widget.base != null;
+
+  List<TextEditingController> get _todos => [
+        _outroCtrl, _tecnicaCtrl, _obsCtrl, _justCtrl, _qtdPontoCtrl, _profCtrl,
+        _tecPontoCtrl, _produtoCtrl, _marcaCtrl, _loteCtrl, _qtdInsumoCtrl,
+      ];
 
   @override
   void initState() {
@@ -404,48 +482,120 @@ class _DialogoProcedimentoState extends State<_DialogoProcedimento> {
       _pontos.addAll(b.pontos);
       _insumos.addAll(b.insumos);
     }
-    for (final c in [_outroCtrl, _justCtrl]) {
-      c.addListener(() => setState(() {}));
+    for (final c in [_outroCtrl, _justCtrl, _qtdPontoCtrl, _produtoCtrl, _loteCtrl, _qtdInsumoCtrl]) {
+      c.addListener(() => setState(() => _erroInsumo = null));
     }
   }
 
   @override
   void dispose() {
-    _outroCtrl.dispose();
-    _tecnicaCtrl.dispose();
-    _obsCtrl.dispose();
-    _justCtrl.dispose();
+    for (final c in _todos) {
+      c.dispose();
+    }
     super.dispose();
   }
+
+  // ---------- pontos e produtos ----------
+
+  bool get _pontoOk => (_lerNumero(_qtdPontoCtrl.text) ?? 0) > 0;
+
+  void _addPonto() {
+    final q = _lerNumero(_qtdPontoCtrl.text);
+    if (q == null || q <= 0) return;
+    final tec = _tecPontoCtrl.text.trim();
+    setState(() {
+      _pontos.add(PontoAplicacao(
+        area: _area,
+        lado: _lado,
+        quantidade: q,
+        profundidadeMm: _lerNumero(_profCtrl.text),
+        tecnica: tec.isEmpty ? null : tec,
+      ));
+      _qtdPontoCtrl.clear();
+      _profCtrl.clear();
+      _tecPontoCtrl.clear();
+    });
+  }
+
+  bool get _insumoOk =>
+      _produtoCtrl.text.trim().isNotEmpty &&
+      _loteCtrl.text.trim().isNotEmpty &&
+      _validade != null &&
+      (_lerNumero(_qtdInsumoCtrl.text) ?? 0) > 0;
+
+  Future<void> _escolherValidade() async {
+    final nova = await showDatePicker(
+      context: context,
+      initialDate: _validade ?? soData(DateTime.now()),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (nova != null) {
+      setState(() {
+        _validade = soData(nova);
+        _erroInsumo = null;
+      });
+    }
+  }
+
+  void _addInsumo() {
+    final marca = _marcaCtrl.text.trim();
+    final lote = LoteAplicado(
+      produto: _produtoCtrl.text.trim(),
+      marca: marca.isEmpty ? null : marca,
+      lote: _loteCtrl.text.trim(),
+      validade: _validade!,
+      quantidade: _lerNumero(_qtdInsumoCtrl.text)!,
+      unidade: _unidade,
+    );
+    final erro = lote.validar(DateTime.now()); // lote vencido é recusado já aqui (RN06)
+    if (erro != null) {
+      setState(() => _erroInsumo = erro);
+      return;
+    }
+    setState(() {
+      _insumos.add(lote);
+      _produtoCtrl.clear();
+      _marcaCtrl.clear();
+      _loteCtrl.clear();
+      _qtdInsumoCtrl.clear();
+      _validade = null;
+      _erroInsumo = null;
+    });
+  }
+
+  // ---------- salvar ----------
 
   bool get _podeSalvar =>
       _pontos.isNotEmpty &&
       (_tipo != TipoHOF.outro || _outroCtrl.text.trim().isNotEmpty) &&
       (!_tipo.exigeLote || _insumos.isNotEmpty) &&
-      (!_retificando || _justCtrl.text.trim().length >= 3);
+      (!_retificando || _justCtrl.text.trim().length >= 3) &&
+      (_retificando || widget.temAtendimento);
 
-  Future<void> _addPonto() async {
-    final p = await showDialog<PontoAplicacao>(
-      context: context,
-      builder: (_) => const _DialogoPonto(),
-    );
-    if (p != null) setState(() => _pontos.add(p));
+  void _limpar() {
+    setState(() {
+      _tipo = TipoHOF.toxinaBotulinica;
+      for (final c in _todos) {
+        c.clear();
+      }
+      _pontos.clear();
+      _insumos.clear();
+      _validade = null;
+      _erroInsumo = null;
+      _area = AreaFace.testa;
+      _lado = LadoFace.bilateral;
+      _unidade = UnidadeInsumo.unidades;
+    });
   }
 
-  Future<void> _addInsumo() async {
-    final i = await showDialog<LoteAplicado>(
-      context: context,
-      builder: (_) => const DialogoLoteAplicado(unidadePadrao: UnidadeInsumo.unidades),    );
-    if (i != null) setState(() => _insumos.add(i));
-  }
-
-  void _salvar() {
+  Future<void> _salvar() async {
     String? limpo(TextEditingController c) {
       final t = c.text.trim();
       return t.isEmpty ? null : t;
     }
 
-    Navigator.of(context).pop(_DadosProcedimento(
+    final erro = await widget.aoRegistrar(_DadosProcedimento(
       tipo: _tipo,
       tipoOutro: _tipo == TipoHOF.outro ? limpo(_outroCtrl) : null,
       pontos: List.of(_pontos),
@@ -454,330 +604,253 @@ class _DialogoProcedimentoState extends State<_DialogoProcedimento> {
       observacoes: _obsCtrl.text.trim(),
       justificativa: _retificando ? _justCtrl.text.trim() : null,
     ));
+    if (erro == null && mounted && !_retificando) _limpar();
   }
+
+  // ---------- visual ----------
+
+  Widget _campo(TextEditingController c, String rotulo, {double largura = 150, bool numero = false}) =>
+      SizedBox(
+        width: largura,
+        child: TextField(
+          controller: c,
+          keyboardType: numero ? const TextInputType.numberWithOptions(decimal: true) : null,
+          inputFormatters:
+              numero ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))] : null,
+          decoration: InputDecoration(
+            labelText: rotulo,
+            isDense: true,
+            border: const OutlineInputBorder(),
+          ),
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
-    return AlertDialog(
-      title: Text(_retificando ? 'Retificar procedimento' : 'Novo procedimento de HOF'),
-      content: SizedBox(
-        width: 480,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_retificando)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(
-                    'O registro anterior ficará riscado no histórico (nada é apagado).',
-                    style: tema.textTheme.bodySmall,
-                  ),
-                ),
-              DropdownButtonFormField<TipoHOF>(
-                initialValue: _tipo,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: 'Tipo de procedimento *',
-                  border: OutlineInputBorder(),
-                ),
-                items: [
-                  for (final t in TipoHOF.values) DropdownMenuItem(value: t, child: Text(t.rotulo)),
-                ],
-                onChanged: (v) => setState(() => _tipo = v ?? _tipo),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(_retificando ? 'Retificar procedimento' : 'Novo procedimento',
+            style: tema.textTheme.titleMedium),
+        if (_retificando)
+          Text('O registro anterior ficará riscado no histórico (nada é apagado).',
+              style: tema.textTheme.bodySmall),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: [
+            for (final t in TipoHOF.values)
+              ChoiceChip(
+                label: Text(t.rotulo),
+                selected: _tipo == t,
+                onSelected: (_) => setState(() => _tipo = t),
               ),
-              if (_tipo == TipoHOF.outro) ...[
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _outroCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Descreva o procedimento *',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 16),
-              Text('Pontos de aplicação *', style: tema.textTheme.titleSmall),
-              for (var i = 0; i < _pontos.length; i++)
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    '${_pontos[i].area.rotulo} (${_pontos[i].lado.rotulo}) • ${_num(_pontos[i].quantidade)}',
-                  ),
-                  trailing: IconButton(
-                    tooltip: 'Remover ponto (ainda não registrado)',
-                    icon: const Icon(Icons.close),
-                    onPressed: () => setState(() => _pontos.removeAt(i)),
-                  ),
-                ),
-              TextButton.icon(
-                onPressed: _addPonto,
-                icon: const Icon(Icons.add_location_alt_outlined),
-                label: const Text('Adicionar ponto'),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _tipo.exigeLote ? 'Produto, lote e validade * (RN06)' : 'Produto, lote e validade',
-                style: tema.textTheme.titleSmall,
-              ),
-              for (var i = 0; i < _insumos.length; i++)
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  title: Text('${_insumos[i].produto} • lote ${_insumos[i].lote}'),
-                  subtitle: Text(
-                    'Val. ${formatarData(_insumos[i].validade)} • '
-                    '${_num(_insumos[i].quantidade)} ${_insumos[i].unidade.rotulo}',
-                  ),
-                  trailing: IconButton(
-                    tooltip: 'Remover insumo (ainda não registrado)',
-                    icon: const Icon(Icons.close),
-                    onPressed: () => setState(() => _insumos.removeAt(i)),
-                  ),
-                ),
-              TextButton.icon(
-                onPressed: _addInsumo,
-                icon: const Icon(Icons.vaccines_outlined),
-                label: const Text('Adicionar produto / lote'),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _tecnicaCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Técnica geral (opcional)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _obsCtrl,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Observações (opcional)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              if (_retificando) ...[
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _justCtrl,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    labelText: 'Justificativa da retificação (obrigatória)',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ],
-            ],
-          ),
+          ],
         ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
-        FilledButton(
-          onPressed: _podeSalvar ? _salvar : null,
-          child: Text(_retificando ? 'Retificar' : 'Registrar'),
-        ),
-      ],
-    );
-  }
-}
+        if (_tipo == TipoHOF.outro) ...[
+          const SizedBox(height: 12),
+          _campo(_outroCtrl, 'Descreva o procedimento *', largura: 340),
+        ],
 
-class _DialogoPonto extends StatefulWidget {
-  const _DialogoPonto();
-
-  @override
-  State<_DialogoPonto> createState() => _DialogoPontoState();
-}
-
-class _DialogoPontoState extends State<_DialogoPonto> {
-  AreaFace _area = AreaFace.testa;
-  LadoFace _lado = LadoFace.bilateral;
-  final _qtdCtrl = TextEditingController();
-  final _profCtrl = TextEditingController();
-  final _tecCtrl = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _qtdCtrl.addListener(() => setState(() {}));
-  }
-
-  @override
-  void dispose() {
-    _qtdCtrl.dispose();
-    _profCtrl.dispose();
-    _tecCtrl.dispose();
-    super.dispose();
-  }
-
-  double? get _qtd => _lerNumero(_qtdCtrl.text);
-  bool get _ok => (_qtd ?? 0) > 0;
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Ponto de aplicação'),
-      content: SizedBox(
-        width: 380,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<AreaFace>(
+        // ----- pontos de aplicação -----
+        const SizedBox(height: 16),
+        Text('Pontos de aplicação *', style: tema.textTheme.titleSmall),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            SizedBox(
+              width: 170,
+              child: DropdownButtonFormField<AreaFace>(
                 initialValue: _area,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Região', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                    labelText: 'Região', isDense: true, border: OutlineInputBorder()),
                 items: [
-                  for (final a in AreaFace.values)
-                    DropdownMenuItem(value: a, child: Text(a.rotulo)),
+                  for (final a in AreaFace.values) DropdownMenuItem(value: a, child: Text(a.rotulo)),
                 ],
                 onChanged: (v) => setState(() => _area = v ?? _area),
               ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<LadoFace>(
+            ),
+            SizedBox(
+              width: 150,
+              child: DropdownButtonFormField<LadoFace>(
                 initialValue: _lado,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Lado', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                    labelText: 'Lado', isDense: true, border: OutlineInputBorder()),
                 items: [
-                  for (final l in LadoFace.values)
-                    DropdownMenuItem(value: l, child: Text(l.rotulo)),
+                  for (final l in LadoFace.values) DropdownMenuItem(value: l, child: Text(l.rotulo)),
                 ],
                 onChanged: (v) => setState(() => _lado = v ?? _lado),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _qtdCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
-                decoration: const InputDecoration(
-                  labelText: 'Quantidade (U ou ml) *',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _profCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
-                decoration: const InputDecoration(
-                  labelText: 'Profundidade em mm (opcional)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _tecCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Técnica (opcional)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
-        FilledButton(
-          onPressed: _ok
-              ? () {
-                  final tec = _tecCtrl.text.trim();
-                  Navigator.of(context).pop(PontoAplicacao(
-                    area: _area,
-                    lado: _lado,
-                    quantidade: _qtd!,
-                    profundidadeMm: _lerNumero(_profCtrl.text),
-                    tecnica: tec.isEmpty ? null : tec,
-                  ));
-                }
-              : null,
-          child: const Text('Adicionar'),
-        ),
-      ],
-    );
-  }
-}
-
-class _DialogoJustificativa extends StatefulWidget {
-  const _DialogoJustificativa();
-
-  @override
-  State<_DialogoJustificativa> createState() => _DialogoJustificativaState();
-}
-
-class _DialogoJustificativaState extends State<_DialogoJustificativa> {
-  final _ctrl = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl.addListener(() => setState(() {}));
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Anular registro'),
-      content: SizedBox(
-        width: 420,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('O registro ficará riscado no histórico; nada é apagado (RN05).'),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _ctrl,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Justificativa (obrigatória)',
-                border: OutlineInputBorder(),
-              ),
+            ),
+            _campo(_qtdPontoCtrl, 'Quantidade *', largura: 120, numero: true),
+            _campo(_profCtrl, 'Prof. (mm)', largura: 100, numero: true),
+            _campo(_tecPontoCtrl, 'Técnica', largura: 150),
+            FilledButton.tonalIcon(
+              onPressed: _pontoOk ? _addPonto : null,
+              icon: const Icon(Icons.add_location_alt_outlined),
+              label: const Text('Adicionar ponto'),
             ),
           ],
         ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
-        FilledButton(
-          onPressed: _ctrl.text.trim().length >= 3
-              ? () => Navigator.of(context).pop(_ctrl.text.trim())
-              : null,
-          child: const Text('Anular'),
+        if (_pontos.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              for (var i = 0; i < _pontos.length; i++)
+                InputChip(
+                  label: Text(
+                    '${_pontos[i].area.rotulo} (${_pontos[i].lado.rotulo}) • ${_num(_pontos[i].quantidade)}',
+                  ),
+                  onDeleted: () => setState(() => _pontos.removeAt(i)),
+                ),
+            ],
+          ),
+        ],
+
+        // ----- produto, lote e validade -----
+        const SizedBox(height: 16),
+        Text(
+          _tipo.exigeLote ? 'Produto, lote e validade * (RN06)' : 'Produto, lote e validade',
+          style: tema.textTheme.titleSmall,
         ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            _campo(_produtoCtrl, 'Produto *', largura: 190),
+            _campo(_marcaCtrl, 'Marca', largura: 140),
+            _campo(_loteCtrl, 'Lote *', largura: 110),
+            OutlinedButton.icon(
+              onPressed: _escolherValidade,
+              icon: const Icon(Icons.event_outlined),
+              label: Text(_validade == null ? 'Validade *' : formatarData(_validade!)),
+            ),
+            _campo(_qtdInsumoCtrl, 'Qtd. usada *', largura: 110, numero: true),
+            SizedBox(
+              width: 90,
+              child: DropdownButtonFormField<UnidadeInsumo>(
+                initialValue: _unidade,
+                decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+                items: [
+                  for (final u in UnidadeInsumo.values)
+                    DropdownMenuItem(value: u, child: Text(u.rotulo)),
+                ],
+                onChanged: (v) => setState(() => _unidade = v ?? _unidade),
+              ),
+            ),
+            FilledButton.tonalIcon(
+              onPressed: _insumoOk ? _addInsumo : null,
+              icon: const Icon(Icons.vaccines_outlined),
+              label: const Text('Adicionar produto'),
+            ),
+          ],
+        ),
+        if (_erroInsumo != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(_erroInsumo!, style: TextStyle(color: tema.colorScheme.error)),
+          ),
+        if (_insumos.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              for (var i = 0; i < _insumos.length; i++)
+                InputChip(
+                  label: Text(
+                    '${_insumos[i].produto} • lote ${_insumos[i].lote} • val. '
+                    '${formatarData(_insumos[i].validade)} • ${_num(_insumos[i].quantidade)} '
+                    '${_insumos[i].unidade.rotulo}',
+                  ),
+                  onDeleted: () => setState(() => _insumos.removeAt(i)),
+                ),
+            ],
+          ),
+        ],
+
+        // ----- técnica, observações, justificativa -----
+        const SizedBox(height: 16),
+        TextField(
+          controller: _tecnicaCtrl,
+          decoration: const InputDecoration(
+            labelText: 'Técnica geral (opcional)',
+            isDense: true,
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _obsCtrl,
+          maxLines: 2,
+          decoration: const InputDecoration(
+            labelText: 'Observações (opcional)',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        if (_retificando) ...[
+          const SizedBox(height: 12),
+          TextField(
+            controller: _justCtrl,
+            maxLines: 2,
+            decoration: const InputDecoration(
+              labelText: 'Justificativa da retificação (obrigatória)',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            FilledButton.icon(
+              onPressed: _podeSalvar ? _salvar : null,
+              icon: const Icon(Icons.save_outlined),
+              label: Text(_retificando ? 'Retificar' : 'Registrar procedimento'),
+            ),
+            if (_retificando && widget.aoCancelar != null)
+              TextButton(onPressed: widget.aoCancelar, child: const Text('Cancelar')),
+          ],
+        ),
+        if (!_retificando && !widget.temAtendimento)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              'Inicie um atendimento na aba Atendimentos para registrar o procedimento.',
+              style: tema.textTheme.bodySmall,
+            ),
+          ),
       ],
     );
   }
 }
 
-class _NovaFoto {
-  final String descricao;
-  final bool isAntes;
-  final String nome;
-  final Uint8List bytes;
-  const _NovaFoto(this.descricao, this.isAntes, this.nome, this.bytes);
-}
+/// Nova foto antes/depois: imagem, tipo e descrição em um painel só.
+class _CompositorFoto extends StatefulWidget {
+  final Future<String?> Function(String descricao, bool isAntes, ArquivoSelecionado arquivo)
+      aoAdicionar;
 
-class _DialogoFoto extends StatefulWidget {
-  const _DialogoFoto();
+  const _CompositorFoto({required this.aoAdicionar});
 
   @override
-  State<_DialogoFoto> createState() => _DialogoFotoState();
+  State<_CompositorFoto> createState() => _CompositorFotoState();
 }
 
-class _DialogoFotoState extends State<_DialogoFoto> {
+class _CompositorFotoState extends State<_CompositorFoto> {
   final _descCtrl = TextEditingController();
-  bool _antes = false;
+  bool _antes = true;
   ArquivoSelecionado? _arquivo;
   String? _erro;
 
@@ -804,64 +877,72 @@ class _DialogoFotoState extends State<_DialogoFoto> {
 
   bool get _ok => _arquivo != null && _descCtrl.text.trim().isNotEmpty;
 
+  Future<void> _adicionar() async {
+    final erro = await widget.aoAdicionar(_descCtrl.text.trim(), _antes, _arquivo!);
+    if (erro == null && mounted) {
+      setState(() {
+        _descCtrl.clear();
+        _arquivo = null;
+        _erro = null;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
     final arquivo = _arquivo;
-    return AlertDialog(
-      title: const Text('Adicionar foto'),
-      content: SizedBox(
-        width: 400,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              OutlinedButton.icon(
-                onPressed: _escolher,
-                icon: const Icon(Icons.photo_library_outlined),
-                label: Text(arquivo?.nome ?? 'Escolher imagem'),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Adicionar foto', style: tema.textTheme.titleSmall),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            OutlinedButton.icon(
+              onPressed: _escolher,
+              icon: const Icon(Icons.photo_library_outlined),
+              label: Text(arquivo?.nome ?? 'Escolher imagem'),
+            ),
+            if (arquivo != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.memory(arquivo.bytes, height: 56, fit: BoxFit.cover),
               ),
-              if (_erro != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Text(_erro!, style: TextStyle(color: tema.colorScheme.error)),
-                ),
-              if (arquivo != null) ...[
-                const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.memory(arquivo.bytes, height: 140, fit: BoxFit.cover),
-                ),
-              ],
-              const SizedBox(height: 12),
-              TextField(
-                controller: _descCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Descrição (ex.: Antes, 15 dias, Final) *',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                controlAffinity: ListTileControlAffinity.leading,
-                title: const Text('Foto "ANTES"'),
-                value: _antes,
-                onChanged: (v) => setState(() => _antes = v ?? false),
-              ),
-            ],
+            ChoiceChip(
+              label: const Text('Antes'),
+              selected: _antes,
+              onSelected: (_) => setState(() => _antes = true),
+            ),
+            ChoiceChip(
+              label: const Text('Depois / acompanhamento'),
+              selected: !_antes,
+              onSelected: (_) => setState(() => _antes = false),
+            ),
+          ],
+        ),
+        if (_erro != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(_erro!, style: TextStyle(color: tema.colorScheme.error)),
+          ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _descCtrl,
+          decoration: const InputDecoration(
+            labelText: 'Descrição (ex.: Antes, 15 dias, Final) *',
+            isDense: true,
+            border: OutlineInputBorder(),
           ),
         ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
-        FilledButton(
-          onPressed: _ok
-              ? () => Navigator.of(context).pop(
-                    _NovaFoto(_descCtrl.text.trim(), _antes, arquivo!.nome, arquivo.bytes),
-                  )
-              : null,
-          child: const Text('Adicionar'),
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          onPressed: _ok ? _adicionar : null,
+          icon: const Icon(Icons.add_a_photo_outlined),
+          label: const Text('Adicionar foto'),
         ),
       ],
     );

@@ -48,26 +48,33 @@ class _ExamesViewState extends State<_ExamesView> {
   bool get _podeEditar =>
       politicaAcesso.podeEditarExames(auth.usuarioLogado!, widget.paciente);
 
+  final _justCtrl = TextEditingController();
+  String? _substituindoId;
+
+  @override
+  void initState() {
+    super.initState();
+    _justCtrl.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _justCtrl.dispose();
+    super.dispose();
+  }
+
   void _aviso(String texto) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(texto)));
   }
 
   // ---------- ações ----------
 
-  Future<void> _solicitar() async {
-    final cubit = context.read<ExamesCubit>();
-    if (!cubit.temAtendimentoAberto) {
-      _aviso('Inicie um atendimento na aba Atendimentos antes de solicitar o exame.');
-      return;
-    }
-    final r = await showDialog<_DadosExame>(
-      context: context,
-      builder: (_) => const _DialogoExame(),
-    );
-    if (r == null || !mounted) return;
-    final erro = await cubit.solicitar(tipo: r.tipo, nome: r.nome, descricao: r.descricao);
-    if (!mounted) return;
-    _aviso(erro ?? 'Exame solicitado.');
+    Future<String?> _solicitar(TipoExame tipo, String nome, String? descricao) async {
+    final erro = await context
+        .read<ExamesCubit>()
+        .solicitar(tipo: tipo, nome: nome, descricao: descricao);
+    if (mounted) _aviso(erro ?? 'Exame solicitado.');
+    return erro;
   }
 
   Future<void> _mudarStatus(Exame e, StatusExame novo) async {
@@ -105,13 +112,9 @@ class _ExamesViewState extends State<_ExamesView> {
     _aviso(erro ?? 'Arquivo anexado.');
   }
 
-  Future<void> _substituir(Exame e, ArquivoClinico anterior) async {
+    Future<void> _substituir(Exame e, ArquivoClinico anterior) async {
     final cubit = context.read<ExamesCubit>();
-    final just = await showDialog<String>(
-      context: context,
-      builder: (_) => const _DialogoJustificativa(),
-    );
-    if (just == null || !mounted) return;
+    final justificativa = _justCtrl.text.trim();
     final r = await escolherArquivoClinico();
     if (r == null || !mounted) return;
     final arquivo = r.arquivo;
@@ -124,10 +127,16 @@ class _ExamesViewState extends State<_ExamesView> {
       anterior,
       nomeArquivo: arquivo.nome,
       bytes: arquivo.bytes,
-      justificativa: just,
+      justificativa: justificativa,
     );
     if (!mounted) return;
     _aviso(erro ?? 'Arquivo substituído. O anterior continua no histórico.');
+    if (erro == null) {
+      setState(() {
+        _substituindoId = null;
+        _justCtrl.clear();
+      });
+    }
   }
 
   void _abrir(ArquivoClinico a) {
@@ -203,38 +212,76 @@ class _ExamesViewState extends State<_ExamesView> {
         StatusExame.solicitado => 'Solicitado',
       };
 
-  Widget _linhaArquivo(Exame e, ArquivoClinico a, bool substituido) {
+    Widget _linhaArquivo(Exame e, ArquivoClinico a, bool substituido) {
     final tema = Theme.of(context);
     final riscado = substituido ? const TextStyle(decoration: TextDecoration.lineThrough) : null;
-    return ListTile(
-      dense: true,
-      contentPadding: EdgeInsets.zero,
-      leading: a.ehImagem
-          ? ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: SizedBox(
-                width: 48,
-                height: 48,
-                child: Image.memory(
-                  a.bytes,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => const Icon(Icons.broken_image_outlined),
+    final substituindo = _substituindoId == a.id;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          leading: a.ehImagem
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: Image.memory(
+                      a.bytes,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const Icon(Icons.broken_image_outlined),
+                    ),
+                  ),
+                )
+              : const Icon(Icons.picture_as_pdf_outlined, size: 32),
+          title: Text(a.nomeArquivo, style: riscado, maxLines: 1, overflow: TextOverflow.ellipsis),
+          subtitle: Text(
+            '${_tamanho(a.tamanhoBytes)} • ${formatarData(a.enviadoEm)}'
+            '${a.retificaId == null ? '' : ' • substitui um anterior: ${a.justificativa ?? ''}'}',
+            style: tema.textTheme.bodySmall,
+          ),
+          onTap: () => _abrir(a),
+          trailing: substituido
+              ? const Chip(label: Text('Substituído'))
+              : (_podeEditar && e.status != StatusExame.cancelado
+                  ? TextButton(
+                      onPressed: () => setState(() {
+                        _substituindoId = substituindo ? null : a.id;
+                        _justCtrl.clear();
+                      }),
+                      child: Text(substituindo ? 'Fechar' : 'Substituir'),
+                    )
+                  : null),
+        ),
+        if (substituindo)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('O arquivo anterior continua no histórico, riscado (RN05).',
+                    style: tema.textTheme.bodySmall),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _justCtrl,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Justificativa (obrigatória)',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-            )
-          : const Icon(Icons.picture_as_pdf_outlined, size: 32),
-      title: Text(a.nomeArquivo, style: riscado, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Text(
-        '${_tamanho(a.tamanhoBytes)} • ${formatarData(a.enviadoEm)}'
-        '${a.retificaId == null ? '' : ' • substitui um anterior: ${a.justificativa ?? ''}'}',
-        style: tema.textTheme.bodySmall,
-      ),
-      onTap: () => _abrir(a),
-      trailing: substituido
-          ? const Chip(label: Text('Substituído'))
-          : (_podeEditar && e.status != StatusExame.cancelado
-              ? TextButton(onPressed: () => _substituir(e, a), child: const Text('Substituir'))
-              : null),
+                const SizedBox(height: 8),
+                FilledButton.icon(
+                  onPressed: _justCtrl.text.trim().length >= 3 ? () => _substituir(e, a) : null,
+                  icon: const Icon(Icons.attach_file),
+                  label: const Text('Escolher novo arquivo e substituir'),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 
@@ -314,12 +361,11 @@ class _ExamesViewState extends State<_ExamesView> {
                   'são apagados: use Substituir (RN05).',
                   style: tema.textTheme.bodySmall,
                 ),
-                if (_podeEditar) ...[
-                  const SizedBox(height: 12),
-                  FilledButton.icon(
-                    onPressed: _solicitar,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Solicitar exame'),
+                                if (_podeEditar) ...[
+                  const Divider(height: 24),
+                  _CompositorExame(
+                    temAtendimento: context.read<ExamesCubit>().temAtendimentoAberto,
+                    aoSolicitar: _solicitar,
                   ),
                 ],
               ],
@@ -359,23 +405,18 @@ class _ExamesViewState extends State<_ExamesView> {
   }
 }
 
-// ---------- diálogos ----------
+/// Solicitação de exame inline: guias prontas, tipo, nome e descrição em um só painel.
+class _CompositorExame extends StatefulWidget {
+  final bool temAtendimento;
+  final Future<String?> Function(TipoExame tipo, String nome, String? descricao) aoSolicitar;
 
-class _DadosExame {
-  final TipoExame tipo;
-  final String nome;
-  final String? descricao;
-  const _DadosExame(this.tipo, this.nome, this.descricao);
-}
-
-class _DialogoExame extends StatefulWidget {
-  const _DialogoExame();
+  const _CompositorExame({required this.temAtendimento, required this.aoSolicitar});
 
   @override
-  State<_DialogoExame> createState() => _DialogoExameState();
+  State<_CompositorExame> createState() => _CompositorExameState();
 }
 
-class _DialogoExameState extends State<_DialogoExame> {
+class _CompositorExameState extends State<_CompositorExame> {
   final _nomeCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   TipoExame _tipo = TipoExame.imagem;
@@ -401,30 +442,42 @@ class _DialogoExameState extends State<_DialogoExame> {
     });
   }
 
+  Future<void> _solicitar() async {
+    final d = _descCtrl.text.trim();
+    final erro = await widget.aoSolicitar(_tipo, _nomeCtrl.text.trim(), d.isEmpty ? null : d);
+    if (erro == null && mounted) {
+      setState(() {
+        _nomeCtrl.clear();
+        _descCtrl.clear();
+        _tipo = TipoExame.imagem;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
-    return AlertDialog(
-      title: const Text('Solicitar exame'),
-      content: SizedBox(
-        width: 460,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Guias prontas', style: tema.textTheme.labelMedium),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 8,
-                runSpacing: 6,
-                children: [
-                  for (final g in guiasExame)
-                    ActionChip(label: Text(g.nome), onPressed: () => _usarGuia(g)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<TipoExame>(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Solicitar exame', style: tema.textTheme.titleSmall),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: [
+            for (final g in guiasExame)
+              ActionChip(label: Text(g.nome), onPressed: () => _usarGuia(g)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            SizedBox(
+              width: 300,
+              child: DropdownButtonFormField<TipoExame>(
                 key: ValueKey(_tipo),
                 initialValue: _tipo,
                 isExpanded: true,
@@ -434,95 +487,40 @@ class _DialogoExameState extends State<_DialogoExame> {
                 ],
                 onChanged: (v) => setState(() => _tipo = v ?? _tipo),
               ),
-              const SizedBox(height: 12),
-              TextField(
+            ),
+            SizedBox(
+              width: 300,
+              child: TextField(
                 controller: _nomeCtrl,
-                decoration: const InputDecoration(labelText: 'Nome do exame *', border: OutlineInputBorder()),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _descCtrl,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Descrição / indicação clínica (opcional)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
-        FilledButton(
-          onPressed: _nomeCtrl.text.trim().isEmpty
-              ? null
-              : () {
-                  final d = _descCtrl.text.trim();
-                  Navigator.of(context).pop(
-                    _DadosExame(_tipo, _nomeCtrl.text.trim(), d.isEmpty ? null : d),
-                  );
-                },
-          child: const Text('Solicitar'),
-        ),
-      ],
-    );
-  }
-}
-
-class _DialogoJustificativa extends StatefulWidget {
-  const _DialogoJustificativa();
-
-  @override
-  State<_DialogoJustificativa> createState() => _DialogoJustificativaState();
-}
-
-class _DialogoJustificativaState extends State<_DialogoJustificativa> {
-  final _ctrl = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl.addListener(() => setState(() {}));
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Substituir arquivo'),
-      content: SizedBox(
-        width: 420,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('O arquivo anterior continua no histórico, riscado (RN05). Depois você escolhe o novo arquivo.'),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _ctrl,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Justificativa (obrigatória)',
-                border: OutlineInputBorder(),
+                decoration:
+                    const InputDecoration(labelText: 'Nome do exame *', border: OutlineInputBorder()),
               ),
             ),
           ],
         ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
-        FilledButton(
-          onPressed: _ctrl.text.trim().length >= 3
-              ? () => Navigator.of(context).pop(_ctrl.text.trim())
-              : null,
-          child: const Text('Escolher novo arquivo'),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _descCtrl,
+          maxLines: 2,
+          decoration: const InputDecoration(
+            labelText: 'Descrição / indicação clínica (opcional)',
+            border: OutlineInputBorder(),
+          ),
         ),
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          onPressed: widget.temAtendimento && _nomeCtrl.text.trim().isNotEmpty ? _solicitar : null,
+          icon: const Icon(Icons.add),
+          label: const Text('Solicitar exame'),
+        ),
+        if (!widget.temAtendimento)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              'Inicie um atendimento na aba Atendimentos para solicitar exames.',
+              style: tema.textTheme.bodySmall,
+            ),
+          ),
       ],
     );
   }
