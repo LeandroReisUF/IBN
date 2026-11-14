@@ -1,8 +1,8 @@
 # Checklist final da Sprint 1 — ibn (Sistema Clínico)
 
-**Data:** 03/11/2026 · Marque cada item só depois de conferir na tela. Contas de teste (senha `123456`) e pacientes em `GUIA_FINALIZAR_SPRINT1.md`, seção 8.
+**Data:** 13/11/2026 · Marque cada item só depois de conferir na tela. Contas de teste (senha `123456`) e pacientes em `GUIA_FINALIZAR_SPRINT1.md`, seção 8.
 
-**Pacientes de exemplo:** Maria (p1) {Dr. Davi, Nina} · João Pedro, 12 anos (p2) {Dra. Marta, Dr. Davi} · Ana Beatriz (p3) {Bia, Paulo} · Carlos (p4) {Dr. Davi, Fábio}.
+**Pacientes de exemplo:** Maria (p1) {Dr. Davi, Nina} · João Pedro, 12 anos (p2) {Dra. Marta, Dr. Davi} · Ana Beatriz (p3) {Bia, Paulo} · Carlos (p4) {Dr. Davi, Fábio}. **Áreas:** Dr. Davi com Ortodontia e HOF; Dra. Lúcia sem nenhuma.
 
 ---
 
@@ -12,6 +12,7 @@
 - [ ] `flutter test` verde. **Total de testes:** ______ (meta da Sprint: ≥ 200).
 - [ ] Nenhum arquivo `.dart.old` nem pasta `_quarentena/` no projeto.
 - [ ] Nenhum import relativo em `lib/` e `test/` (`Select-String -Path lib\*.dart,test\*.dart -Pattern "import '\.\./" -Recurse` não devolve nada).
+- [ ] Nenhum `showDialog` de formulário clínico: só confirmações (`Descartar rascunho?`, `Cancelar procedimento?`) e o ampliar de foto.
 
 ## 2. Builds
 
@@ -27,16 +28,25 @@
 
 | Conta | O que conferir |
 |---|---|
-| **Ana (Admin)** | Pacientes: lista global (4). Menu **sem** Prontuário. |
-| **Rita (Recepção)** | Pacientes: lista global (4); pode cadastrar/vincular. Menu **sem** Prontuário. |
-| **Dr. Davi** | Pacientes: só Maria, João Pedro e Carlos (não vê Ana). Agenda: só os próprios atendimentos. |
-| **Dra. Lúcia** | Pacientes: nenhum (sem vínculos). Agenda vazia. |
+| **Ana (Admin)** | Pacientes: lista global (4). Menu **sem** Prontuário e **com** Configurações. |
+| **Rita (Recepção)** | Pacientes: lista global (4); pode cadastrar/vincular. Menu **sem** Prontuário e **sem** Configurações. Painel: cartões de hoje **não** abrem o prontuário. |
+| **Dr. Davi** | Pacientes: só Maria, João Pedro e Carlos. Agenda: só os próprios atendimentos. Prontuário: **Anamnese e odontograma**, Ortodontia, Atendimentos, Plano de tratamento, Harmonização (HOF), Exames, Documentos. |
+| **Dra. Lúcia** | Pacientes: nenhum. Agenda vazia. Depois de vinculada, o prontuário **não** mostra Ortodontia nem HOF até a Ana liberar a área. |
 | **Bia (Biomédica)** | Pacientes: só Ana Beatriz. Prontuário com 4 abas. |
 | **Paulo (Psicólogo)** | Pacientes: só Ana Beatriz. Prontuário mostra "em breve". |
 
 - [ ] Cada linha da tabela confere.
 - [ ] Dentro do prontuário, cada profissional vê só os próprios atendimentos, HOF, exames, documentos e procedimentos (confira com o Dr. Davi e a Dra. Lúcia no mesmo paciente depois do encaminhamento).
 - [ ] **Anamnese:** a Dra. Lúcia vê a anamnese **assinada** do Dr. Davi (mesma especialidade), mas não o rascunho dele nem o modelo geral.
+
+## 3.1 Configurações do Administrador (conta Ana)
+
+- [ ] **Salas:** criar "Sala 5" só com Nutrição; ela aparece no agendamento de nutrição. Excluir a Sala 5 (sem agendamento) funciona; excluir a Sala 3 (tem agendamento) é recusado e **Desativar** a tira do formulário. Editar um agendamento de sala desativada não quebra o formulário.
+- [ ] **Bloqueios:** bloquear a Sala 4 hoje, 8h às 18h; agendar peeling nesse horário mostra o motivo na prévia; **Desbloquear** libera. O aviso informa quantos agendamentos já marcados ficaram no período.
+- [ ] **Procedimentos:** criar "Avaliação inicial" com Odontologia e Biomedicina; Dr. Davi e Bia agendam, Dra. Marta não. Procedimento já usado só **desativa**; "Manutenção ortodôntica" não exclui nem desativa.
+- [ ] **Cores:** trocar a cor do Dentista; agenda e painel mudam. Cor repetida é recusada.
+- [ ] **Dentistas:** liberar Ortodontia para a Dra. Lúcia; a aba aparece ao reabrir o prontuário. Remover a área esconde a aba e mantém os registros.
+- [ ] Rita, Dr. Davi e os demais **não** veem Configurações.
 
 ## 4. RN04 — o executante nunca recebe valores
 
@@ -68,9 +78,12 @@
 
 ## 8. Fluxos de ponta a ponta
 
-- [ ] **Dr. Davi, Maria:** iniciar atendimento (vinculado à agenda) → anamnese → odontograma → plano → exame → documento → encerrar. A agenda passa a "Atendido".
-- [ ] **Bia, Ana Beatriz:** iniciar atendimento do peeling → anamnese estética → procedimento com lote → exame com resultado alto (alerta vermelho) → laudo em PDF → encerrar.
-- [ ] **Rita:** agenda um retorno e vê o paciente vinculado ao profissional.
+- [ ] **Dr. Davi, Maria (pelo painel):** tocar no cartão de hoje abre o prontuário → **Anamnese e odontograma** (preencher e **Salvar anamnese**; sem itens obrigatórios; Exame físico e Odontograma abrem e fecham) → aba **Atendimentos**: bloco **amarelo** → **Iniciar atendimento** (verde, agendamento vira "Em atendimento") → evolução inline → exame → documento → plano → assinar tudo → **Encerrar** (bloco **cinza**, agendamento "Atendido").
+- [ ] **Anamnese:** mudar e salvar de novo cria nova versão e a anterior fica "Substituída" no histórico; sem mudança, o botão fica desabilitado. Escrever sem salvar, trocar de aba e voltar mantém o texto.
+- [ ] **Ortodontia (Dr. Davi):** Odontograma com Superior e Inferior em linhas separadas e só condições ortodônticas; Ficha e Arcos na mesma aba; Manutenção registrada e retificada no painel.
+- [ ] **Bia, Ana Beatriz:** iniciar o atendimento do peeling → anamnese estética → procedimento com produto, lote e validade inline → exame laboratorial com resultado alto (alerta vermelho) → laudo em PDF → encerrar.
+- [ ] **Rita:** agenda um retorno e vê as tags (sala, procedimento, profissional) e a cor do tipo; o paciente passa a vinculado ao profissional.
+- [ ] **Ana:** bloqueia uma sala e confere que Rita não consegue agendar nela.
 
 ## 9. Documentação
 

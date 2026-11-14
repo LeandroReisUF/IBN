@@ -24,6 +24,8 @@ Os diagramas usam **Mermaid** (`classDiagram`). Identificadores sem acento para 
 | 3.1 | Inativar / excluir paciente e vincular a profissional (pessoa, não cargo) | ✅ | `temHistorico` é provisório até existirem agendamentos e prontuários |
 | 4 | Agenda e salas (RF02, RN01, RN02): dia/semana/mês, por sala e por profissional, status, conflitos, vínculo automático | ✅ | `EscalaSala`, `BloqueioAgenda` e revalidação no servidor |
 | 5 | **Prontuário por perfil, Odontograma (RF04.1), Ortodontia, HOF, Exames, Documentos e Anamnese** | 🟡 | Odontograma Fases A–E ✅ e Ortodontia (Fase F) ✅; `Atendimento`/`Evolucao`/`Adendo` ✅; HOF (RF04.2), Exames (RF04.3) e Documentos com PDF (RF04.4) ✅ validados em 30–31/10/2026; Anamnese (RF03.3), Plano de tratamento com sigilo ao executante (RN04) e Biomedicina (RF05) ✅ validados. Prontuário dos perfis das Salas 1 e 2: "em breve" (Sprint 2) |
+| 6 | **Configurações da clínica** (Administrador): salas, bloqueios, catálogo, cores, áreas do dentista | ✅ | Em memória; por clínica no servidor |
+| 7 | Anamnese da clínica-escola, atendimento do dia colorido, formulários inline | 🟡 | Conferir no `CHECKLIST_SPRINT1.md` |
 | — | Servidor (API REST), banco PostgreSQL, criptografia (RNF02) | ⬜ | Entra após as telas da Sprint 1 |
 | — | Odontologia: HOF, exames, documentos, anamnese, plano de tratamento | ✅ | Validados (falta o odontograma de planejamento do plano, Passo 7) |
 | — | Biomedicina (RF05) | ✅ | Anamnese estética, procedimentos com lote e validade, exames e resultados com alerta |
@@ -399,7 +401,7 @@ Observações:
 
 | Item do diagrama | Situação |
 |---|---|
-| `Profissional` (classe própria) com `registroConselho`, `conselho`, `corAgenda`, `percentualRepasse` | 🟡 `conselho` e `registroConselho` já existem em `Usuario` (opcionais); o resto ⬜ |
+| `Procedimento` (id, nome, **especialidades** (uma ou mais), duração, **ativo**) | ✅ `valorBase` e `exigeLote` seguem ⬜ |
 | `Conselho` (enum) | ⬜ |
 | `Procedimento.valorBase`, `Procedimento.exigeLote` | ⬜ (entram com Financeiro e Estoque) |
 | `ProfissionalProcedimento` (comissão por profissional) | ⬜ |
@@ -480,7 +482,9 @@ classDiagram
 1. Sala 3 só aceita ODONTOLOGIA/HOF; Sala 4 só BIOMEDICINA; Salas 1 e 2 aceitam Medicina, Enfermagem, Fisioterapia, Nutrição, Psicologia (RN01).
 2. Nenhum outro agendamento ativo na mesma sala com sobreposição de horário (RN02).
 3. Nenhum outro agendamento ativo para o mesmo profissional em qualquer sala (RN02).
-4. Respeitar `EscalaSala` e `BloqueioAgenda`.
+| `BloqueioAgenda` (sala, período, motivo) | ✅ criado e removido na aba Configurações; `validarConflitos` recusa agendar na sala bloqueada |
+| `EscalaSala` | ⬜ |
+| `Sala.ativa` | ✅ Novo: sala em uso só se desativa; sala nunca usada se exclui |
 
 ### Implementação atual (Flutter) ✅
 
@@ -1463,6 +1467,13 @@ Pasta `lib/` do projeto:
 | `features/exames/domain/resultado_exame.dart` · `data/resultados_lab_repository.dart` · `presentation/cubit/resultados_lab_cubit.dart` · `presentation/widgets/secao_resultados_lab.dart` | Resultados laboratoriais com alerta de valor fora do padrão | 7 |
 | `core/widgets/dialogo_lote_aplicado.dart` | `DialogoLoteAplicado` (produto, lote e validade; usado por HOF e Biomedicina) | 6/7 |
 | `features/prontuario/presentation/abas_prontuario.dart` | `abasDoPerfil`: registro das abas do prontuário por perfil | 5 |
+| `features/configuracoes/data/configuracao_repository.dart` | `ConfiguracaoRepository`, instância `configuracaoClinica` | 14 |
+| `features/configuracoes/domain/{bloqueio_agenda,area_dentista,paleta_cores}.dart` | `BloqueioAgenda`, `AreaDentista`, `paletaCoresTag` | 14 |
+| `features/configuracoes/presentation/{cubit,pages}/` | `ConfiguracoesCubit` e `TelaConfiguracoes` (5 abas) | 14 |
+| `features/agenda/presentation/widgets/tags_agendamento.dart` | `TagsAgendamento`, `LegendaTiposProfissional`, `corDoTipo` | 4 |
+| `features/prontuario/presentation/pages/aba_anamnese_odontograma.dart` | primeira aba do dentista (anamnese e odontograma) | 5/6 |
+| `core/widgets/{manter_vivo,painel_lote_aplicado}.dart` | `ManterVivo`, `PainelLoteAplicado` | — |
+| `test/configuracao_test.dart` | salas, bloqueios, catálogo, cores, áreas do dentista e Cubit | 14 |
 | `test/plano_test.dart` · `test/plano_cubit_test.dart` | Testes do plano (centavos, itens, encaminhamento, RN04: guia sem dinheiro) | 6 |
 | `test/biomedicina_test.dart` · `test/biomedicina_cubit_test.dart` · `test/resultados_lab_test.dart` · `test/abas_prontuario_test.dart` | Testes da Biomedicina, dos resultados de exames e das abas por perfil | 7 |
 | `test/agendamento_cubit_test.dart` | Testes do Cubit (`bloc_test`) | 4 |
@@ -1471,6 +1482,78 @@ Pasta `lib/` do projeto:
 | `test/anatomia_dente_test.dart` | Testes da numeração FDI e do espelhamento | 6 |
 | `test/caixa_dente_test.dart` | Testes do toque por face (quadrada e redonda) | 6 |
 | `test/hof_test.dart` · `test/hof_cubit_test.dart` | Testes de HOF (RN05/RN06, repositório e Cubit) | 6 |
+
+## 14. Configurações da clínica (só Administrador) — ✅
+
+```mermaid
+classDiagram
+    class ConfiguracaoRepository {
+        <<service>>
+        +List~Sala~ todasAsSalas
+        +List~Sala~ salasAtivas
+        +List~BloqueioAgenda~ bloqueios
+        +List~Procedimento~ todosProcedimentos
+        +Map coresPerfil
+        +Map areasDentistas
+        +salvarSala(sala) String
+        +definirSalaAtiva(numero, ativa) String
+        +excluirSala(numero, emUso) String
+        +salvarBloqueio(bloqueio) String
+        +excluirBloqueio(id) String
+        +bloqueioNoPeriodo(sala, ini, fim) BloqueioAgenda
+        +salvarProcedimento(p) String
+        +definirProcedimentoAtivo(id, ativo) String
+        +excluirProcedimento(id, emUso) String
+        +definirCorPerfil(perfil, cor) String
+        +definirAreaDentista(usuarioId, area, tem) String
+        +dentistaTem(usuarioId, area) Boolean
+    }
+    class Sala {
+        +Integer numero
+        +String nome
+        +Boolean exclusiva
+        +Set~Especialidade~ especialidadesPermitidas
+        +Boolean ativa
+    }
+    class BloqueioAgenda {
+        +String id
+        +Integer salaNumero
+        +DateTime inicio
+        +DateTime fim
+        +String motivo
+    }
+    class Procedimento {
+        +String id
+        +String nome
+        +Set~Especialidade~ especialidades
+        +Integer duracaoMinutos
+        +Boolean ativo
+        +aceitaAlgumaDe(areas) Boolean
+    }
+    class AreaDentista {
+        <<enumeration>>
+        ORTODONTIA
+        HOF
+    }
+    class ConfiguracoesCubit {
+        +definirAreaDentista(usuarioId, area, tem) String
+        +salvarSala(sala) String
+        +salvarBloqueio(bloqueio) String
+        +salvarProcedimento(p) String
+        +definirCorPerfil(perfil, cor) String
+    }
+
+    ConfiguracaoRepository "1" --> "1..*" Sala
+    ConfiguracaoRepository "1" --> "0..*" BloqueioAgenda
+    ConfiguracaoRepository "1" --> "1..*" Procedimento
+    ConfiguracaoRepository ..> AreaDentista
+    BloqueioAgenda --> Sala
+    ConfiguracoesCubit ..> ConfiguracaoRepository
+```
+
+**Regras:** sala em uso só é desativada (excluir só se nunca teve agendamento); procedimento já usado em agenda, plano ou odontograma só é desativado, e `manutencao-ortodontica` não sai nem se desativa; cada tipo de profissional tem uma cor da paleta e duas cores iguais são recusadas; `podeEditarHof` e `podeEditarOrtodontia` exigem a área marcada para o dentista. No servidor, tudo isto passa a ser por clínica (`clinicaId`).
+
+**Anamnese:** `PerguntaAnamnese` ganhou `secao` (no formato "Grupo|Seção"), `dependeDe`/`dependeValor` (pergunta condicional) e `aceitaSemAlteracao`. O modelo `anamnese-odontologica` (v2) segue a ficha da clínica-escola, sem itens obrigatórios.
 
 ### Contas de teste (REMOVER antes de uso real)
 
@@ -1488,3 +1571,5 @@ Senha de todas: `123456`. Dr. Davi e Dra. Lúcia têm registro de conselho **fic
 | Fisioterapeuta | `fisio@clinica.local` | 7 |
 | Nutricionista | `nutri@clinica.local` | 8 |
 | Psicólogo | `psicologo@clinica.local` | 9 |
+
+Áreas do dentista por padrão: o **Dr. Davi** tem Ortodontia e HOF; a **Dra. Lúcia** não tem nenhuma (o Administrador libera em Configurações → Dentistas).

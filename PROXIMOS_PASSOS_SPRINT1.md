@@ -13,7 +13,7 @@ A Sprint 1 foi feita **só no app Flutter, com dados em memória**. Antes da Spr
 | 1 | Bloquear o encerramento do atendimento com rascunho de documento | P | feito no Passo 7 |
 | 2 | Registro de abas por perfil (`abasDoPerfil`) | P | feito no Passo 7 |
 | 3 | Unificar o diálogo de lote do HOF com o compartilhado; remover `_quarentena/` | P | feito no Passo 7 |
-| 4 | **Odontograma de planejamento dentro do plano** (estado desejado ao fim do tratamento) | M–G | desenho a definir |
+| 4 | **Odontograma de planejamento dentro do plano** (estado desejado ao fim do tratamento) | M–G | implementado (`odontograma_plano_test.dart`); conferir no roteiro |
 | 5 | Builds Windows/Android/Web e roteiro final por perfil (`CHECKLIST_SPRINT1.md`) | M | a executar |
 
 ## 2. Marco do servidor (entre a Sprint 1 e a Sprint 2)
@@ -44,6 +44,10 @@ A Sprint 1 foi feita **só no app Flutter, com dados em memória**. Antes da Spr
 - Valor padrão por procedimento no catálogo e criação do plano a partir do odontograma.
 - Fonte Roboto opcional nos PDFs (`lib/assets/fontes/`).
 - Migrar para Cubit os módulos que ainda não têm: Odontograma, Ortodontia (separar `ortodontia.dart` em domain/data) e Auth. Avaliar mover `politica_acesso_service` para um módulo de acesso.
+- Cadastro do paciente: nº do prontuário, cor, sexo, profissão e endereço (campos da ficha da clínica-escola).
+- Agenda: exigir a área do dentista (Ortodontia, HOF) para agendar os procedimentos dessas áreas.
+- Multi-clínica: `clinicaId` em configurações, salas, catálogo, cores, áreas e bloqueios, no marco do servidor.
+- `AtendimentosCubit`: escutar também a agenda.
 
 ## 4. Sprint 2 — multidisciplinar, estoque e financeiro
 

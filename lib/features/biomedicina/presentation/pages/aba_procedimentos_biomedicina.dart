@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ibn/core/formadores.dart';
 import 'package:ibn/core/lote_aplicado.dart';
 import 'package:ibn/core/politica_acesso_service.dart';
-import 'package:ibn/core/widgets/dialogo_lote_aplicado.dart';
+import 'package:ibn/core/widgets/painel_lote_aplicado.dart';
 import 'package:ibn/features/auth/data/auth_service.dart';
 import 'package:ibn/features/biomedicina/data/biomedicina_repository.dart';
 import 'package:ibn/features/biomedicina/domain/biomedicina.dart';
@@ -15,7 +15,8 @@ import 'package:ibn/features/prontuario/data/prontuario_repository.dart';
 String _num(double v) =>
     v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString().replaceAll('.', ',');
 
-/// Ficha de procedimentos estéticos (RF05.2, RN06). Esta classe só **fornece** o Cubit.
+/// Ficha de procedimentos estéticos (RF05.2, RN06), tudo inline.
+/// Esta classe só **fornece** o Cubit.
 class AbaProcedimentosBiomedicina extends StatelessWidget {
   final Paciente paciente;
   const AbaProcedimentosBiomedicina({super.key, required this.paciente});
@@ -43,8 +44,26 @@ class _View extends StatefulWidget {
 }
 
 class _ViewState extends State<_View> {
+  final _scroll = ScrollController();
+  final _justAnularCtrl = TextEditingController();
+  ProcedimentoEstetico? _retificando; // carregado no painel do topo
+  String? _anulandoId; // justificativa aberta dentro do cartão
+
   bool get _podeEditar =>
       politicaAcesso.podeEditarProcedimentosEsteticos(auth.usuarioLogado!, widget.paciente);
+
+  @override
+  void initState() {
+    super.initState();
+    _justAnularCtrl.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    _justAnularCtrl.dispose();
+    super.dispose();
+  }
 
   void _aviso(String texto) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(texto)));
@@ -52,60 +71,58 @@ class _ViewState extends State<_View> {
 
   // ---------- ações ----------
 
-  Future<void> _novo() async {
+  /// Registra um procedimento novo ou, com [_retificando], a correção dele.
+  Future<String?> _registrar(_Dados r) async {
     final cubit = context.read<BiomedicinaCubit>();
-    if (!cubit.temAtendimentoAberto) {
-      _aviso('Inicie um atendimento na aba Atendimentos antes de registrar o procedimento.');
-      return;
+    final base = _retificando;
+    final String? erro;
+    if (base == null) {
+      erro = await cubit.registrar(
+        protocolo: r.protocolo,
+        protocoloOutro: r.protocoloOutro,
+        regiaoTratada: r.regiao,
+        parametros: r.parametros,
+        insumos: r.insumos,
+        observacoes: r.observacoes,
+      );
+    } else {
+      erro = await cubit.retificar(
+        base,
+        protocolo: r.protocolo,
+        protocoloOutro: r.protocoloOutro,
+        regiaoTratada: r.regiao,
+        parametros: r.parametros,
+        insumos: r.insumos,
+        observacoes: r.observacoes,
+        justificativa: r.justificativa ?? '',
+      );
     }
-    final r = await showDialog<_Dados>(
-      context: context,
-      builder: (_) => const _DialogoProcedimento(),
-    );
-    if (r == null || !mounted) return;
-    final erro = await cubit.registrar(
-      protocolo: r.protocolo,
-      protocoloOutro: r.protocoloOutro,
-      regiaoTratada: r.regiao,
-      parametros: r.parametros,
-      insumos: r.insumos,
-      observacoes: r.observacoes,
-    );
-    if (!mounted) return;
-    _aviso(erro ?? 'Procedimento registrado.');
+    if (!mounted) return erro;
+    _aviso(erro ?? (base == null ? 'Procedimento registrado.' : 'Registro retificado.'));
+    if (erro == null && base != null) setState(() => _retificando = null);
+    return erro;
   }
 
-  Future<void> _retificar(ProcedimentoEstetico anterior) async {
-    final cubit = context.read<BiomedicinaCubit>();
-    final r = await showDialog<_Dados>(
-      context: context,
-      builder: (_) => _DialogoProcedimento(base: anterior),
-    );
-    if (r == null || !mounted) return;
-    final erro = await cubit.retificar(
-      anterior,
-      protocolo: r.protocolo,
-      protocoloOutro: r.protocoloOutro,
-      regiaoTratada: r.regiao,
-      parametros: r.parametros,
-      insumos: r.insumos,
-      observacoes: r.observacoes,
-      justificativa: r.justificativa ?? '',
-    );
-    if (!mounted) return;
-    _aviso(erro ?? 'Registro retificado.');
+  void _carregarRetificar(ProcedimentoEstetico p) {
+    setState(() {
+      _retificando = p;
+      _anulandoId = null;
+    });
+    if (_scroll.hasClients) {
+      _scroll.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+    }
   }
 
-  Future<void> _anular(ProcedimentoEstetico anterior) async {
-    final cubit = context.read<BiomedicinaCubit>();
-    final just = await showDialog<String>(
-      context: context,
-      builder: (_) => const _DialogoJustificativa(),
-    );
-    if (just == null || !mounted) return;
-    final erro = await cubit.anular(anterior, just);
+  Future<void> _anular(ProcedimentoEstetico p) async {
+    final erro = await context.read<BiomedicinaCubit>().anular(p, _justAnularCtrl.text.trim());
     if (!mounted) return;
     _aviso(erro ?? 'Registro anulado.');
+    if (erro == null) {
+      setState(() {
+        _anulandoId = null;
+        _justAnularCtrl.clear();
+      });
+    }
   }
 
   // ---------- visual ----------
@@ -115,6 +132,7 @@ class _ViewState extends State<_View> {
   Widget _cartao(ProcedimentoEstetico p, bool retificado) {
     final tema = Theme.of(context);
     final riscado = retificado ? const TextStyle(decoration: TextDecoration.lineThrough) : null;
+    final anulando = _anulandoId == p.id;
     final linhas = <String>[
       if (p.anulacao) 'Anulou um registro anterior.',
       if (p.retificaId != null && !p.anulacao) 'Retifica um registro anterior.',
@@ -151,9 +169,41 @@ class _ViewState extends State<_View> {
               Wrap(
                 spacing: 8,
                 children: [
-                  TextButton(onPressed: () => _retificar(p), child: const Text('Retificar')),
-                  TextButton(onPressed: () => _anular(p), child: const Text('Anular')),
+                  TextButton(onPressed: () => _carregarRetificar(p), child: const Text('Retificar')),
+                  TextButton(
+                    onPressed: () => setState(() {
+                      _anulandoId = anulando ? null : p.id;
+                      _justAnularCtrl.clear();
+                    }),
+                    child: Text(anulando ? 'Fechar' : 'Anular'),
+                  ),
                 ],
+              ),
+            if (anulando)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('O registro ficará riscado no histórico; nada é apagado (RN05).',
+                        style: tema.textTheme.bodySmall),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: _justAnularCtrl,
+                      maxLines: 2,
+                      decoration: const InputDecoration(
+                        labelText: 'Justificativa (obrigatória)',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    FilledButton(
+                      onPressed:
+                          _justAnularCtrl.text.trim().length >= 3 ? () => _anular(p) : null,
+                      child: const Text('Confirmar anulação'),
+                    ),
+                  ],
+                ),
               ),
           ],
         ),
@@ -163,7 +213,9 @@ class _ViewState extends State<_View> {
 
   Widget _conteudo(BiomedicinaSuccess s) {
     final tema = Theme.of(context);
+    final cubit = context.read<BiomedicinaCubit>();
     return ListView(
+      controller: _scroll,
       padding: const EdgeInsets.all(16),
       children: [
         Card(
@@ -181,11 +233,14 @@ class _ViewState extends State<_View> {
                   style: tema.textTheme.bodySmall,
                 ),
                 if (_podeEditar) ...[
-                  const SizedBox(height: 12),
-                  FilledButton.icon(
-                    onPressed: _novo,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Novo procedimento'),
+                  const Divider(height: 24),
+                  _CompositorProcedimento(
+                    key: ValueKey(_retificando?.id ?? 'novo'),
+                    temAtendimento: cubit.temAtendimentoAberto,
+                    base: _retificando,
+                    aoRegistrar: _registrar,
+                    aoCancelar:
+                        _retificando == null ? null : () => setState(() => _retificando = null),
                   ),
                 ],
               ],
@@ -228,7 +283,7 @@ class _ViewState extends State<_View> {
   }
 }
 
-// ---------- diálogos ----------
+// ---------- painel inline ----------
 
 class _Dados {
   final TipoProtocolo protocolo;
@@ -250,16 +305,26 @@ class _Dados {
   });
 }
 
-/// Procedimento novo, ou retificação quando [base] é informado.
-class _DialogoProcedimento extends StatefulWidget {
+/// Procedimento novo ou retificação (quando [base] é informado), em um painel só.
+class _CompositorProcedimento extends StatefulWidget {
+  final bool temAtendimento;
   final ProcedimentoEstetico? base;
-  const _DialogoProcedimento({this.base});
+  final Future<String?> Function(_Dados) aoRegistrar;
+  final VoidCallback? aoCancelar;
+
+  const _CompositorProcedimento({
+    super.key,
+    required this.temAtendimento,
+    required this.base,
+    required this.aoRegistrar,
+    this.aoCancelar,
+  });
 
   @override
-  State<_DialogoProcedimento> createState() => _DialogoProcedimentoState();
+  State<_CompositorProcedimento> createState() => _CompositorProcedimentoState();
 }
 
-class _DialogoProcedimentoState extends State<_DialogoProcedimento> {
+class _CompositorProcedimentoState extends State<_CompositorProcedimento> {
   late TipoProtocolo _protocolo;
   final _outroCtrl = TextEditingController();
   final _regiaoCtrl = TextEditingController();
@@ -301,19 +366,24 @@ class _DialogoProcedimentoState extends State<_DialogoProcedimento> {
       _regiaoCtrl.text.trim().isNotEmpty &&
       _insumos.isNotEmpty &&
       (_protocolo != TipoProtocolo.outro || _outroCtrl.text.trim().isNotEmpty) &&
-      (!_retificando || _justCtrl.text.trim().length >= 3);
+      (!_retificando || _justCtrl.text.trim().length >= 3) &&
+      (_retificando || widget.temAtendimento);
 
-  Future<void> _addInsumo() async {
-    final i = await showDialog<LoteAplicado>(
-      context: context,
-      builder: (_) => const DialogoLoteAplicado(),
-    );
-    if (i != null) setState(() => _insumos.add(i));
+  void _limpar() {
+    setState(() {
+      _protocolo = TipoProtocolo.peeling;
+      _outroCtrl.clear();
+      _regiaoCtrl.clear();
+      _paramCtrl.clear();
+      _obsCtrl.clear();
+      _justCtrl.clear();
+      _insumos.clear();
+    });
   }
 
-  void _salvar() {
+  Future<void> _salvar() async {
     final outro = _outroCtrl.text.trim();
-    Navigator.of(context).pop(_Dados(
+    final erro = await widget.aoRegistrar(_Dados(
       protocolo: _protocolo,
       protocoloOutro: _protocolo == TipoProtocolo.outro && outro.isNotEmpty ? outro : null,
       regiao: _regiaoCtrl.text.trim(),
@@ -322,172 +392,126 @@ class _DialogoProcedimentoState extends State<_DialogoProcedimento> {
       observacoes: _obsCtrl.text.trim(),
       justificativa: _retificando ? _justCtrl.text.trim() : null,
     ));
+    if (erro == null && mounted && !_retificando) _limpar();
   }
 
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
-    return AlertDialog(
-      title: Text(_retificando ? 'Retificar procedimento' : 'Novo procedimento estético'),
-      content: SizedBox(
-        width: 480,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_retificando)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(
-                    'O registro anterior ficará riscado no histórico (nada é apagado).',
-                    style: tema.textTheme.bodySmall,
-                  ),
-                ),
-              DropdownButtonFormField<TipoProtocolo>(
-                initialValue: _protocolo,
-                isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Protocolo *', border: OutlineInputBorder()),
-                items: [
-                  for (final t in TipoProtocolo.values) DropdownMenuItem(value: t, child: Text(t.rotulo)),
-                ],
-                onChanged: (v) => setState(() => _protocolo = v ?? _protocolo),
-              ),
-              if (_protocolo == TipoProtocolo.outro) ...[
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _outroCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Descreva o protocolo *',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-              TextField(
-                controller: _regiaoCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Região tratada *',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _paramCtrl,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Parâmetros (ex.: concentração do ácido, profundidade da agulha)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text('Produto, lote e validade * (RN06)', style: tema.textTheme.titleSmall),
-              for (var i = 0; i < _insumos.length; i++)
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  title: Text('${_insumos[i].produto} • lote ${_insumos[i].lote}'),
-                  subtitle: Text(
-                    'Val. ${formatarData(_insumos[i].validade)} • '
-                    '${_num(_insumos[i].quantidade)} ${_insumos[i].unidade.rotulo}',
-                  ),
-                  trailing: IconButton(
-                    tooltip: 'Remover produto (ainda não registrado)',
-                    icon: const Icon(Icons.close),
-                    onPressed: () => setState(() => _insumos.removeAt(i)),
-                  ),
-                ),
-              TextButton.icon(
-                onPressed: _addInsumo,
-                icon: const Icon(Icons.science_outlined),
-                label: const Text('Adicionar produto / lote'),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _obsCtrl,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Observações (opcional)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              if (_retificando) ...[
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _justCtrl,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    labelText: 'Justificativa da retificação (obrigatória)',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
-        FilledButton(
-          onPressed: _podeSalvar ? _salvar : null,
-          child: Text(_retificando ? 'Retificar' : 'Registrar'),
-        ),
-      ],
-    );
-  }
-}
-
-class _DialogoJustificativa extends StatefulWidget {
-  const _DialogoJustificativa();
-
-  @override
-  State<_DialogoJustificativa> createState() => _DialogoJustificativaState();
-}
-
-class _DialogoJustificativaState extends State<_DialogoJustificativa> {
-  final _ctrl = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl.addListener(() => setState(() {}));
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Anular registro'),
-      content: SizedBox(
-        width: 420,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(_retificando ? 'Retificar procedimento' : 'Novo procedimento estético',
+            style: tema.textTheme.titleMedium),
+        if (_retificando)
+          Text('O registro anterior ficará riscado no histórico (nada é apagado).',
+              style: tema.textTheme.bodySmall),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
           children: [
-            const Text('O registro ficará riscado no histórico; nada é apagado (RN05).'),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _ctrl,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Justificativa (obrigatória)',
-                border: OutlineInputBorder(),
+            for (final t in TipoProtocolo.values)
+              ChoiceChip(
+                label: Text(t.rotulo),
+                selected: _protocolo == t,
+                onSelected: (_) => setState(() => _protocolo = t),
               ),
-            ),
           ],
         ),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
-        FilledButton(
-          onPressed: _ctrl.text.trim().length >= 3 ? () => Navigator.of(context).pop(_ctrl.text.trim()) : null,
-          child: const Text('Anular'),
+        if (_protocolo == TipoProtocolo.outro) ...[
+          const SizedBox(height: 12),
+          TextField(
+            controller: _outroCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Descreva o protocolo *',
+              isDense: true,
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ],
+        const SizedBox(height: 12),
+        TextField(
+          controller: _regiaoCtrl,
+          decoration: const InputDecoration(
+            labelText: 'Região tratada *',
+            isDense: true,
+            border: OutlineInputBorder(),
+          ),
         ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _paramCtrl,
+          maxLines: 2,
+          decoration: const InputDecoration(
+            labelText: 'Parâmetros (ex.: concentração do ácido, profundidade da agulha)',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text('Produto, lote e validade * (RN06)', style: tema.textTheme.titleSmall),
+        const SizedBox(height: 6),
+        PainelLoteAplicado(aoAdicionar: (l) => setState(() => _insumos.add(l))),
+        if (_insumos.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              for (var i = 0; i < _insumos.length; i++)
+                InputChip(
+                  label: Text(
+                    '${_insumos[i].produto} • lote ${_insumos[i].lote} • val. '
+                    '${formatarData(_insumos[i].validade)} • ${_num(_insumos[i].quantidade)} '
+                    '${_insumos[i].unidade.rotulo}',
+                  ),
+                  onDeleted: () => setState(() => _insumos.removeAt(i)),
+                ),
+            ],
+          ),
+        ],
+        const SizedBox(height: 16),
+        TextField(
+          controller: _obsCtrl,
+          maxLines: 2,
+          decoration: const InputDecoration(
+            labelText: 'Observações (opcional)',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        if (_retificando) ...[
+          const SizedBox(height: 12),
+          TextField(
+            controller: _justCtrl,
+            maxLines: 2,
+            decoration: const InputDecoration(
+              labelText: 'Justificativa da retificação (obrigatória)',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            FilledButton.icon(
+              onPressed: _podeSalvar ? _salvar : null,
+              icon: const Icon(Icons.save_outlined),
+              label: Text(_retificando ? 'Retificar' : 'Registrar procedimento'),
+            ),
+            if (_retificando && widget.aoCancelar != null)
+              TextButton(onPressed: widget.aoCancelar, child: const Text('Cancelar')),
+          ],
+        ),
+        if (!_retificando && !widget.temAtendimento)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              'Inicie um atendimento na aba Atendimentos para registrar o procedimento.',
+              style: tema.textTheme.bodySmall,
+            ),
+          ),
       ],
     );
   }

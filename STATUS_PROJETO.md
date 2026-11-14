@@ -1,6 +1,6 @@
 # Status do Projeto — ibn (Sistema Clínico)
 
-**Última atualização:** 03/11/2026 (Sprint 1: todos os módulos clínicos validados; fechamento em andamento)
+**Última atualização:** 13/11/2026 (Sprint 1 validada; fase de ajustes: Configurações do Administrador, áreas do dentista, anamnese da clínica-escola e formulários inline)
 **Stack:** Flutter (Windows, Android, Web) · Cubit (`flutter_bloc`) · dados em memória (sem servidor) · estrutura em `ARQUITETURA.md`
 **Legenda:** ✅ funciona · 🟡 parcial (existe, mas com falhas conhecidas) · 🔴 quebrado / não compila · ⬜ não iniciado
 
@@ -24,8 +24,11 @@
 | Odontologia — Documentos: prescrição, atestado, TCLE e PDF (RF04.4) | ✅ validado em 31/10/2026 |
 | Odontologia — Plano de tratamento e orçamento com sigilo ao executante (RF04.5, **RN04**) | ✅ validado (guia sem valores; falta o odontograma de planejamento do plano) |
 | Biomedicina (RF05): anamnese estética, procedimentos com lote e validade (RN06), exames e resultados com alerta | ✅ validado |
+| Configurações da clínica (Administrador): salas e bloqueios, catálogo de procedimentos com várias áreas, cor por tipo de profissional, áreas do dentista (Ortodontia e HOF) | ✅ validado (lotes A–E) |
+| Prontuário do dentista em janela única: anamnese da clínica-escola + exame físico + odontograma; atendimento do dia colorido | 🟡 entregue (lotes F–H), falta conferir |
+| Formulários inline, sem janelas, em Exames, Documentos, HOF, Plano de tratamento, Biomedicina e resultados laboratoriais | 🟡 entregue (lotes I–L), falta conferir |
 
-**Estimativa realista de conclusão da Sprint 1: ~95%.** Falta o fechamento (Passo 7): odontograma de planejamento dentro do plano, builds nas 3 plataformas e a revisão final de RN03/RN04/RN05/RN06 por perfil. Depois vem o **marco do servidor**.
+**Estimativa realista de conclusão da Sprint 1: ~95%.** Falta rodar o `CHECKLIST_SPRINT1.md` (atualizado em 13/11) e os builds nas 3 plataformas. Depois vem o **marco do servidor**.
 
 ---
 
@@ -134,7 +137,12 @@ colagens parciais. Padrão: arquivos longos "emendados" em pedaços.
 - O Administrador respeita RN04 pela regra, mas ainda não tem tela para ver os valores dos planos (vem com o Financeiro, Sprint 2)
 - Resultado de exame fora do padrão **só alerta** (decisão): não bloqueia procedimento
 - Odontograma de planejamento dentro do plano de tratamento: estado desejado ao fim do tratamento (Passo 7)
-
+- Cadastro do paciente sem os campos da ficha da clínica-escola: nº do prontuário, cor, sexo, profissão e endereço
+- A agenda não restringe procedimentos de HOF e de ortodontia pela área do dentista (só as abas e as permissões de edição)
+- Configurações, cores e áreas do dentista ficam em memória; no servidor viram dados por clínica (`clinicaId`), junto com salas, catálogo e bloqueios
+- `sala.dart` e `configuracao_repository.dart` se importam mutuamente (o Dart aceita); desfazer quando houver servidor
+- `AtendimentosCubit` escuta o prontuário, mas não a agenda: um agendamento novo só aparece no bloco do dia ao reabrir o prontuário
+- Odontograma, Ortodontia e Auth ainda sem Cubit
 ---
 
 ## 8. Arquitetura (refatoração em andamento)
@@ -154,7 +162,28 @@ Detalhes e estrutura real em `ARQUITETURA.md`.
 | Anamnese | ✅ | ✅ | testes do repositório e do Cubit |
 | Plano de tratamento | ✅ | ✅ | testes do repositório, da RN04 e do Cubit |
 | Biomedicina | ✅ | ✅ | testes do repositório, dos resultados de exames e do Cubit |
+| Configurações | ✅ | ✅ | testes do repositório e do Cubit (`configuracao_test.dart`) |
 
 Migração para `features/` concluída em 28/10/2026 (analyze limpo e testes passando após remover 14 duplicatas deixadas nos caminhos antigos).
 
 Lições registradas: usar sempre `package:ibn/...` (inclusive nos testes); fechar as abas do editor antes de mover arquivos; disco C: cheio derruba o `flutter test` (usar `TEMP` em F:); o `MultiPage` do pacote `pdf` só quebra a página entre widgets (dividir o texto em linhas, como em `pdf_simples.dart`); arquivo novo copiado sem o `import` na tela que o usa dá `undefined_method`.
+
+---
+
+## 9. Fase de ajustes (04–13/11/2026)
+
+| Lote | Entrega | Situação |
+|---|---|---|
+| A | Salas dinâmicas (criar, editar, desativar, excluir), bloqueios de sala, aba Configurações só para o Administrador | ✅ |
+| B | Catálogo de procedimentos editável, com uma ou mais áreas; excluir só se nunca usado, senão desativar | ✅ |
+| C | Cor por tipo de profissional; tags (sala, procedimento, profissional) e faixa colorida na agenda e no painel | ✅ |
+| D | Áreas do dentista (Ortodontia e HOF) definidas pelo Administrador; abas e permissões dependem da área; odontograma de ortodontia dentro da aba Ortodontia | ✅ |
+| E | Ortodontia inline: Ficha e Arcos/Elásticos na mesma aba, Manutenções em painel próprio | ✅ |
+| F–G | Anamnese inline baseada na ficha da clínica-escola (UPE), em dois níveis (Anamnese, Exame físico) e sem itens obrigatórios; salvar grava nova versão; primeira aba do dentista em janela única com o odontograma | 🟡 |
+| H | Painel abre o prontuário; aba Atendimentos com o atendimento do dia já aberto; odontograma expandido | 🟡 |
+| I | Bloco do atendimento muda de cor (amarelo, verde, cinza); Exames e Documentos inline | 🟡 |
+| J | HOF inline (pontos, produto e lote, fotos) | 🟡 |
+| K | Plano de tratamento inline (plano, item, pagamento, encaminhamento); guia sem valores intacta | 🟡 |
+| L | Biomedicina e resultados laboratoriais inline; `PainelLoteAplicado` compartilhado | 🟡 |
+
+Regras de projeto desta fase: formulário clínico **sem janela** (só confirmações usam diálogo); ficha odontológica **sem itens obrigatórios**; cada salvamento de anamnese é uma **nova versão** assinada (RN05); a aba some, e a permissão cai, quando o Administrador remove a área do dentista (os registros ficam).

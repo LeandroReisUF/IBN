@@ -1,6 +1,6 @@
 # Arquitetura do projeto ibn (Sistema Clínico)
 
-**Atualizado:** 03/11/2026 (fechamento da Sprint 1) · Flutter (Windows, Android, Web) · estado com **Cubit** (`flutter_bloc`)
+**Atualizado:** 13/11/2026 · Flutter (Windows, Android, Web) · estado com **Cubit** (`flutter_bloc`)
 
 ## 1. Princípios
 
@@ -14,8 +14,10 @@
 ```
 lib/
 ├── core/                         compartilhado: especialidade · formadores · log_acesso ·
-│                                 politica_acesso_service · procedimento · lote_aplicado ·
-│                                 selecao_arquivo · pdf_simples · widgets/dialogo_lote_aplicado
+│   │                             politica_acesso_service · procedimento · historico_clinico ·
+│   │                             lote_aplicado · pdf_simples · selecao_arquivo
+│   └── widgets/                  manter_vivo (mantém o que foi digitado ao trocar de aba) ·
+│                                 painel_lote_aplicado (produto, lote e validade, RN06)
 ├── assets/odontograma/           dentes_vestibular.json (o pubspec aponta para ele)
 ├── features/
 │   ├── auth/
@@ -23,9 +25,13 @@ lib/
 │   │   ├── data/                 auth_service
 │   │   └── presentation/         tela_login   (cubit/ vazia)
 │   ├── agenda/
-│   │   ├── domain/               agendamento · sala
-│   │   ├── data/                 agenda_service
-│   │   └── presentation/         cubit/ (agendamento_cubit, agendamento_state) · pages/ (tela_agenda, tela_form_agendamento)
+│   │   ├── domain/               agendamento · sala (com `ativa`; `salas` e `buscarSala` leem a configuração)
+│   │   ├── data/                 agenda_service (valida sala ativa, bloqueio, procedimento ativo e áreas)
+│   │   └── presentation/         cubit/ · pages/ (tela_agenda, tela_form_agendamento) · widgets/ (tags_agendamento)
+│   ├── configuracoes/            só Administrador
+│   │   ├── domain/               bloqueio_agenda · area_dentista · paleta_cores
+│   │   ├── data/                 configuracao_repository (salas, bloqueios, catálogo, cores, áreas do dentista)
+│   │   └── presentation/         cubit/ (configuracoes_cubit, configuracoes_state) · pages/ (tela_configuracoes: Salas, Bloqueios, Procedimentos, Cores, Dentistas)
 │   ├── pacientes/
 │   │   ├── domain/               paciente
 │   │   ├── data/                 paciente_repository
@@ -33,14 +39,18 @@ lib/
 │   ├── prontuario/
 │   │   ├── domain/               prontuario            (Atendimento, Evolução, Adendo)
 │   │   ├── data/                 prontuario_repository
-│   │   └── presentation/         cubit/ (atendimentos_cubit, atendimentos_state) · pages/ (tela_prontuario, tela_prontuario_paciente, aba_prontuario) · abas_prontuario (registro das abas por perfil)
+│   │   └── presentation/         abas_prontuario (`abasDoUsuario`: abas por perfil e por área do dentista) ·
+│   │                             cubit/ · pages/ (tela_prontuario, tela_prontuario_paciente,
+│   │                             aba_prontuario = Atendimentos, aba_anamnese_odontograma)
 │   ├── odontograma/
 │   │   ├── domain/               odontograma · condicao_odonto · anatomia_dente
 │   │   ├── data/                 odontograma_repository · desenhos_dentes
-│   │   └── presentation/         pages/ (aba_odontograma, dialogo_evolucao, menu_condicoes) · widgets/ (caixa_dente, desenho_dente)
+│   │   └── presentation/         pages/ (aba_odontograma com `ModoOdontograma` geral ou ortodontia e `embutido`,
+│   │                             menu_condicoes, dialogo_evolucao) · widgets/ (caixa_dente, desenho_dente)
 │   ├── ortodontia/
-│   │   ├── domain/               ortodontia            (modelos + repositório juntos, separar ao criar o Cubit)
-│   │   └── presentation/         pages/ (aba_ortodontia) · widgets/ (aba_ortodontia_{ficha,arcos,fotos,manutencoes})
+│   │   ├── domain/               ortodontia            (modelos + repositório juntos; `FichaOrtodontica.comArcos` e `comDados`)
+│   │   └── presentation/         pages/ (aba_ortodontia: Odontograma, Ficha, Fotos, Manutenções) ·
+│   │                             widgets/ (aba_ortodontia_ficha com Arcos, _fotos, _manutencoes)
 │   ├── hof/
 │   │   ├── domain/               hof
 │   │   ├── data/                 hof_repository
@@ -54,9 +64,9 @@ lib/
 │   │   ├── data/                 documentos_repository
 │   │   └── presentation/         cubit/ (documentos_cubit, documentos_state) · pages/ (aba_documentos)
 │   ├── anamnese/
-│   │   ├── domain/               anamnese
+│   │   ├── domain/               anamnese (perguntas com seção "Grupo|Seção", condicionais e "sem alterações")
 │   │   ├── data/                 anamnese_repository
-│   │   └── presentation/         cubit/ (anamnese_cubit, anamnese_state) · pages/ (aba_anamnese) · widgets/ (formulario_anamnese)
+│   │   └── presentation/         cubit/ · pages/ (aba_anamnese: AbaAnamnese e AnamneseInline) · widgets/ (formulario_anamnese)
 │   ├── plano_tratamento/
 │   │   ├── domain/               plano_tratamento · orcamento_visibilidade   (RN04: a guia do executante não tem campos de dinheiro)
 │   │   ├── data/                 plano_repository
@@ -85,6 +95,14 @@ lib/
 - Leitura na UI: `BlocBuilder`. `BlocConsumer`/`BlocListener` só se o Cubit passar a emitir eventos únicos.
 - Testes: `bloc_test` (`blocTest`) em `test/<nome>_cubit_test.dart`; para provocar `Error`, use uma subclasse do serviço que lança no getter.
 
+## 3.1 Formulários inline (padrão desde 11/11/2026)
+
+- Formulário clínico **não abre janela**: é um painel (`StatefulWidget` com os `TextEditingController`) dentro da própria aba. Só confirmações destrutivas (descartar rascunho, cancelar procedimento) usam `AlertDialog`.
+- O painel recebe um callback `Future<String?> aoAlgo(...)` que devolve a mensagem de erro (ou `null`) e **limpa os campos só em caso de sucesso**.
+- **Retificar** carrega o registro no mesmo painel e rola a tela para o topo; **Anular** abre a justificativa dentro do cartão.
+- Abas dentro de `TabBarView` são descartadas ao trocar de aba: envolver com `ManterVivo` quando houver texto ainda não salvo.
+- Seções que abrem e fecham usam `ExpansionTile(maintainState: true)` com `ValueKey` estável.
+
 ## 4. Situação da migração
 
 | Módulo | Estrutura em features | Cubit | Testes do Cubit |
@@ -93,15 +111,11 @@ lib/
 | Agenda | ✅ | ✅ | 13 |
 | Pacientes | ✅ | ✅ | 16 |
 | Prontuário (atendimentos) | ✅ | ✅ | ~17 |
+| Home / Painel | ✅ | ✅ | 1 |
+| Configurações | ✅ | ✅ | `configuracao_test.dart` |
+| Anamnese · HOF · Exames · Documentos · Plano · Biomedicina | ✅ | ✅ | repositório e Cubit |
 | Odontograma | ✅ | ⬜ | — |
 | Ortodontia | ✅ | ⬜ | — |
-| Home / Painel | ✅ | ✅ (reusa `AgendamentoCubit`) | — |
-| HOF | ✅ | ✅ | ✅ |
-| Exames | ✅ | ✅ | ✅ |
-| Documentos | ✅ | ✅ | ✅ |
-| Anamnese | ✅ | ✅ | ✅ |
-| Plano de tratamento | ✅ | ✅ | ✅ |
-| Biomedicina | ✅ | ✅ | ✅ |
 
 Ordem sugerida das próximas migrações de estado: **Odontograma → Ortodontia → Auth** (o Painel já usa o `AgendamentoCubit`).
 As features novas (HOF, Exames, Documentos, Anamnese, Plano de tratamento e Biomedicina) já nasceram em `features/<nome>/{domain,data,presentation}` com Cubit.
@@ -122,3 +136,7 @@ As features novas (HOF, Exames, Documentos, Anamnese, Plano de tratamento e Biom
 - **RN04 pela forma dos dados:** `GuiaProcedimentoExecutante` não tem nenhum campo de dinheiro, e o `PlanoCubit` de quem só executa carrega zero planos. Os testes varrem a guia atrás de valor, desconto, total, pagamento e "R$". Valores são guardados em **centavos inteiros**.
 - **Visibilidade da Anamnese:** o profissional vê as suas (rascunhos inclusive) e as **assinadas** de colegas da mesma especialidade do modelo; rascunhos de colegas e o modelo geral não são compartilhados.
 - **Pendência conhecida (antes do servidor):** `PacienteRepository.temHistorico` só conhece vínculos e atendimentos; precisa consultar todos os módulos (anamnese, plano, exames, documentos etc.), senão um paciente com dados e sem vínculo poderia ser excluído pelo Administrador.
+- `sala.dart` e `configuracao_repository.dart` importam um ao outro (as funções globais `salas` e `buscarSala` leem a configuração). O Dart aceita; manter enquanto os dados forem em memória.
+- Substituição em massa por expressão regular (Ctrl+H) alterou um `import` por engano: depois de qualquer regex, rodar `flutter analyze` antes de seguir.
+- `TabBarView` descarta a aba que sai da tela; sem `ManterVivo`, o texto digitado e não salvo se perde.
+- `ExpansionTile` dentro de `ListView` aninhado precisa de `shrinkWrap` e rolagem desligada no filho (parâmetro `embutido` do odontograma).
